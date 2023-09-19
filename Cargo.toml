@@ -1,0 +1,90 @@
+[package]
+name = "mutnet"
+version = "0.1.0"
+edition = "2021"
+authors = ["Julian Schindel <mail@arctic-alpaca.de>"]
+license = "MIT OR Apache-2.0"
+description = "Unsafe-free and allocation-free, no-std network protocol parsing and in-place manipulation library."
+documentation = "https://docs.rs/mutnet"
+readme = "README.md"
+repository = "https://github.com/arctic-alpaca/mutnet"
+keywords = ["network", "parsing", "no-std"]
+categories = ["parser-implementations", "network-programming", "no-std::no-alloc", "no-std"]
+
+
+[features]
+# Include the core::error:Error trait for all errors
+error_trait = []
+
+# Use std
+std = ["error_trait"]
+
+default = ["std"]
+
+# Verification features, not intended for non-dev use
+# Removes the checksum compilation for Kani proofs
+remove_checksum = []
+verify_tcp = ["remove_checksum"]
+verify_ipv6_extensions = ["remove_checksum"]
+verify_ipv6 = ["remove_checksum"]
+verify_ipv4 = ["remove_checksum"]
+verify_arp = ["remove_checksum"]
+verify_vlan = ["remove_checksum"]
+verify_ethernet = ["remove_checksum"]
+
+
+[dependencies]
+paste = "=1.0.14"
+
+
+[dev-dependencies]
+# Benchmarking
+criterion = "0.5.1"
+rand = {version = "0.8.5", features = ["min_const_gen"]}
+
+# Comparison
+etherparse = "0.13.0"
+
+# Examples
+pcap = "1.1.0"
+
+
+# Examples
+[[example]]
+name = "parse_from_iface"
+
+# Benches
+[[bench]]
+name = "arp"
+harness = false
+
+[[bench]]
+name = "checksum"
+harness = false
+
+[[bench]]
+name = "ethernet"
+harness = false
+
+[[bench]]
+name = "ipv4"
+harness = false
+
+[[bench]]
+name = "ipv6"
+harness = false
+
+[[bench]]
+name = "combined"
+harness = false
+
+[[bench]]
+name = "eth_ipv4_tcp"
+harness = false
+
+
+# Profiles
+[profile.bench]
+debug = true
+lto = true
+opt-level = 3

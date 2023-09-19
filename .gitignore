@@ -1,0 +1,14 @@
+/target
+
+.idea/
+
+*.svg
+
+*.data
+
+*.data.old
+
+*.profraw
+
+Cargo.lock
+

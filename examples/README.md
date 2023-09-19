@@ -1,0 +1,1 @@
+The parse_from_iface example might require root privileges to access the default network interface.
