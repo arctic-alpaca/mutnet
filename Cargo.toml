@@ -5,7 +5,6 @@ edition = "2021"
 authors = ["Julian Schindel <mail@arctic-alpaca.de>"]
 license = "MIT OR Apache-2.0"
 description = "Unsafe-free and allocation-free, no-std network protocol parsing and in-place manipulation library."
-documentation = "https://docs.rs/mutnet"
 readme = "README.md"
 repository = "https://github.com/arctic-alpaca/mutnet"
 keywords = ["network", "parsing", "no-std"]
