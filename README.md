@@ -2,6 +2,11 @@
 
 mutnet is an unsafe-free and allocation-free, no-std network protocol parsing and in-place manipulation library.
 
+
+[![Crates.io](https://img.shields.io/crates/v/mutnet)](https://crates.io/crates/mutnet)
+[![Documentation](https://docs.rs/mutnet/badge.svg)](https://docs.rs/mutnet)
+
+
 ## Nightly
 This crate currently makes use of [type privacy](https://github.com/rust-lang/rust/issues/48054) and thus only compiles
 on nightly Rust. It currently looks like this [limitation should be lifted](https://github.com/rust-lang/rust/pull/113126) with Rust 1.74.0.
