@@ -58,7 +58,7 @@ mutnet expects the user to supply properly structured data if length modifying m
 ```
 
 ### Examples
-```rust
+```rust ignore
 fn print_eth_source(data: &[u8]) {
   let eth = DataBuffer::<_, Eth>::new(data, 0).unwrap();
   println!("Eth source: {:?}", eth.ethernet_source());
