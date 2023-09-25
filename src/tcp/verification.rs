@@ -4,16 +4,20 @@ use crate::ethernet::Eth;
 
 const SLICE_LENGTH: usize = 100;
 const HEADROOM: usize = SLICE_LENGTH + 10;
+const EXTENDED_SLICE_LENGTH: usize = 150;
+const EXTENDED_HEADROOM: usize = EXTENDED_SLICE_LENGTH + 10;
 const CHECKSUM_IPV4: bool = true;
 const CHECKSUM_TCP: bool = true;
 
 #[kani::proof]
 fn get_tcp_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -49,11 +53,13 @@ fn get_tcp_ipv4_proof() {
 
 #[kani::proof]
 fn get_tcp_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -89,11 +95,13 @@ fn get_tcp_ipv6_proof() {
 
 #[kani::proof]
 fn set_tcp_source_port_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -101,7 +109,7 @@ fn set_tcp_source_port_ipv4_proof() {
                 to_test.set_tcp_source_port(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -116,11 +124,13 @@ fn set_tcp_source_port_ipv4_proof() {
 
 #[kani::proof]
 fn set_tcp_source_port_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -128,7 +138,7 @@ fn set_tcp_source_port_ipv6_proof() {
                 to_test.set_tcp_source_port(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),
@@ -142,11 +152,13 @@ fn set_tcp_source_port_ipv6_proof() {
 
 #[kani::proof]
 fn set_tcp_destination_port_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -154,7 +166,7 @@ fn set_tcp_destination_port_ipv4_proof() {
                 to_test.set_tcp_destination_port(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -169,11 +181,13 @@ fn set_tcp_destination_port_ipv4_proof() {
 
 #[kani::proof]
 fn set_tcp_destination_port_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -181,7 +195,7 @@ fn set_tcp_destination_port_ipv6_proof() {
                 to_test.set_tcp_destination_port(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),
@@ -195,11 +209,13 @@ fn set_tcp_destination_port_ipv6_proof() {
 
 #[kani::proof]
 fn set_tcp_sequence_number_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -207,7 +223,7 @@ fn set_tcp_sequence_number_ipv4_proof() {
                 to_test.set_tcp_sequence_number(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -222,11 +238,13 @@ fn set_tcp_sequence_number_ipv4_proof() {
 
 #[kani::proof]
 fn set_tcp_sequence_number_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -234,7 +252,7 @@ fn set_tcp_sequence_number_ipv6_proof() {
                 to_test.set_tcp_sequence_number(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),
@@ -248,11 +266,13 @@ fn set_tcp_sequence_number_ipv6_proof() {
 
 #[kani::proof]
 fn set_tcp_acknowledgement_number_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -260,7 +280,7 @@ fn set_tcp_acknowledgement_number_ipv4_proof() {
                 to_test.set_tcp_acknowledgement_number(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -275,11 +295,13 @@ fn set_tcp_acknowledgement_number_ipv4_proof() {
 
 #[kani::proof]
 fn set_tcp_acknowledgement_number_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -287,7 +309,7 @@ fn set_tcp_acknowledgement_number_ipv6_proof() {
                 to_test.set_tcp_acknowledgement_number(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),
@@ -301,11 +323,13 @@ fn set_tcp_acknowledgement_number_ipv6_proof() {
 
 #[kani::proof]
 fn set_tcp_data_offset_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, 150>();
-    let slice = vec.as_mut_slice();
-    let mut headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; EXTENDED_SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= EXTENDED_SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let mut any_headroom = kani::any_where(|i| *i <= EXTENDED_HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -328,11 +352,8 @@ fn set_tcp_data_offset_ipv4_proof() {
                         core::cmp::Ordering::Less => {
                             let difference =
                                 new_tcp_data_offset_bytes_usize - old_tcp_data_offset_bytes;
-                            headroom -= difference;
-                            assert_eq!(
-                                internal_headroom - difference,
-                                to_test.headroom()
-                            );
+                            any_headroom -= difference;
+                            assert_eq!(internal_headroom - difference, to_test.headroom());
                             assert_eq!(data_length + difference, to_test.data_length());
                             assert_eq!(
                                 tcp_header_length + difference,
@@ -347,11 +368,8 @@ fn set_tcp_data_offset_ipv4_proof() {
                         core::cmp::Ordering::Greater => {
                             let difference =
                                 old_tcp_data_offset_bytes - new_tcp_data_offset_bytes_usize;
-                            headroom += difference;
-                            assert_eq!(
-                                internal_headroom + difference,
-                                to_test.headroom()
-                            );
+                            any_headroom += difference;
+                            assert_eq!(internal_headroom + difference, to_test.headroom());
                             assert_eq!(data_length - difference, to_test.data_length());
                             assert_eq!(
                                 tcp_header_length - difference,
@@ -380,7 +398,7 @@ fn set_tcp_data_offset_ipv4_proof() {
                 );
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -395,11 +413,13 @@ fn set_tcp_data_offset_ipv4_proof() {
 
 #[kani::proof]
 fn set_tcp_data_offset_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, 150>();
-    let slice = vec.as_mut_slice();
-    let mut headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; EXTENDED_SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= EXTENDED_SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let mut any_headroom = kani::any_where(|i| *i <= EXTENDED_HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -422,11 +442,8 @@ fn set_tcp_data_offset_ipv6_proof() {
                         core::cmp::Ordering::Less => {
                             let difference =
                                 new_tcp_data_offset_bytes_usize - old_tcp_data_offset_bytes;
-                            headroom -= difference;
-                            assert_eq!(
-                                internal_headroom - difference,
-                                to_test.headroom()
-                            );
+                            any_headroom -= difference;
+                            assert_eq!(internal_headroom - difference, to_test.headroom());
                             assert_eq!(data_length + difference, to_test.data_length());
                             assert_eq!(
                                 tcp_header_length + difference,
@@ -445,11 +462,8 @@ fn set_tcp_data_offset_ipv6_proof() {
                         core::cmp::Ordering::Greater => {
                             let difference =
                                 old_tcp_data_offset_bytes - new_tcp_data_offset_bytes_usize;
-                            headroom += difference;
-                            assert_eq!(
-                                internal_headroom + difference,
-                                to_test.headroom()
-                            );
+                            any_headroom += difference;
+                            assert_eq!(internal_headroom + difference, to_test.headroom());
                             assert_eq!(data_length - difference, to_test.data_length());
                             assert_eq!(
                                 tcp_header_length - difference,
@@ -478,7 +492,7 @@ fn set_tcp_data_offset_ipv6_proof() {
                 );
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),
@@ -492,11 +506,13 @@ fn set_tcp_data_offset_ipv6_proof() {
 
 #[kani::proof]
 fn set_tcp_reserved_bits_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -504,7 +520,7 @@ fn set_tcp_reserved_bits_ipv4_proof() {
                 to_test.set_tcp_reserved_bits(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -519,11 +535,13 @@ fn set_tcp_reserved_bits_ipv4_proof() {
 
 #[kani::proof]
 fn set_tcp_reserved_bits_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -531,7 +549,7 @@ fn set_tcp_reserved_bits_ipv6_proof() {
                 to_test.set_tcp_reserved_bits(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),
@@ -545,11 +563,13 @@ fn set_tcp_reserved_bits_ipv6_proof() {
 
 #[kani::proof]
 fn set_tcp_flags_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -557,7 +577,7 @@ fn set_tcp_flags_ipv4_proof() {
                 to_test.set_tcp_flags(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -572,11 +592,13 @@ fn set_tcp_flags_ipv4_proof() {
 
 #[kani::proof]
 fn set_tcp_flags_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -584,7 +606,7 @@ fn set_tcp_flags_ipv6_proof() {
                 to_test.set_tcp_flags(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),
@@ -598,11 +620,13 @@ fn set_tcp_flags_ipv6_proof() {
 
 #[kani::proof]
 fn set_tcp_congestion_window_reduced_flag_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -610,7 +634,7 @@ fn set_tcp_congestion_window_reduced_flag_ipv4_proof() {
                 to_test.set_tcp_congestion_window_reduced_flag(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -625,11 +649,13 @@ fn set_tcp_congestion_window_reduced_flag_ipv4_proof() {
 
 #[kani::proof]
 fn set_tcp_congestion_window_reduced_flag_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -637,7 +663,7 @@ fn set_tcp_congestion_window_reduced_flag_ipv6_proof() {
                 to_test.set_tcp_congestion_window_reduced_flag(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),
@@ -651,11 +677,13 @@ fn set_tcp_congestion_window_reduced_flag_ipv6_proof() {
 
 #[kani::proof]
 fn set_tcp_ecn_echo_flag_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -663,7 +691,7 @@ fn set_tcp_ecn_echo_flag_ipv4_proof() {
                 to_test.set_tcp_ecn_echo_flag(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -678,11 +706,13 @@ fn set_tcp_ecn_echo_flag_ipv4_proof() {
 
 #[kani::proof]
 fn set_tcp_ecn_echo_flag_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -690,7 +720,7 @@ fn set_tcp_ecn_echo_flag_ipv6_proof() {
                 to_test.set_tcp_ecn_echo_flag(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),
@@ -704,11 +734,13 @@ fn set_tcp_ecn_echo_flag_ipv6_proof() {
 
 #[kani::proof]
 fn set_tcp_urgent_pointer_flag_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -716,7 +748,7 @@ fn set_tcp_urgent_pointer_flag_ipv4_proof() {
                 to_test.set_tcp_urgent_pointer_flag(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -731,11 +763,13 @@ fn set_tcp_urgent_pointer_flag_ipv4_proof() {
 
 #[kani::proof]
 fn set_tcp_urgent_pointer_flag_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -743,7 +777,7 @@ fn set_tcp_urgent_pointer_flag_ipv6_proof() {
                 to_test.set_tcp_urgent_pointer_flag(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),
@@ -757,11 +791,13 @@ fn set_tcp_urgent_pointer_flag_ipv6_proof() {
 
 #[kani::proof]
 fn set_tcp_acknowledgement_flag_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -769,7 +805,7 @@ fn set_tcp_acknowledgement_flag_ipv4_proof() {
                 to_test.set_tcp_acknowledgement_flag(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -784,11 +820,13 @@ fn set_tcp_acknowledgement_flag_ipv4_proof() {
 
 #[kani::proof]
 fn set_tcp_acknowledgement_flag_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -796,7 +834,7 @@ fn set_tcp_acknowledgement_flag_ipv6_proof() {
                 to_test.set_tcp_acknowledgement_flag(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),
@@ -810,11 +848,13 @@ fn set_tcp_acknowledgement_flag_ipv6_proof() {
 
 #[kani::proof]
 fn set_tcp_push_flag_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -822,7 +862,7 @@ fn set_tcp_push_flag_ipv4_proof() {
                 to_test.set_tcp_push_flag(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -837,11 +877,13 @@ fn set_tcp_push_flag_ipv4_proof() {
 
 #[kani::proof]
 fn set_tcp_push_flag_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -849,7 +891,7 @@ fn set_tcp_push_flag_ipv6_proof() {
                 to_test.set_tcp_push_flag(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),
@@ -863,11 +905,13 @@ fn set_tcp_push_flag_ipv6_proof() {
 
 #[kani::proof]
 fn set_tcp_reset_flag_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -875,7 +919,7 @@ fn set_tcp_reset_flag_ipv4_proof() {
                 to_test.set_tcp_reset_flag(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -890,11 +934,13 @@ fn set_tcp_reset_flag_ipv4_proof() {
 
 #[kani::proof]
 fn set_tcp_reset_flag_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -902,7 +948,7 @@ fn set_tcp_reset_flag_ipv6_proof() {
                 to_test.set_tcp_reset_flag(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),
@@ -916,11 +962,13 @@ fn set_tcp_reset_flag_ipv6_proof() {
 
 #[kani::proof]
 fn set_tcp_synchronize_flag_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -928,7 +976,7 @@ fn set_tcp_synchronize_flag_ipv4_proof() {
                 to_test.set_tcp_synchronize_flag(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -943,11 +991,13 @@ fn set_tcp_synchronize_flag_ipv4_proof() {
 
 #[kani::proof]
 fn set_tcp_synchronize_flag_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -955,7 +1005,7 @@ fn set_tcp_synchronize_flag_ipv6_proof() {
                 to_test.set_tcp_synchronize_flag(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),
@@ -969,11 +1019,13 @@ fn set_tcp_synchronize_flag_ipv6_proof() {
 
 #[kani::proof]
 fn set_tcp_fin_flag_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -981,7 +1033,7 @@ fn set_tcp_fin_flag_ipv4_proof() {
                 to_test.set_tcp_fin_flag(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -996,11 +1048,13 @@ fn set_tcp_fin_flag_ipv4_proof() {
 
 #[kani::proof]
 fn set_tcp_fin_flag_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -1008,7 +1062,7 @@ fn set_tcp_fin_flag_ipv6_proof() {
                 to_test.set_tcp_fin_flag(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),
@@ -1022,11 +1076,13 @@ fn set_tcp_fin_flag_ipv6_proof() {
 
 #[kani::proof]
 fn set_tcp_window_size_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -1034,7 +1090,7 @@ fn set_tcp_window_size_ipv4_proof() {
                 to_test.set_tcp_window_size(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -1049,11 +1105,13 @@ fn set_tcp_window_size_ipv4_proof() {
 
 #[kani::proof]
 fn set_tcp_window_size_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -1061,7 +1119,7 @@ fn set_tcp_window_size_ipv6_proof() {
                 to_test.set_tcp_window_size(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),
@@ -1075,11 +1133,13 @@ fn set_tcp_window_size_ipv6_proof() {
 
 #[kani::proof]
 fn set_tcp_checksum_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -1087,7 +1147,7 @@ fn set_tcp_checksum_ipv4_proof() {
                 to_test.set_tcp_checksum(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -1102,11 +1162,13 @@ fn set_tcp_checksum_ipv4_proof() {
 
 #[kani::proof]
 fn set_tcp_checksum_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -1114,7 +1176,7 @@ fn set_tcp_checksum_ipv6_proof() {
                 to_test.set_tcp_checksum(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),
@@ -1128,11 +1190,13 @@ fn set_tcp_checksum_ipv6_proof() {
 
 #[kani::proof]
 fn set_tcp_urgent_pointer_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -1140,7 +1204,7 @@ fn set_tcp_urgent_pointer_ipv4_proof() {
                 to_test.set_tcp_urgent_pointer(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -1155,11 +1219,13 @@ fn set_tcp_urgent_pointer_ipv4_proof() {
 
 #[kani::proof]
 fn set_tcp_urgent_pointer_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -1167,7 +1233,7 @@ fn set_tcp_urgent_pointer_ipv6_proof() {
                 to_test.set_tcp_urgent_pointer(kani::any());
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),
@@ -1181,11 +1247,13 @@ fn set_tcp_urgent_pointer_ipv6_proof() {
 
 #[kani::proof]
 fn update_tcp_checksum_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -1193,7 +1261,7 @@ fn update_tcp_checksum_ipv4_proof() {
                 to_test.update_tcp_checksum();
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                         CHECKSUM_IPV4,
                     )
@@ -1208,11 +1276,13 @@ fn update_tcp_checksum_ipv4_proof() {
 
 #[kani::proof]
 fn update_tcp_checksum_ipv6_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -1220,7 +1290,7 @@ fn update_tcp_checksum_ipv6_proof() {
                 to_test.update_tcp_checksum();
                 let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap(),

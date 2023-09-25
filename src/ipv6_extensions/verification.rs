@@ -6,16 +6,20 @@ use crate::tcp::Tcp;
 
 const SLICE_LENGTH: usize = 100;
 const HEADROOM: usize = SLICE_LENGTH + 10;
+const EXTENDED_SLICE_LENGTH: usize = 150;
+const EXTENDED_HEADROOM: usize = EXTENDED_SLICE_LENGTH + 10;
 const MAX_EXTENSIONS: usize = 5;
 
 #[kani::proof]
 #[kani::unwind(6)]
 fn get_ipv6_ext_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(next_header) = to_test.ipv6_next_header().try_into() {
                 if let Ok((mut to_test, _has_fragment)) =
@@ -51,11 +55,13 @@ fn get_ipv6_ext_proof() {
 #[kani::proof]
 #[kani::unwind(6)]
 fn set_ipv6_ext_next_header() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(first_extension) = to_test.ipv6_next_header().try_into() {
                 if let Ok((mut to_test, _has_fragment)) =
@@ -72,7 +78,7 @@ fn set_ipv6_ext_next_header() {
                     let _ = to_test.set_ipv6_ext_next_header(next_header);
 
                     let to_test = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                             .unwrap(),
                     )
                     .unwrap();
@@ -91,11 +97,13 @@ fn set_ipv6_ext_next_header() {
 #[kani::unwind(6)]
 #[kani::proof]
 fn set_ipv6_ext_length_complete() {
-    let mut vec = kani::vec::any_vec::<u8, 150>();
-    let slice = vec.as_mut_slice();
-    let mut headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; EXTENDED_SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= EXTENDED_SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let mut any_headroom = kani::any_where(|i| *i <= EXTENDED_HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(first_extension) = to_test.ipv6_next_header().try_into() {
                 if let Ok((to_test, has_fragment)) =
@@ -143,7 +151,7 @@ fn set_ipv6_ext_length_complete() {
                                         core::cmp::Ordering::Less => {
                                             let difference = new_ext_length_in_bytes
                                                 - current_ext_length_in_bytes;
-                                            headroom -= difference;
+                                            any_headroom -= difference;
                                             assert_eq!(
                                                 data_length + difference,
                                                 to_test.data_length()
@@ -163,10 +171,7 @@ fn set_ipv6_ext_length_complete() {
                                         }
                                         core::cmp::Ordering::Equal => {
                                             assert_eq!(data_length, to_test.data_length());
-                                            assert_eq!(
-                                                internal_headroom,
-                                                to_test.headroom()
-                                            );
+                                            assert_eq!(internal_headroom, to_test.headroom());
                                             assert_eq!(
                                                 ipv6_ext_header_length,
                                                 to_test.header_length(Layer::Ipv6Ext)
@@ -179,7 +184,7 @@ fn set_ipv6_ext_length_complete() {
                                         core::cmp::Ordering::Greater => {
                                             let difference = current_ext_length_in_bytes
                                                 - new_ext_length_in_bytes;
-                                            headroom += difference;
+                                            any_headroom += difference;
                                             assert_eq!(
                                                 data_length - difference,
                                                 to_test.data_length()
@@ -200,10 +205,7 @@ fn set_ipv6_ext_length_complete() {
                                     }
                                 } else {
                                     assert_eq!(data_length, to_test.data_length());
-                                    assert_eq!(
-                                        internal_headroom,
-                                        to_test.headroom()
-                                    );
+                                    assert_eq!(internal_headroom, to_test.headroom());
                                     assert_eq!(
                                         ipv6_ext_header_length,
                                         to_test.header_length(Layer::Ipv6Ext)
@@ -234,7 +236,7 @@ fn set_ipv6_ext_length_complete() {
 
                                 let eth = DataBuffer::<_, Eth>::new(
                                     to_test.buffer_into_inner(),
-                                    headroom,
+                                    any_headroom,
                                 )
                                 .unwrap();
                                 let ipv6 = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(eth).unwrap();
@@ -264,11 +266,13 @@ fn set_ipv6_ext_length_complete() {
 #[kani::proof]
 #[kani::unwind(6)]
 fn set_ipv6_ext_routing_type() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(first_extension) = to_test.ipv6_next_header().try_into() {
                 if let Ok((mut to_test, _has_fragment)) =
@@ -283,7 +287,7 @@ fn set_ipv6_ext_routing_type() {
                             DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
                                 DataBuffer::<_, Eth>::new(
                                     to_test.buffer_into_inner(),
-                                    headroom,
+                                    any_headroom,
                                 )
                                 .unwrap(),
                             )
@@ -300,11 +304,13 @@ fn set_ipv6_ext_routing_type() {
 #[kani::proof]
 #[kani::unwind(6)]
 fn set_ipv6_ext_segments_left() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(first_extension) = to_test.ipv6_next_header().try_into() {
                 if let Ok((mut to_test, _has_fragment)) =
@@ -319,7 +325,7 @@ fn set_ipv6_ext_segments_left() {
                             DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
                                 DataBuffer::<_, Eth>::new(
                                     to_test.buffer_into_inner(),
-                                    headroom,
+                                    any_headroom,
                                 )
                                 .unwrap(),
                             )
@@ -336,11 +342,13 @@ fn set_ipv6_ext_segments_left() {
 #[kani::proof]
 #[kani::unwind(6)]
 fn set_ipv6_ext_fragment_offset() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(first_extension) = to_test.ipv6_next_header().try_into() {
                 if let Ok((mut to_test, _has_fragment)) =
@@ -355,7 +363,7 @@ fn set_ipv6_ext_fragment_offset() {
                             DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
                                 DataBuffer::<_, Eth>::new(
                                     to_test.buffer_into_inner(),
-                                    headroom,
+                                    any_headroom,
                                 )
                                 .unwrap(),
                             )
@@ -372,11 +380,13 @@ fn set_ipv6_ext_fragment_offset() {
 #[kani::proof]
 #[kani::unwind(6)]
 fn set_ipv6_ext_more_fragments() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(first_extension) = to_test.ipv6_next_header().try_into() {
                 if let Ok((mut to_test, _has_fragment)) =
@@ -391,7 +401,7 @@ fn set_ipv6_ext_more_fragments() {
                             DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
                                 DataBuffer::<_, Eth>::new(
                                     to_test.buffer_into_inner(),
-                                    headroom,
+                                    any_headroom,
                                 )
                                 .unwrap(),
                             )
@@ -408,11 +418,13 @@ fn set_ipv6_ext_more_fragments() {
 #[kani::proof]
 #[kani::unwind(6)]
 fn set_ipv6_ext_fragment_identification() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
             if let Ok(first_extension) = to_test.ipv6_next_header().try_into() {
                 if let Ok((mut to_test, _has_fragment)) =
@@ -427,7 +439,7 @@ fn set_ipv6_ext_fragment_identification() {
                             DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
                                 DataBuffer::<_, Eth>::new(
                                     to_test.buffer_into_inner(),
-                                    headroom,
+                                    any_headroom,
                                 )
                                 .unwrap(),
                             )

@@ -9,14 +9,18 @@ use crate::tcp::Tcp;
 const SLICE_LENGTH: usize = 60;
 const HEADROOM: usize = SLICE_LENGTH + 10;
 
+const EXTENDED_SLICE_LENGTH: usize = 150;
+const EXTENDED_HEADROOM: usize = EXTENDED_SLICE_LENGTH + 10;
+
 #[kani::proof]
 fn get_ieee_802_1q_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
@@ -44,12 +48,13 @@ fn get_ieee_802_1q_proof() {
 
 #[kani::proof]
 fn set_ieee802_1q_c_tag_control_information() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
@@ -60,7 +65,7 @@ fn set_ieee802_1q_c_tag_control_information() {
             let array: [u8; 2] = kani::any();
             to_test.set_ieee802_1q_c_tag_control_information(&array);
             let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 vlan,
             )
             .unwrap();
@@ -70,12 +75,13 @@ fn set_ieee802_1q_c_tag_control_information() {
 
 #[kani::proof]
 fn set_ieee802_1q_c_tag_priority_code_point() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
@@ -85,7 +91,7 @@ fn set_ieee802_1q_c_tag_priority_code_point() {
         {
             to_test.set_ieee802_1q_c_tag_priority_code_point(kani::any());
             let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 vlan,
             )
             .unwrap();
@@ -95,12 +101,13 @@ fn set_ieee802_1q_c_tag_priority_code_point() {
 
 #[kani::proof]
 fn set_ieee802_1q_c_tag_drop_eligible_indicator() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
@@ -110,7 +117,7 @@ fn set_ieee802_1q_c_tag_drop_eligible_indicator() {
         {
             to_test.set_ieee802_1q_c_tag_drop_eligible_indicator(kani::any());
             let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 vlan,
             )
             .unwrap();
@@ -120,12 +127,13 @@ fn set_ieee802_1q_c_tag_drop_eligible_indicator() {
 
 #[kani::proof]
 fn set_ieee802_1q_c_tag_vlan_identifier() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
@@ -135,7 +143,7 @@ fn set_ieee802_1q_c_tag_vlan_identifier() {
         {
             to_test.set_ieee802_1q_c_tag_vlan_identifier(kani::any());
             let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 vlan,
             )
             .unwrap();
@@ -145,12 +153,13 @@ fn set_ieee802_1q_c_tag_vlan_identifier() {
 
 #[kani::proof]
 fn add_or_update_ieee802_1q_s_tag() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let mut headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let mut vlan = match to_test.ethernet_ether_type() {
             CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
@@ -161,12 +170,12 @@ fn add_or_update_ieee802_1q_s_tag() {
             let array: [u8; 2] = kani::any();
             if to_test.add_or_update_ieee802_1q_s_tag(&array).is_ok() {
                 if vlan == Vlan::SingleTagged {
-                    headroom -= 4;
+                    any_headroom -= 4;
                     vlan = Vlan::DoubleTagged;
                 }
             }
             let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 vlan,
             )
             .unwrap();
@@ -176,11 +185,13 @@ fn add_or_update_ieee802_1q_s_tag() {
 
 #[kani::proof]
 fn add_or_update_ieee802_1q_s_tag_complete() {
-    let mut vec = kani::vec::any_vec::<u8, 150>();
-    let slice = vec.as_mut_slice();
-    let mut headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; EXTENDED_SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= EXTENDED_SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let mut any_headroom = kani::any_where(|i| *i <= EXTENDED_HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let mut vlan = match to_test.ethernet_ether_type() {
             CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
@@ -209,7 +220,7 @@ fn add_or_update_ieee802_1q_s_tag_complete() {
                         && vlan == Vlan::SingleTagged
                     {
                         vlan = Vlan::DoubleTagged;
-                        headroom -= 4;
+                        any_headroom -= 4;
                         // data start
                         assert_eq!(internal_headroom - 4, to_test.headroom());
                         // data length
@@ -275,9 +286,8 @@ fn add_or_update_ieee802_1q_s_tag_complete() {
                     assert_eq!(ipv6_header_length, to_test.header_length(Layer::Ipv6));
                     assert_eq!(tcp_header_length, to_test.header_length(Layer::Tcp));
 
-                    let eth =
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
-                            .unwrap();
+                    let eth = DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
+                        .unwrap();
                     let vlan =
                         DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(eth, vlan).unwrap();
                     let ipv6 =
@@ -293,12 +303,13 @@ fn add_or_update_ieee802_1q_s_tag_complete() {
 
 #[kani::proof]
 fn set_ieee802_1q_s_tag_priority_code_point() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
@@ -320,7 +331,7 @@ fn set_ieee802_1q_s_tag_priority_code_point() {
                 }
             }
             let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 vlan,
             )
             .unwrap();
@@ -330,12 +341,13 @@ fn set_ieee802_1q_s_tag_priority_code_point() {
 
 #[kani::proof]
 fn set_ieee802_1q_s_tag_drop_eligible_indicator() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
@@ -357,7 +369,7 @@ fn set_ieee802_1q_s_tag_drop_eligible_indicator() {
                 }
             }
             let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 vlan,
             )
             .unwrap();
@@ -367,12 +379,13 @@ fn set_ieee802_1q_s_tag_drop_eligible_indicator() {
 
 #[kani::proof]
 fn set_ieee802_1q_s_tag_vlan_identifier() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
@@ -395,7 +408,7 @@ fn set_ieee802_1q_s_tag_vlan_identifier() {
             }
 
             let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 vlan,
             )
             .unwrap();
@@ -405,12 +418,13 @@ fn set_ieee802_1q_s_tag_vlan_identifier() {
 
 #[kani::proof]
 fn cut_ieee802_1q_s_tag() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let mut headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let mut vlan = match to_test.ethernet_ether_type() {
             CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
@@ -420,12 +434,12 @@ fn cut_ieee802_1q_s_tag() {
         {
             to_test.cut_ieee802_1q_s_tag();
             if vlan == Vlan::DoubleTagged {
-                headroom += 4;
+                any_headroom += 4;
                 vlan = Vlan::SingleTagged;
             }
 
             let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 vlan,
             )
             .unwrap();
@@ -435,11 +449,13 @@ fn cut_ieee802_1q_s_tag() {
 
 #[kani::proof]
 fn cut_ieee802_1q_s_tag_complete() {
-    let mut vec = kani::vec::any_vec::<u8, 150>();
-    let slice = vec.as_mut_slice();
-    let mut headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; EXTENDED_SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= EXTENDED_SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let mut any_headroom = kani::any_where(|i| *i <= EXTENDED_HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
@@ -465,7 +481,7 @@ fn cut_ieee802_1q_s_tag_complete() {
 
                     to_test.cut_ieee802_1q_s_tag();
                     if vlan == Vlan::DoubleTagged {
-                        headroom += 4;
+                        any_headroom += 4;
                         // data start
                         assert_eq!(internal_headroom + 4, to_test.headroom());
                         // data length
@@ -517,9 +533,8 @@ fn cut_ieee802_1q_s_tag_complete() {
                     assert_eq!(tcp_header_length, to_test.header_length(Layer::Tcp));
                     assert_eq!(EtherType::CustomerTag as u16, to_test.ethernet_ether_type());
 
-                    let eth =
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
-                            .unwrap();
+                    let eth = DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
+                        .unwrap();
                     let vlan = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
                         eth,
                         Vlan::SingleTagged,
@@ -538,12 +553,13 @@ fn cut_ieee802_1q_s_tag_complete() {
 
 #[kani::proof]
 fn set_ieee802_1q_ether_type() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
@@ -554,7 +570,7 @@ fn set_ieee802_1q_ether_type() {
             to_test.set_ieee802_1q_ether_type(kani::any());
 
             let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 vlan,
             )
             .unwrap();

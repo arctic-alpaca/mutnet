@@ -5,16 +5,22 @@ use crate::tcp::Tcp;
 
 const SLICE_LENGTH: usize = 80;
 const HEADROOM: usize = SLICE_LENGTH + 10;
+
+const EXTENDED_SLICE_LENGTH: usize = 150;
+const EXTENDED_HEADROOM: usize = EXTENDED_SLICE_LENGTH + 10;
+
 const CHECKSUM_IPV4: bool = false;
 const CHECKSUM_TCP: bool = false;
 
 #[kani::proof]
 fn get_ipv4_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.ipv4_version();
@@ -49,11 +55,13 @@ fn get_ipv4_proof() {
 
 #[kani::proof]
 fn set_ipv4_ihl_proof_complete() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let mut headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; EXTENDED_SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= EXTENDED_SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let mut any_headroom = kani::any_where(|i| *i <= EXTENDED_HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -75,7 +83,7 @@ fn set_ipv4_ihl_proof_complete() {
                     match old_ipv4_ihl_bytes_usize.cmp(&new_ipv4_ihl_bytes_usize) {
                         core::cmp::Ordering::Less => {
                             let difference = new_ipv4_ihl_bytes_usize - old_ipv4_ihl_bytes_usize;
-                            headroom -= difference;
+                            any_headroom -= difference;
                             assert_eq!(internal_headroom - difference, to_test.headroom());
                             assert_eq!(data_length + difference, to_test.data_length());
                             assert_eq!(
@@ -118,7 +126,7 @@ fn set_ipv4_ihl_proof_complete() {
                         }
                         core::cmp::Ordering::Greater => {
                             let difference = old_ipv4_ihl_bytes_usize - new_ipv4_ihl_bytes_usize;
-                            headroom += difference;
+                            any_headroom += difference;
                             assert_eq!(internal_headroom + difference, to_test.headroom());
                             assert_eq!(data_length - difference, to_test.data_length());
                             assert_eq!(
@@ -143,7 +151,7 @@ fn set_ipv4_ihl_proof_complete() {
                     }
                     let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                         DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                            DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom)
+                            DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
                                 .unwrap(),
                             CHECKSUM_IPV4,
                         )
@@ -159,16 +167,18 @@ fn set_ipv4_ihl_proof_complete() {
 
 #[kani::proof]
 fn ipv4_set_dscp_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_dscp(kani::any());
             DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -178,16 +188,18 @@ fn ipv4_set_dscp_proof() {
 
 #[kani::proof]
 fn ipv4_set_ecn_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_ecn(kani::any());
             DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -197,16 +209,18 @@ fn ipv4_set_ecn_proof() {
 
 #[kani::proof]
 fn ipv4_set_total_length_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_total_length(kani::any());
             DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -216,11 +230,13 @@ fn ipv4_set_total_length_proof() {
 
 #[kani::proof]
 fn ipv4_set_total_length_proof_complete() {
-    let mut vec = kani::vec::any_vec::<u8, 150>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; EXTENDED_SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= EXTENDED_SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= EXTENDED_HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
                 DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
@@ -275,7 +291,8 @@ fn ipv4_set_total_length_proof_complete() {
                 assert_eq!(tcp_header_length, to_test.header_length(Layer::Tcp));
                 let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
                     DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
+                            .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -289,16 +306,18 @@ fn ipv4_set_total_length_proof_complete() {
 
 #[kani::proof]
 fn ipv4_set_identification_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_identification(kani::any());
             DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -308,16 +327,18 @@ fn ipv4_set_identification_proof() {
 
 #[kani::proof]
 fn ipv4_set_flags_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_flags(kani::any());
             DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -327,16 +348,18 @@ fn ipv4_set_flags_proof() {
 
 #[kani::proof]
 fn set_ipv4_evil_flag_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_evil_flag(kani::any());
             DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -346,16 +369,18 @@ fn set_ipv4_evil_flag_proof() {
 
 #[kani::proof]
 fn set_ipv4_dont_fragment_flag_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_dont_fragment_flag(kani::any());
             DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -365,16 +390,18 @@ fn set_ipv4_dont_fragment_flag_proof() {
 
 #[kani::proof]
 fn set_ipv4_more_fragments_flag_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_more_fragments_flag(kani::any());
             DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -384,16 +411,18 @@ fn set_ipv4_more_fragments_flag_proof() {
 
 #[kani::proof]
 fn ipv4_set_fragment_offset_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_fragment_offset(kani::any());
             DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -403,16 +432,18 @@ fn ipv4_set_fragment_offset_proof() {
 
 #[kani::proof]
 fn ipv4_set_time_to_live_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_time_to_live(kani::any());
             DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -422,16 +453,18 @@ fn ipv4_set_time_to_live_proof() {
 
 #[kani::proof]
 fn ipv4_set_protocol_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_protocol(kani::any());
             DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -441,16 +474,18 @@ fn ipv4_set_protocol_proof() {
 
 #[kani::proof]
 fn ipv4_set_header_checksum_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_header_checksum(kani::any());
             DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -460,16 +495,18 @@ fn ipv4_set_header_checksum_proof() {
 
 #[kani::proof]
 fn ipv4_update_header_checksum_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.update_ipv4_header_checksum();
             DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -479,16 +516,18 @@ fn ipv4_update_header_checksum_proof() {
 
 #[kani::proof]
 fn ipv4_set_source_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_source(kani::any());
             DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -498,16 +537,18 @@ fn ipv4_set_source_proof() {
 
 #[kani::proof]
 fn ipv4_set_destination_proof() {
-    let mut vec = kani::vec::any_vec::<u8, SLICE_LENGTH>();
-    let slice = vec.as_mut_slice();
-    let headroom = kani::any();
-    kani::assume(headroom < HEADROOM);
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(slice, headroom) {
+    let mut any_array: [u8; SLICE_LENGTH] = kani::any();
+    let any_slice_length = kani::any_where(|i| *i <= SLICE_LENGTH);
+    let any_slice = &mut any_array[..any_slice_length];
+
+    let any_headroom = kani::any_where(|i| *i <= HEADROOM);
+
+    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_destination(kani::any());
             DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), headroom).unwrap(),
+                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
