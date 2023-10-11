@@ -61,7 +61,7 @@ where
     PHI: HeaderInformation + HeaderInformationMut + Copy,
     DataBuffer<B, Tcp<PHI>>: TcpChecksum,
 {
-    /// Parses `buf` and creates a new [DataBuffer] for an IPv4 layer with no previous layers.
+    /// Parses `buf` and creates a new [DataBuffer] for an TCP layer with no previous layers.
     ///
     /// `headroom` indicates the amount of headroom in the provided `buf`.
     /// No checksum can be calculated without underlying header for the pseudo header.
@@ -87,7 +87,7 @@ where
     }
 
     /// Consumes the `lower_layer_data_buffer` and creates a new [DataBuffer] with an additional
-    /// IPv4 layer.
+    /// TCP layer.
     ///
     /// # Errors
     ///
