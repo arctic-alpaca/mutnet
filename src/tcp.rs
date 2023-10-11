@@ -71,7 +71,6 @@ where
     /// Returns an error if:
     /// - the provided data buffer is shorter than expected.
     /// - the data offset field value is invalid.
-    /// - if `check_tcp_checksum` is true and the checksum is invalid.
     #[inline]
     pub fn new_without_checksum(
         buf: B,
