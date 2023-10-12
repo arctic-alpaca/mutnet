@@ -4,6 +4,7 @@ use crate::data_buffer::traits::{
 };
 use crate::error::SetDataOffsetError;
 use crate::internal_utils::grow_or_shrink_header_at_end;
+use crate::utility_traits::{TcpUdpChecksum, UpdateIpLength};
 
 pub(crate) static SOURCE_PORT_START: usize = 0;
 pub(crate) static SOURCE_PORT_END: usize = 2;
@@ -62,7 +63,7 @@ pub(crate) static LAYER: Layer = Layer::Tcp;
 // Length manipulating methods:
 // - set_tcp_data_offset (has proof)
 
-pub trait TcpMethods: HeaderInformation + TcpChecksum + BufferAccess {
+pub trait TcpMethods: HeaderInformation + TcpUdpChecksum + BufferAccess {
     #[inline]
     fn tcp_source_port(&self) -> u16 {
         u16::from_be_bytes(
@@ -195,8 +196,7 @@ pub trait TcpMethods: HeaderInformation + TcpChecksum + BufferAccess {
 
     #[inline]
     fn tcp_calculate_checksum(&self) -> u16 {
-        let checksum =
-            self.tcp_pseudoheader_checksum(self.data_buffer_starting_at_header(LAYER).len());
+        let checksum = self.pseudoheader_checksum(self.data_buffer_starting_at_header(LAYER).len());
 
         internet_checksum::<4>(checksum, self.data_buffer_starting_at_header(LAYER))
     }
@@ -207,7 +207,7 @@ pub trait TcpMethodsMut:
     + HeaderManipulation
     + BufferAccessMut
     + TcpMethods
-    + TcpChecksum
+    + TcpUdpChecksum
     + UpdateIpLength
     + Sized
 {
@@ -376,12 +376,4 @@ pub trait TcpMethodsMut:
         self.data_buffer_starting_at_header_mut(LAYER)[CHECKSUM_START..CHECKSUM_END]
             .copy_from_slice(&checksum.to_be_bytes());
     }
-}
-
-pub(crate) trait TcpChecksum {
-    fn tcp_pseudoheader_checksum(&self, tcp_length: usize) -> u64;
-}
-
-pub(crate) trait UpdateIpLength {
-    fn update_ip_length(&mut self);
 }

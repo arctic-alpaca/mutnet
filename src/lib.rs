@@ -12,6 +12,7 @@ mod constants;
 mod internal_utils;
 mod macros;
 mod test_utils;
+mod utility_traits;
 
 pub mod addresses;
 pub mod arp;
