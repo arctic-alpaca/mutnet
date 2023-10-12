@@ -29,4 +29,5 @@ pub mod ipv6_extensions;
 pub mod multi_step_parser;
 pub mod no_previous_header;
 pub mod tcp;
+pub mod udp;
 pub mod vlan;

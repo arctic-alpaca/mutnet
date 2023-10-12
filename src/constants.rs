@@ -18,6 +18,7 @@ pub(crate) const SERVICE_TAG_802_1Q: u16 = EtherType::ServiceTag as u16;
 
 // Internet Protocol
 pub(crate) const TCP: u8 = InternetProtocolNumber::Tcp as u8;
+pub(crate) const UDP: u8 = InternetProtocolNumber::Udp as u8;
 
 // IPv6 extensions
 pub(crate) const FRAGMENTATION_EXT: u8 = Ipv6Extension::Fragment as u8;
