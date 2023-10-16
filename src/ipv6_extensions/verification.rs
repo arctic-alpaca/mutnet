@@ -139,6 +139,8 @@ fn set_ipv6_ext_length_complete() {
                                 let ipv6_ext_header_start_offset =
                                     to_test.header_start_offset(Layer::Ipv6Ext);
                                 let ipv6_ext_header_length = to_test.header_length(Layer::Ipv6Ext);
+                                let ipv6_payload_length =
+                                    usize::from(to_test.ipv6_payload_length());
                                 let tcp_header_start_offset =
                                     to_test.header_start_offset(Layer::Tcp);
                                 let tcp_header_length = to_test.header_length(Layer::Tcp);
@@ -168,6 +170,10 @@ fn set_ipv6_ext_length_complete() {
                                                 tcp_header_start_offset + difference,
                                                 to_test.header_start_offset(Layer::Tcp)
                                             );
+                                            assert_eq!(
+                                                ipv6_payload_length + difference,
+                                                usize::from(to_test.ipv6_payload_length())
+                                            );
                                         }
                                         core::cmp::Ordering::Equal => {
                                             assert_eq!(data_length, to_test.data_length());
@@ -179,6 +185,10 @@ fn set_ipv6_ext_length_complete() {
                                             assert_eq!(
                                                 tcp_header_start_offset,
                                                 to_test.header_start_offset(Layer::Tcp)
+                                            );
+                                            assert_eq!(
+                                                ipv6_payload_length,
+                                                usize::from(to_test.ipv6_payload_length())
                                             );
                                         }
                                         core::cmp::Ordering::Greater => {
@@ -201,6 +211,10 @@ fn set_ipv6_ext_length_complete() {
                                                 tcp_header_start_offset - difference,
                                                 to_test.header_start_offset(Layer::Tcp)
                                             );
+                                            assert_eq!(
+                                                ipv6_payload_length - difference,
+                                                usize::from(to_test.ipv6_payload_length())
+                                            );
                                         }
                                     }
                                 } else {
@@ -213,6 +227,10 @@ fn set_ipv6_ext_length_complete() {
                                     assert_eq!(
                                         tcp_header_start_offset,
                                         to_test.header_start_offset(Layer::Tcp)
+                                    );
+                                    assert_eq!(
+                                        ipv6_payload_length,
+                                        usize::from(to_test.ipv6_payload_length())
                                     );
                                 }
                                 assert_eq!(
