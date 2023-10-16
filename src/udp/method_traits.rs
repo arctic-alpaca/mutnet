@@ -103,7 +103,8 @@ pub trait UdpMethodsMut:
         self.set_data_length(data_length, self.buffer_length())?;
 
         self.data_buffer_starting_at_header_mut(LAYER)[LENGTH_START..LENGTH_END]
-            .copy_from_slice(&length_usize.to_be_bytes());
+            .copy_from_slice(&length.to_be_bytes());
+        self.update_ip_length();
         Ok(())
     }
 
