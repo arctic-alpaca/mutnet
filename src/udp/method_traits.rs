@@ -19,7 +19,7 @@ pub(crate) static HEADER_MIN_LEN: usize = 8;
 pub(crate) static LAYER: Layer = Layer::Udp;
 
 // Length manipulating methods:
-// - set_udp_length
+// - set_udp_length (has proof)
 
 pub trait UdpMethods: HeaderInformation + TcpUdpChecksum + BufferAccess {
     #[inline]
