@@ -20,7 +20,7 @@ use crate::internal_utils::{
     check_and_calculate_data_length, header_start_offset_from_phi,
     pseudoheader_checksum_ipv4_internal, pseudoheader_checksum_ipv6_internal,
 };
-use crate::ipv4::{Ipv4, Ipv4Methods, UpdateIpv4Length};
+use crate::ipv4::{Ipv4, UpdateIpv4Length};
 use crate::ipv6::{Ipv6, UpdateIpv6Length};
 use crate::ipv6_extensions::{Ipv6ExtMetaData, Ipv6ExtMetaDataMut, Ipv6Extensions};
 use crate::ipv6_extensions::{Ipv6ExtensionIndexOutOfBoundsError, Ipv6ExtensionMetadata};
@@ -155,7 +155,7 @@ where
     B: AsRef<[u8]>,
 {
     #[inline]
-    fn pseudoheader_checksum(&self, _tcp_udp_length: usize) -> u64 {
+    fn pseudoheader_checksum(&self) -> u64 {
         0
     }
 }
@@ -206,11 +206,10 @@ impl<B, PHI> TcpUdpChecksum for DataBuffer<B, Tcp<Ipv4<PHI>>>
 where
     B: AsRef<[u8]>,
     PHI: HeaderInformation + HeaderInformationMut,
-    DataBuffer<B, Tcp<Ipv4<PHI>>>: Ipv4Methods,
 {
     #[inline]
-    fn pseudoheader_checksum(&self, tcp_udp_length: usize) -> u64 {
-        pseudoheader_checksum_ipv4_internal(self, tcp_udp_length, TCP)
+    fn pseudoheader_checksum(&self) -> u64 {
+        pseudoheader_checksum_ipv4_internal(self, TCP)
     }
 }
 
@@ -220,8 +219,8 @@ where
     PHI: HeaderInformation + HeaderInformationMut,
 {
     #[inline]
-    fn pseudoheader_checksum(&self, tcp_udp_length: usize) -> u64 {
-        pseudoheader_checksum_ipv6_internal(self, tcp_udp_length, TCP)
+    fn pseudoheader_checksum(&self) -> u64 {
+        pseudoheader_checksum_ipv6_internal(self, TCP)
     }
 }
 
@@ -232,8 +231,8 @@ where
     PHI: HeaderInformation + HeaderInformationMut + Ipv6Marker,
 {
     #[inline]
-    fn pseudoheader_checksum(&self, tcp_udp_length: usize) -> u64 {
-        pseudoheader_checksum_ipv6_internal(self, tcp_udp_length, TCP)
+    fn pseudoheader_checksum(&self) -> u64 {
+        pseudoheader_checksum_ipv6_internal(self, TCP)
     }
 }
 

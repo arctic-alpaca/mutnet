@@ -61,7 +61,7 @@ pub trait UdpMethods: HeaderInformation + TcpUdpChecksum + BufferAccess {
 
     #[inline]
     fn udp_calculate_checksum(&self) -> u16 {
-        let checksum = self.pseudoheader_checksum(self.data_buffer_starting_at_header(LAYER).len());
+        let checksum = self.pseudoheader_checksum();
 
         internet_checksum::<4>(checksum, self.data_buffer_starting_at_header(LAYER))
     }

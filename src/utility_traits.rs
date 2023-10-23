@@ -1,5 +1,5 @@
 pub(crate) trait TcpUdpChecksum {
-    fn pseudoheader_checksum(&self, tcp_udp_length: usize) -> u64;
+    fn pseudoheader_checksum(&self) -> u64;
 }
 
 pub(crate) trait UpdateIpLength {
