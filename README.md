@@ -71,7 +71,6 @@ For more see [parse_from_iface.rs](examples/parse_from_iface.rs).
 
 ## Roadmap
 - [ ] Additional protocols, see [Protocols](#protocols)
-- [ ] CI
 - [ ] Improved benchmarks
 - [ ] TLV iterator
 - [ ] IPv4 options iterator
