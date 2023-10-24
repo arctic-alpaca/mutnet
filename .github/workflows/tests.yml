@@ -19,3 +19,5 @@ jobs:
         run: cargo fmt --all -- --check
       - name: clippy
         run: cargo clippy -- --deny warnings
+      - name: Check semver
+        uses: obi1kenobi/cargo-semver-checks-action@v2
