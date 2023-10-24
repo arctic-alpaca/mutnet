@@ -8,17 +8,19 @@ mutnet is an unsafe-free and allocation-free, no-std network protocol parsing an
 
 
 ## Nightly
-This crate currently makes use of [type privacy](https://github.com/rust-lang/rust/issues/48054) and thus only compiles
+This crate makes use of [type privacy](https://github.com/rust-lang/rust/issues/48054) and thus only compiles
 on nightly Rust. It currently looks like this [limitation should be lifted](https://github.com/rust-lang/rust/pull/113126) with Rust 1.74.0.
 
 ## Supported Protocols
 - Ethernet II
 - IEEE 802.1Q VLAN tags
+- ARP (request & reply for Ethernet and IPv4)
 - IPv4
 - IPv6 (no Jumbograms)
   - IPv6 Extensions (fragment, hop by hop, destination options, routing)
 - TCP
-- ARP (request & reply for Ethernet and IPv4)
+- UDP
+
 
 ## Safety & Panics
 mutnet makes use of `#[forbid(unsafe_code)]` to ensure the absence of unsafe code.
@@ -77,7 +79,6 @@ For more see [parse_from_iface.rs](examples/parse_from_iface.rs).
 - [ ] Vlan & IPv6 extensions layer insertion and removal
 
 ### Protocols
-- [ ] UDP
 - [ ] ICMP
 - [ ] ICMPv6
 
