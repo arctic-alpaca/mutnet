@@ -56,6 +56,8 @@ pub(crate) trait Ipv6ExtMarker<const MAX_EXTENSIONS: usize>:
 }
 /// Trait marking a layer to implement TCP methods.
 pub(crate) trait TcpMarker: HeaderInformation + HeaderInformationMut {}
+/// Trait marking a layer to implement UDP methods.
+pub(crate) trait UdpMarker: HeaderInformation + HeaderInformationMut {}
 
 /// Indicates the layer requesting data.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -68,6 +70,7 @@ pub(crate) enum Layer {
     Ipv6,
     Ipv6Ext,
     Tcp,
+    Udp,
 }
 
 /// Methods to access the data buffer.

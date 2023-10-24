@@ -24,6 +24,7 @@ default = ["std"]
 # Removes the checksum compilation for Kani proofs
 remove_checksum = []
 verify_tcp = ["remove_checksum"]
+verify_udp = ["remove_checksum"]
 verify_ipv6_extensions = ["remove_checksum"]
 verify_ipv6 = ["remove_checksum"]
 verify_ipv4 = ["remove_checksum"]

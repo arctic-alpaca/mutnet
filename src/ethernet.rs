@@ -70,9 +70,15 @@ impl HeaderInformation for Eth {
         self.header_start_offset
     }
 
+    /// By returning 0 if the layer does not exists, it is possible to use header length in calculations
+    /// that would otherwise require branches to check whether a layer exists.
     #[inline]
-    fn header_length(&self, _layer: Layer) -> usize {
-        self.header_length
+    fn header_length(&self, layer: Layer) -> usize {
+        if layer == LAYER {
+            self.header_length
+        } else {
+            0
+        }
     }
 
     #[inline]

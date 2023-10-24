@@ -1,7 +1,10 @@
+use crate::checksum::internet_checksum_intermediary;
 use crate::data_buffer::traits::{
     HeaderInformation, HeaderInformationMut, HeaderManipulation, Layer,
 };
 use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError};
+use crate::ipv4::Ipv4Methods;
+use crate::ipv6::Ipv6Methods;
 use core::cmp::Ordering;
 
 #[inline]
@@ -53,4 +56,43 @@ pub(crate) fn grow_or_shrink_header_at_end(
         }
     }
     Ok(())
+}
+
+#[inline]
+pub(crate) fn pseudoheader_checksum_ipv6_internal(
+    ipv6: &(impl Ipv6Methods + HeaderInformation),
+    protocol_next_header: u8,
+) -> u64 {
+    let tcp_udp_length = (u32::from(ipv6.ipv6_payload_length())
+        - ipv6.header_length(Layer::Ipv6Ext) as u32)
+        .to_be_bytes();
+    let mut checksum = internet_checksum_intermediary::<4>(&ipv6.ipv6_source());
+    checksum += internet_checksum_intermediary::<4>(&ipv6.ipv6_destination());
+    checksum += internet_checksum_intermediary::<4>(&[
+        tcp_udp_length[0],
+        tcp_udp_length[1],
+        tcp_udp_length[2],
+        tcp_udp_length[3],
+    ]);
+    checksum += internet_checksum_intermediary::<4>(&[0_u8, 0, 0, protocol_next_header]);
+    checksum
+}
+
+#[inline]
+pub(crate) fn pseudoheader_checksum_ipv4_internal(
+    ipv4: &(impl Ipv4Methods + HeaderInformation),
+    protocol_next_header: u8,
+) -> u64 {
+    let tcp_udp_length =
+        (ipv4.ipv4_total_length() - ipv4.header_length(Layer::Ipv4) as u16).to_be_bytes();
+
+    let mut checksum = internet_checksum_intermediary::<4>(&ipv4.ipv4_source());
+    checksum += internet_checksum_intermediary::<4>(&ipv4.ipv4_destination());
+    checksum += internet_checksum_intermediary::<4>(&[
+        0_u8,
+        protocol_next_header,
+        tcp_udp_length[0],
+        tcp_udp_length[1],
+    ]);
+    checksum
 }

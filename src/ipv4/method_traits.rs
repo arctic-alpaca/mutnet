@@ -252,11 +252,17 @@ pub trait Ipv4MethodsMut:
             return Err(SetTotalLengthError::SmallerThanIhl);
         }
         // Don't allow cutting already parsed upper layers
-        if self.layer() == Layer::Tcp
-            && total_length_usize < (ipv4_header_length_in_bytes + self.header_length(Layer::Tcp))
-        {
-            return Err(SetTotalLengthError::CannotCutUpperLayerHeader);
+        if self.layer() != LAYER {
+            let ipv4_and_intermediate_upper_headers_length =
+                self.header_start_offset(self.layer()) - self.header_start_offset(LAYER);
+            let highest_headers_length = self.header_length(self.layer());
+            if total_length_usize
+                < ipv4_and_intermediate_upper_headers_length + highest_headers_length
+            {
+                return Err(SetTotalLengthError::CannotCutUpperLayerHeader);
+            }
         }
+
         let data_length = self.header_start_offset(LAYER) + total_length_usize;
         self.set_data_length(data_length, self.buffer_length())?;
         self.data_buffer_starting_at_header_mut(LAYER)[TOTAL_LENGTH_START..TOTAL_LENGTH_END]

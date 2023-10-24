@@ -141,18 +141,15 @@ pub trait Ipv6MethodsMut: HeaderManipulation + BufferAccessMut + Ipv6Methods + S
         let data_length = self.header_start_offset(LAYER) + HEADER_MIN_LEN + payload_length_usize;
 
         // Don't allow cutting already parsed upper layers
-        if self.layer() == Layer::Tcp {
-            let possible_ipv6_ext_length = self.header_start_offset(Layer::Tcp)
+        if self.layer() != LAYER {
+            let intermediate_upper_headers_length = self.header_start_offset(self.layer())
                 - self.header_start_offset(LAYER)
                 - HEADER_MIN_LEN;
-            if payload_length_usize < possible_ipv6_ext_length + self.header_length(Layer::Tcp) {
+
+            let highest_header_length = self.header_length(self.layer());
+            if payload_length_usize < intermediate_upper_headers_length + highest_header_length {
                 return Err(SetPayloadLengthError::CannotCutUpperLayerHeader);
             }
-        }
-        if self.layer() == Layer::Ipv6Ext
-            && payload_length_usize < (self.header_length(Layer::Ipv6Ext))
-        {
-            return Err(SetPayloadLengthError::CannotCutUpperLayerHeader);
         }
 
         self.set_data_length(data_length, self.buffer_length())?;

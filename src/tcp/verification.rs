@@ -1,6 +1,7 @@
 use super::*;
 use crate::data_buffer::traits::BufferIntoInner;
 use crate::ethernet::Eth;
+use crate::ipv6::Ipv6Methods;
 
 const SLICE_LENGTH: usize = 100;
 const HEADROOM: usize = SLICE_LENGTH + 10;
@@ -344,6 +345,7 @@ fn set_tcp_data_offset_ipv4_proof() {
                 let eth_header_length = to_test.header_length(Layer::EthernetII);
                 let ipv4_header_start_offset = to_test.header_start_offset(Layer::Ipv4);
                 let ipv4_header_length = to_test.header_length(Layer::Ipv4);
+                let ipv4_total_length = usize::from(to_test.ipv4_total_length());
                 let tcp_header_start_offset = to_test.header_start_offset(Layer::Tcp);
                 let tcp_header_length = to_test.header_length(Layer::Tcp);
 
@@ -359,11 +361,16 @@ fn set_tcp_data_offset_ipv4_proof() {
                                 tcp_header_length + difference,
                                 to_test.header_length(Layer::Tcp)
                             );
+                            assert_eq!(
+                                ipv4_total_length + difference,
+                                usize::from(to_test.ipv4_total_length())
+                            );
                         }
                         core::cmp::Ordering::Equal => {
                             assert_eq!(internal_headroom, to_test.headroom());
                             assert_eq!(data_length, to_test.data_length());
                             assert_eq!(tcp_header_length, to_test.header_length(Layer::Tcp));
+                            assert_eq!(ipv4_total_length, usize::from(to_test.ipv4_total_length()));
                         }
                         core::cmp::Ordering::Greater => {
                             let difference =
@@ -375,12 +382,17 @@ fn set_tcp_data_offset_ipv4_proof() {
                                 tcp_header_length - difference,
                                 to_test.header_length(Layer::Tcp)
                             );
+                            assert_eq!(
+                                ipv4_total_length - difference,
+                                usize::from(to_test.ipv4_total_length())
+                            );
                         }
                     }
                 } else {
                     assert_eq!(internal_headroom, to_test.headroom());
                     assert_eq!(data_length, to_test.data_length());
                     assert_eq!(tcp_header_length, to_test.header_length(Layer::Tcp));
+                    assert_eq!(ipv4_total_length, usize::from(to_test.ipv4_total_length()));
                 }
                 assert_eq!(
                     eth_header_start_offset,
@@ -434,6 +446,7 @@ fn set_tcp_data_offset_ipv6_proof() {
                 let eth_header_length = to_test.header_length(Layer::EthernetII);
                 let ipv6_header_start_offset = to_test.header_start_offset(Layer::Ipv6);
                 let ipv6_header_length = to_test.header_length(Layer::Ipv6);
+                let ipv6_payload_length = usize::from(to_test.ipv6_payload_length());
                 let tcp_header_start_offset = to_test.header_start_offset(Layer::Tcp);
                 let tcp_header_length = to_test.header_length(Layer::Tcp);
 
@@ -449,6 +462,10 @@ fn set_tcp_data_offset_ipv6_proof() {
                                 tcp_header_length + difference,
                                 to_test.header_length(Layer::Tcp)
                             );
+                            assert_eq!(
+                                ipv6_payload_length + difference,
+                                usize::from(to_test.ipv6_payload_length())
+                            );
                         }
                         core::cmp::Ordering::Equal => {
                             assert_eq!(internal_headroom, to_test.headroom());
@@ -458,6 +475,10 @@ fn set_tcp_data_offset_ipv6_proof() {
                                 to_test.header_start_offset(Layer::EthernetII)
                             );
                             assert_eq!(tcp_header_length, to_test.header_length(Layer::Tcp));
+                            assert_eq!(
+                                ipv6_payload_length,
+                                usize::from(to_test.ipv6_payload_length())
+                            );
                         }
                         core::cmp::Ordering::Greater => {
                             let difference =
@@ -469,12 +490,20 @@ fn set_tcp_data_offset_ipv6_proof() {
                                 tcp_header_length - difference,
                                 to_test.header_length(Layer::Tcp)
                             );
+                            assert_eq!(
+                                ipv6_payload_length - difference,
+                                usize::from(to_test.ipv6_payload_length())
+                            );
                         }
                     }
                 } else {
                     assert_eq!(internal_headroom, to_test.headroom());
                     assert_eq!(data_length, to_test.data_length());
                     assert_eq!(tcp_header_length, to_test.header_length(Layer::Tcp));
+                    assert_eq!(
+                        ipv6_payload_length,
+                        usize::from(to_test.ipv6_payload_length())
+                    );
                 }
                 assert_eq!(
                     eth_header_start_offset,
