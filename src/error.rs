@@ -11,6 +11,7 @@ use crate::tcp::ParseTcpError;
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
 
+use crate::udp::ParseUdpError;
 use core::fmt::{Debug, Display, Formatter};
 #[cfg(feature = "std")]
 use std::error;
@@ -213,6 +214,7 @@ pub enum ParseNetworkDataError {
     ParseIpv6(ParseIpv6Error),
     ParseIpv6Extensions(ParseIpv6ExtensionsError),
     ParseTcp(ParseTcpError),
+    ParseUdp(ParseUdpError),
     UnexpectedBufferEnd(UnexpectedBufferEndError),
 }
 
@@ -272,6 +274,13 @@ impl From<ParseTcpError> for ParseNetworkDataError {
     }
 }
 
+impl From<ParseUdpError> for ParseNetworkDataError {
+    #[inline]
+    fn from(value: ParseUdpError) -> Self {
+        Self::ParseUdp(value)
+    }
+}
+
 impl From<UnexpectedBufferEndError> for ParseNetworkDataError {
     #[inline]
     fn from(value: UnexpectedBufferEndError) -> Self {
@@ -307,6 +316,9 @@ impl Display for ParseNetworkDataError {
                 write!(f, "{err}")
             }
             Self::ParseTcp(err) => {
+                write!(f, "{err}")
+            }
+            Self::ParseUdp(err) => {
                 write!(f, "{err}")
             }
         }

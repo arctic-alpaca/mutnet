@@ -7,7 +7,11 @@ use crate::ieee802_1q_vlan::{Ieee802_1QMethods, Ieee802_1QVlan};
 use crate::ipv4::{Ipv4, Ipv4Methods};
 use crate::ipv6::{Ipv6, Ipv6Methods};
 use crate::ipv6_extensions::{Ipv6ExtMethods, Ipv6Extension, Ipv6Extensions};
+use crate::multi_step_parser::EthernetMultiStepParserResult::{
+    FragmentIpv4Eth, FragmentIpv4VlanEth,
+};
 use crate::tcp::Tcp;
+use crate::udp::Udp;
 use crate::vlan::Vlan;
 
 pub enum EthernetMultiStepParserResult<B, const MAX_EXTENSIONS: usize>
@@ -24,35 +28,53 @@ where
     ArpVlanEth(DataBuffer<B, Arp<Ieee802_1QVlan<Eth>>>),
     /// Ethernet IPv4
     Ipv4Eth(DataBuffer<B, Ipv4<Eth>>),
+    /// Ethernet IPv4 Fragment
+    FragmentIpv4Eth(DataBuffer<B, Ipv4<Eth>>),
     /// Ethernet IPv4 TCP
     TcpIpv4Eth(DataBuffer<B, Tcp<Ipv4<Eth>>>),
+    /// Ethernet IPv4 UDP
+    UdpIpv4Eth(DataBuffer<B, Udp<Ipv4<Eth>>>),
     /// Ethernet Vlan IPv4
     Ipv4VlanEth(DataBuffer<B, Ipv4<Ieee802_1QVlan<Eth>>>),
-    /// Ethernet Vlan Ipv4 Tcp
+    /// Ethernet Vlan IPv4 Fragment
+    FragmentIpv4VlanEth(DataBuffer<B, Ipv4<Ieee802_1QVlan<Eth>>>),
+    /// Ethernet Vlan Ipv4 TCP
     TcpIpv4VlanEth(DataBuffer<B, Tcp<Ipv4<Ieee802_1QVlan<Eth>>>>),
+    /// Ethernet Vlan Ipv4 UDP
+    UdpIpv4VlanEth(DataBuffer<B, Udp<Ipv4<Ieee802_1QVlan<Eth>>>>),
     /// Ethernet IPv6
     Ipv6Eth(DataBuffer<B, Ipv6<Eth>>),
     /// Ethernet IPv6 TCP
     TcpIpv6Eth(DataBuffer<B, Tcp<Ipv6<Eth>>>),
+    /// Ethernet IPv6 UDP
+    UdpIpv6Eth(DataBuffer<B, Udp<Ipv6<Eth>>>),
     /// Ethernet Vlan IPv6
     Ipv6VlanEth(DataBuffer<B, Ipv6<Ieee802_1QVlan<Eth>>>),
-    /// Ethernet Vlan IPv6 Tcp
+    /// Ethernet Vlan IPv6 TCP
     TcpIpv6VlanEth(DataBuffer<B, Tcp<Ipv6<Ieee802_1QVlan<Eth>>>>),
+    /// Ethernet Vlan IPv6 UDP
+    UdpIpv6VlanEth(DataBuffer<B, Udp<Ipv6<Ieee802_1QVlan<Eth>>>>),
     /// Ethernet IPv6 IPv6 Extensions
     Ipv6ExtsIpv6Eth(DataBuffer<B, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>),
     /// Ethernet IPv6 IPv6 Extensions (Fragment)
     FragmentIpv6ExtsIpv6Eth(DataBuffer<B, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>),
-    /// Ethernet IPv6 IPv6 Extensions Tcp
+    /// Ethernet IPv6 IPv6 Extensions TCP
     TcpIpv6ExtsIpv6Eth(DataBuffer<B, Tcp<Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>>),
+    /// Ethernet IPv6 IPv6 Extensions UDP
+    UdpIpv6ExtsIpv6Eth(DataBuffer<B, Udp<Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>>),
     /// Ethernet Vlan IPv6 IPv6 Extensions
     Ipv6ExtsIpv6VlanEth(DataBuffer<B, Ipv6Extensions<Ipv6<Ieee802_1QVlan<Eth>>, MAX_EXTENSIONS>>),
     /// Ethernet Vlan IPv6 IPv6 Extensions (Fragment)
     FragmentIpv6ExtsIpv6VlanEth(
         DataBuffer<B, Ipv6Extensions<Ipv6<Ieee802_1QVlan<Eth>>, MAX_EXTENSIONS>>,
     ),
-    /// Ethernet Vlan IPv6 IPv6 Extensions Tcp
+    /// Ethernet Vlan IPv6 IPv6 Extensions TCP
     TcpIpv6ExtsIpv6VlanEth(
         DataBuffer<B, Tcp<Ipv6Extensions<Ipv6<Ieee802_1QVlan<Eth>>, MAX_EXTENSIONS>>>,
+    ),
+    /// Ethernet Vlan IPv6 IPv6 Extensions UDP
+    UdpIpv6ExtsIpv6VlanEth(
+        DataBuffer<B, Udp<Ipv6Extensions<Ipv6<Ieee802_1QVlan<Eth>>, MAX_EXTENSIONS>>>,
     ),
 }
 
@@ -61,6 +83,7 @@ pub fn parse_network_data<B, const MAX_EXTENSIONS: usize>(
     headroom: usize,
     check_ipv4_checksum: bool,
     check_tcp_checksum: bool,
+    check_udp_checksum: bool,
 ) -> Result<EthernetMultiStepParserResult<B, MAX_EXTENSIONS>, ParseNetworkDataError>
 where
     B: AsRef<[u8]>,
@@ -71,12 +94,14 @@ where
             ethernet,
             check_ipv4_checksum,
             check_tcp_checksum,
+            check_udp_checksum,
             Vlan::SingleTagged,
         ),
         SERVICE_TAG_802_1Q => parse_vlan_eth(
             ethernet,
             check_ipv4_checksum,
             check_tcp_checksum,
+            check_udp_checksum,
             Vlan::DoubleTagged,
         ),
         ARP => Ok(EthernetMultiStepParserResult::ArpEth(DataBuffer::<
@@ -88,6 +113,11 @@ where
         IPV4 => {
             let ipv4_eth =
                 DataBuffer::<B, Ipv4<Eth>>::new_from_lower(ethernet, check_ipv4_checksum)?;
+            if ipv4_eth.ipv4_more_fragments_flag()
+                || (!ipv4_eth.ipv4_more_fragments_flag() && ipv4_eth.ipv4_fragment_offset() != 0)
+            {
+                return Ok(FragmentIpv4Eth(ipv4_eth));
+            }
             match ipv4_eth.ipv4_protocol() {
                 TCP => Ok(EthernetMultiStepParserResult::TcpIpv4Eth(DataBuffer::<
                     B,
@@ -95,6 +125,13 @@ where
                 >::new_from_lower(
                     ipv4_eth,
                     check_tcp_checksum,
+                )?)),
+                UDP => Ok(EthernetMultiStepParserResult::UdpIpv4Eth(DataBuffer::<
+                    B,
+                    Udp<Ipv4<Eth>>,
+                >::new_from_lower(
+                    ipv4_eth,
+                    check_udp_checksum,
                 )?)),
                 _ => Ok(EthernetMultiStepParserResult::Ipv4Eth(ipv4_eth)),
             }
@@ -109,18 +146,37 @@ where
                     ipv6_eth,
                     check_tcp_checksum,
                 )?)),
-                FRAGMENTATION_EXT => {
-                    parse_ipv6_ext(ipv6_eth, check_tcp_checksum, Ipv6Extension::Fragment)
-                }
+                UDP => Ok(EthernetMultiStepParserResult::UdpIpv6Eth(DataBuffer::<
+                    B,
+                    Udp<Ipv6<Eth>>,
+                >::new_from_lower(
+                    ipv6_eth,
+                    check_udp_checksum,
+                )?)),
+                FRAGMENTATION_EXT => parse_ipv6_ext(
+                    ipv6_eth,
+                    check_tcp_checksum,
+                    check_udp_checksum,
+                    Ipv6Extension::Fragment,
+                ),
                 DESTINATION_OPTIONS_EXT => parse_ipv6_ext(
                     ipv6_eth,
                     check_tcp_checksum,
+                    check_udp_checksum,
                     Ipv6Extension::DestinationOptions,
                 ),
-                HOP_BY_HOP_EXT => {
-                    parse_ipv6_ext(ipv6_eth, check_tcp_checksum, Ipv6Extension::HopByHop)
-                }
-                ROUTING_EXT => parse_ipv6_ext(ipv6_eth, check_tcp_checksum, Ipv6Extension::Routing),
+                HOP_BY_HOP_EXT => parse_ipv6_ext(
+                    ipv6_eth,
+                    check_tcp_checksum,
+                    check_udp_checksum,
+                    Ipv6Extension::HopByHop,
+                ),
+                ROUTING_EXT => parse_ipv6_ext(
+                    ipv6_eth,
+                    check_tcp_checksum,
+                    check_udp_checksum,
+                    Ipv6Extension::Routing,
+                ),
                 _ => Ok(EthernetMultiStepParserResult::Ipv6Eth(ipv6_eth)),
             }
         }
@@ -133,6 +189,7 @@ where
 fn parse_ipv6_ext_vlan<B, const MAX_EXTENSIONS: usize>(
     ipv6_vlan_eth: DataBuffer<B, Ipv6<Ieee802_1QVlan<Eth>>>,
     check_tcp_checksum: bool,
+    check_udp_checksum: bool,
     first_extension: Ipv6Extension,
 ) -> Result<EthernetMultiStepParserResult<B, MAX_EXTENSIONS>, ParseNetworkDataError>
 where
@@ -158,6 +215,15 @@ where
                 check_tcp_checksum,
             )?),
         ),
+        Ok(UDP) => Ok(
+            EthernetMultiStepParserResult::UdpIpv6ExtsIpv6VlanEth(DataBuffer::<
+                B,
+                Udp<Ipv6Extensions<Ipv6<Ieee802_1QVlan<Eth>>, MAX_EXTENSIONS>>,
+            >::new_from_lower(
+                ipv6exts_ipv6_vlan_eth,
+                check_udp_checksum,
+            )?),
+        ),
         _ => Ok(EthernetMultiStepParserResult::Ipv6ExtsIpv6VlanEth(
             ipv6exts_ipv6_vlan_eth,
         )),
@@ -168,6 +234,7 @@ where
 fn parse_ipv6_ext<B, const MAX_EXTENSIONS: usize>(
     ipv6_eth: DataBuffer<B, Ipv6<Eth>>,
     check_tcp_checksum: bool,
+    check_udp_checksum: bool,
     first_extension: Ipv6Extension,
 ) -> Result<EthernetMultiStepParserResult<B, MAX_EXTENSIONS>, ParseNetworkDataError>
 where
@@ -190,6 +257,12 @@ where
                 check_tcp_checksum,
             )?,
         )),
+        Ok(UDP) => Ok(EthernetMultiStepParserResult::UdpIpv6ExtsIpv6Eth(
+            DataBuffer::<B, Udp<Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>>::new_from_lower(
+                ipv6exts_ipv6_eth,
+                check_udp_checksum,
+            )?,
+        )),
         _ => Ok(EthernetMultiStepParserResult::Ipv6ExtsIpv6Eth(
             ipv6exts_ipv6_eth,
         )),
@@ -201,6 +274,7 @@ fn parse_vlan_eth<B, const MAX_EXTENSIONS: usize>(
     ethernet: DataBuffer<B, Eth>,
     check_ipv4_checksum: bool,
     check_tcp_checksum: bool,
+    check_udp_checksum: bool,
     vlan: Vlan,
 ) -> Result<EthernetMultiStepParserResult<B, MAX_EXTENSIONS>, ParseNetworkDataError>
 where
@@ -219,11 +293,23 @@ where
                 vlan_eth,
                 check_ipv4_checksum,
             )?;
+            if ipv4_vlan_eth.ipv4_more_fragments_flag()
+                || (!ipv4_vlan_eth.ipv4_more_fragments_flag()
+                    && ipv4_vlan_eth.ipv4_fragment_offset() != 0)
+            {
+                return Ok(FragmentIpv4VlanEth(ipv4_vlan_eth));
+            }
             match ipv4_vlan_eth.ipv4_protocol() {
                 TCP => Ok(EthernetMultiStepParserResult::TcpIpv4VlanEth(
                     DataBuffer::<B, Tcp<Ipv4<Ieee802_1QVlan<Eth>>>>::new_from_lower(
                         ipv4_vlan_eth,
                         check_tcp_checksum,
+                    )?,
+                )),
+                UDP => Ok(EthernetMultiStepParserResult::UdpIpv4VlanEth(
+                    DataBuffer::<B, Udp<Ipv4<Ieee802_1QVlan<Eth>>>>::new_from_lower(
+                        ipv4_vlan_eth,
+                        check_udp_checksum,
                     )?,
                 )),
                 _ => Ok(EthernetMultiStepParserResult::Ipv4VlanEth(ipv4_vlan_eth)),
@@ -239,20 +325,36 @@ where
                         check_tcp_checksum,
                     )?,
                 )),
-                FRAGMENTATION_EXT => {
-                    parse_ipv6_ext_vlan(ipv6_vlan_eth, check_tcp_checksum, Ipv6Extension::Fragment)
-                }
+                UDP => Ok(EthernetMultiStepParserResult::UdpIpv6VlanEth(
+                    DataBuffer::<B, Udp<Ipv6<Ieee802_1QVlan<Eth>>>>::new_from_lower(
+                        ipv6_vlan_eth,
+                        check_udp_checksum,
+                    )?,
+                )),
+                FRAGMENTATION_EXT => parse_ipv6_ext_vlan(
+                    ipv6_vlan_eth,
+                    check_tcp_checksum,
+                    check_udp_checksum,
+                    Ipv6Extension::Fragment,
+                ),
                 DESTINATION_OPTIONS_EXT => parse_ipv6_ext_vlan(
                     ipv6_vlan_eth,
                     check_tcp_checksum,
+                    check_udp_checksum,
                     Ipv6Extension::DestinationOptions,
                 ),
-                HOP_BY_HOP_EXT => {
-                    parse_ipv6_ext_vlan(ipv6_vlan_eth, check_tcp_checksum, Ipv6Extension::HopByHop)
-                }
-                ROUTING_EXT => {
-                    parse_ipv6_ext_vlan(ipv6_vlan_eth, check_tcp_checksum, Ipv6Extension::Routing)
-                }
+                HOP_BY_HOP_EXT => parse_ipv6_ext_vlan(
+                    ipv6_vlan_eth,
+                    check_tcp_checksum,
+                    check_udp_checksum,
+                    Ipv6Extension::HopByHop,
+                ),
+                ROUTING_EXT => parse_ipv6_ext_vlan(
+                    ipv6_vlan_eth,
+                    check_tcp_checksum,
+                    check_udp_checksum,
+                    Ipv6Extension::Routing,
+                ),
                 _ => Ok(EthernetMultiStepParserResult::Ipv6VlanEth(ipv6_vlan_eth)),
             }
         }
