@@ -1,6 +1,6 @@
 # mutnet
 
-mutnet is an unsafe-free and allocation-free, no-std network protocol parsing and in-place manipulation library.
+mutnet is an unsafe-free and allocation-free, zero-dependency, no-std network protocol parsing and in-place manipulation library.
 
 
 [![Crates.io](https://img.shields.io/crates/v/mutnet)](https://crates.io/crates/mutnet)
@@ -24,7 +24,6 @@ on nightly Rust. It currently looks like this [limitation should be lifted](http
 
 ## Safety & Panics
 mutnet makes use of `#[forbid(unsafe_code)]` to ensure the absence of unsafe code.
-The only dependency, [paste](https://github.com/dtolnay/paste), does not introduce unsafe code.
 
 The absence of panics for all parsing, lookup and manipulation methods is checked via the 
 [Kani](https://github.com/model-checking/kani) verifier.

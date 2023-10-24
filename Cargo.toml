@@ -1,6 +1,6 @@
 [package]
 name = "mutnet"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 authors = ["Julian Schindel <mail@arctic-alpaca.de>"]
 license = "MIT OR Apache-2.0"
@@ -34,8 +34,6 @@ verify_ethernet = ["remove_checksum"]
 
 
 [dependencies]
-paste = "=1.0.14"
-
 
 [dev-dependencies]
 # Benchmarking
