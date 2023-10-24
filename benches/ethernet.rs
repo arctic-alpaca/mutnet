@@ -118,7 +118,7 @@ fn parse_ether_vlan(
 fn parse_ether_vlan_multi(
     bytes: &[u8],
 ) -> Result<EthernetMultiStepParserResult<&[u8], 10>, ParseNetworkDataError> {
-    parse_network_data(bytes, 0, true, true)
+    parse_network_data(bytes, 0, true, true, true)
 }
 
 #[inline(always)]

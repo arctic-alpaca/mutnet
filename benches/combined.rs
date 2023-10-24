@@ -223,7 +223,7 @@ pub fn parse_ipv6_tcp_combined(
 fn parse_multi(
     bytes: &[u8],
 ) -> Result<EthernetMultiStepParserResult<&[u8], 10>, ParseNetworkDataError> {
-    parse_network_data(bytes, 0, true, true)
+    parse_network_data(bytes, 0, true, true, true)
 }
 
 #[inline(always)]
