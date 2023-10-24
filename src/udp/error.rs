@@ -12,8 +12,13 @@ use std::error;
 pub enum ParseUdpError {
     UnexpectedBufferEnd(UnexpectedBufferEndError),
     WrongChecksum(WrongChecksumError),
-    LengthHeaderTooSmall { length_header: usize },
-    LengthHeaderTooLarge { expected: usize, actual: usize },
+    LengthHeaderTooSmall {
+        length_header: usize,
+    },
+    LengthHeaderTooLarge {
+        data_length: usize,
+        length_header: usize,
+    },
 }
 
 impl From<UnexpectedBufferEndError> for ParseUdpError {
@@ -45,10 +50,13 @@ impl Display for ParseUdpError {
                     "Length header is {length_header} but was expected to be at least 8"
                 )
             }
-            Self::LengthHeaderTooLarge { expected, actual } => {
+            Self::LengthHeaderTooLarge {
+                data_length,
+                length_header,
+            } => {
                 write!(
                     f,
-                    "Length header expected to be at most {expected} but was {actual}"
+                    "Length header expected to be at most {data_length} but was {length_header}"
                 )
             }
         }
