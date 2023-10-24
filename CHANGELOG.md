@@ -1,3 +1,7 @@
+# Unreleased
+### Removed
+- paste dependency
+
 # 0.3.0 (24. October 2023)
 ### Added
 - **breaking** UDP support for `parse_network_data()`
