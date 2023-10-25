@@ -453,7 +453,7 @@ mod tests {
         let mut arp_packet =
             DataBuffer::<_, Arp<NoPreviousHeaderInformation>>::new(ARP_IPV4_REQUEST, 0).unwrap();
         assert_eq!(1, arp_packet.arp_operation_code());
-        arp_packet.arp_set_operation_code(OperationCode::Reply);
+        arp_packet.set_arp_operation_code(OperationCode::Reply);
         assert_eq!(2, arp_packet.arp_operation_code());
     }
 
@@ -465,7 +465,7 @@ mod tests {
             [0x1C, 0xED, 0xA4, 0xE1, 0xD2, 0xA2,],
             arp_packet.arp_sender_hardware_address()
         );
-        arp_packet.arp_set_sender_hardware_address(&[0xFF; 6]);
+        arp_packet.set_arp_sender_hardware_address(&[0xFF; 6]);
         assert_eq!([0xFF; 6], arp_packet.arp_sender_hardware_address());
     }
 
@@ -477,7 +477,7 @@ mod tests {
             [0xC0, 0xA8, 0x0A, 0x01,],
             arp_packet.arp_sender_protocol_address()
         );
-        arp_packet.arp_set_sender_protocol_address(&[0xFF; 4]);
+        arp_packet.set_arp_sender_protocol_address(&[0xFF; 4]);
         assert_eq!([0xFF; 4], arp_packet.arp_sender_protocol_address());
     }
 
@@ -489,7 +489,7 @@ mod tests {
             [0x13, 0xE2, 0xAF, 0xE2, 0xD5, 0xA6,],
             arp_packet.arp_target_hardware_address()
         );
-        arp_packet.arp_set_target_hardware_address(&[0xFF; 6]);
+        arp_packet.set_arp_target_hardware_address(&[0xFF; 6]);
         assert_eq!([0xFF; 6], arp_packet.arp_target_hardware_address());
     }
 
@@ -501,7 +501,7 @@ mod tests {
             [0xC0, 0xA8, 0x7A, 0x0E,],
             arp_packet.arp_target_protocol_address()
         );
-        arp_packet.arp_set_target_protocol_address(&[0xFF; 4]);
+        arp_packet.set_arp_target_protocol_address(&[0xFF; 4]);
         assert_eq!([0xFF; 4], arp_packet.arp_target_protocol_address());
     }
 

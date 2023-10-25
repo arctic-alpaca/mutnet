@@ -121,31 +121,31 @@ pub trait ArpMethods: BufferAccess {
 
 pub trait ArpMethodsMut: ArpMethods + BufferAccessMut + HeaderManipulation + Sized {
     #[inline]
-    fn arp_set_operation_code(&mut self, operation_code: OperationCode) {
+    fn set_arp_operation_code(&mut self, operation_code: OperationCode) {
         self.data_buffer_starting_at_header_mut(LAYER)[OPERATION_CODE]
             .copy_from_slice(&(operation_code as u16).to_be_bytes())
     }
 
     #[inline]
-    fn arp_set_sender_hardware_address(&mut self, sender_addr: &MacAddress) {
+    fn set_arp_sender_hardware_address(&mut self, sender_addr: &MacAddress) {
         self.data_buffer_starting_at_header_mut(LAYER)[SENDER_HARDWARE_ADDRESS]
             .copy_from_slice(sender_addr)
     }
 
     #[inline]
-    fn arp_set_sender_protocol_address(&mut self, sender_addr: &Ipv4Address) {
+    fn set_arp_sender_protocol_address(&mut self, sender_addr: &Ipv4Address) {
         self.data_buffer_starting_at_header_mut(LAYER)[SENDER_PROTOCOL_ADDRESS]
             .copy_from_slice(sender_addr)
     }
 
     #[inline]
-    fn arp_set_target_hardware_address(&mut self, target_addr: &MacAddress) {
+    fn set_arp_target_hardware_address(&mut self, target_addr: &MacAddress) {
         self.data_buffer_starting_at_header_mut(LAYER)[TARGET_HARDWARE_ADDRESS]
             .copy_from_slice(target_addr)
     }
 
     #[inline]
-    fn arp_set_target_protocol_address(&mut self, target_addr: &Ipv4Address) {
+    fn set_arp_target_protocol_address(&mut self, target_addr: &Ipv4Address) {
         self.data_buffer_starting_at_header_mut(LAYER)[TARGET_PROTOCOL_ADDRESS]
             .copy_from_slice(target_addr)
     }

@@ -1,4 +1,7 @@
 # Unreleased
+### Changed
+- Changed `ArpMethodsMut` method names to match other setters
+
 ### Removed
 - paste dependency
 

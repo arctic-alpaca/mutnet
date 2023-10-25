@@ -40,7 +40,7 @@ fn arp_set_operation_code_proof() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Arp<Eth>>::new_from_lower(to_test) {
-            to_test.arp_set_operation_code(kani::any());
+            to_test.set_arp_operation_code(kani::any());
             let _ = DataBuffer::<_, Arp<Eth>>::new_from_lower(
                 DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
             )
@@ -59,7 +59,7 @@ fn arp_set_sender_hardware_address_proof() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Arp<Eth>>::new_from_lower(to_test) {
-            to_test.arp_set_sender_hardware_address(&kani::any());
+            to_test.set_arp_sender_hardware_address(&kani::any());
             let _ = DataBuffer::<_, Arp<Eth>>::new_from_lower(
                 DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
             )
@@ -78,7 +78,7 @@ fn arp_set_sender_protocol_address_proof() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Arp<Eth>>::new_from_lower(to_test) {
-            to_test.arp_set_sender_protocol_address(&kani::any());
+            to_test.set_arp_sender_protocol_address(&kani::any());
             let _ = DataBuffer::<_, Arp<Eth>>::new_from_lower(
                 DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
             )
@@ -97,7 +97,7 @@ fn arp_set_target_hardware_address_proof() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Arp<Eth>>::new_from_lower(to_test) {
-            to_test.arp_set_target_hardware_address(&kani::any());
+            to_test.set_arp_target_hardware_address(&kani::any());
             let _ = DataBuffer::<_, Arp<Eth>>::new_from_lower(
                 DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
             )
@@ -116,7 +116,7 @@ fn arp_set_target_protocol_address_proof() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Arp<Eth>>::new_from_lower(to_test) {
-            to_test.arp_set_target_protocol_address(&kani::any());
+            to_test.set_arp_target_protocol_address(&kani::any());
             let _ = DataBuffer::<_, Arp<Eth>>::new_from_lower(
                 DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
             )
