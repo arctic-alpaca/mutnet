@@ -1,6 +1,7 @@
 # Unreleased
 ### Changed
 - Changed `ArpMethodsMut` method names to match other setters
+- ARP now returns an error on non-supported operation codes
 
 ### Removed
 - paste dependency

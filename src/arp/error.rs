@@ -12,6 +12,7 @@ use std::error;
 pub enum ParseArpError {
     UnexpectedBufferEnd(UnexpectedBufferEndError),
     UnsupportedHardwareOrProtocolFields,
+    InvalidOperationCode { operation_code: u16 },
 }
 
 impl From<UnexpectedBufferEndError> for ParseArpError {
@@ -30,9 +31,14 @@ impl Display for ParseArpError {
                     "Hardware/protocol type or length do not fit IPv4 over ethernet"
                 )
             }
-
             Self::UnexpectedBufferEnd(err) => {
                 write!(f, "{err}")
+            }
+            Self::InvalidOperationCode { operation_code } => {
+                write!(
+                    f,
+                    "Invalid operation code, only request(1) and reply(2) are supported, was: {operation_code}"
+                )
             }
         }
     }

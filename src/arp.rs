@@ -94,14 +94,22 @@ where
             return Err(ParseArpError::UnsupportedHardwareOrProtocolFields);
         }
 
-        Ok(Self {
+        let result = Self {
             header_information: Arp {
                 header_start_offset: header_start_offset_from_phi(previous_header_information),
                 header_length: 28,
                 previous_header_information: *previous_header_information,
             },
             buffer: lower_layer_data_buffer.buffer_into_inner(),
-        })
+        };
+
+        if !(1..3).contains(&result.arp_operation_code()) {
+            return Err(ParseArpError::InvalidOperationCode {
+                operation_code: result.arp_operation_code(),
+            });
+        }
+
+        Ok(result)
     }
 }
 
@@ -206,7 +214,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::arp::{Arp, ArpMethods, ArpMethodsMut};
-    use crate::arp::{NoRecognizedOperationCodeError, OperationCode, ParseArpError};
+    use crate::arp::{OperationCode, ParseArpError};
     use crate::data_buffer::traits::{HeaderInformation, Layer};
     use crate::data_buffer::DataBuffer;
     use crate::error::UnexpectedBufferEndError;
@@ -338,15 +346,10 @@ mod tests {
     fn new_wrong_operation_code() {
         let mut wrong_operation_code = ARP_IPV4_REQUEST;
         wrong_operation_code[7] = 3;
-        let arp_packet =
-            DataBuffer::<_, Arp<NoPreviousHeaderInformation>>::new(wrong_operation_code, 0)
-                .unwrap();
         assert_eq!(
-            Err(NoRecognizedOperationCodeError {
-                operation_code: 0x03
-            }),
-            arp_packet.arp_typed_operation_code()
-        )
+            Err(ParseArpError::InvalidOperationCode { operation_code: 3 }),
+            DataBuffer::<_, Arp<NoPreviousHeaderInformation>>::new(wrong_operation_code, 0)
+        );
     }
 
     #[test]
