@@ -97,7 +97,7 @@ where
         }
 
         let payload_length = usize::from(u16::from_be_bytes(
-            lower_layer_data_buffer.payload()[PAYLOAD_LENGTH_START..PAYLOAD_LENGTH_END]
+            lower_layer_data_buffer.payload()[PAYLOAD_LENGTH]
                 .try_into()
                 .unwrap(),
         ));
@@ -119,11 +119,8 @@ where
             },
             buffer: lower_layer_data_buffer.buffer_into_inner(),
         };
-        let data_length = result.headroom()
-            + result.header_start_offset(LAYER)
-            + result.header_length(LAYER)
-            + payload_length
-            - result.headroom();
+        let data_length =
+            result.header_start_offset(LAYER) + result.header_length(LAYER) + payload_length;
         result.set_data_length(data_length, result.buffer.as_ref().len())?;
         Ok(result)
     }

@@ -88,7 +88,7 @@ where
 
         // Check hardware type to be ethernet, protocol type to be IPv4, hardware address length
         // to be 6 and protocol address length to be 4.
-        if lower_layer_data_buffer.payload()[HARDWARE_TYPE_START..=PROTOCOL_ADDRESS_LENGTH]
+        if lower_layer_data_buffer.payload()[HARDWARE_TYPE.start..=PROTOCOL_ADDRESS_LENGTH]
             != [0x00, 0x01, 0x08, 0x00, 0x6, 0x4]
         {
             return Err(ParseArpError::UnsupportedHardwareOrProtocolFields);

@@ -3,11 +3,12 @@ use core::fmt::{Debug, Display, Formatter};
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
 
+#[cfg(feature = "std")]
+use std::error;
+
 use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError};
 use crate::internet_protocol::NoRecognizedInternetProtocolNumberError;
 use crate::ipv6_extensions::NoRecognizedIpv6ExtensionError;
-#[cfg(feature = "std")]
-use std::error;
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Ipv6ExtensionIndexOutOfBoundsError {

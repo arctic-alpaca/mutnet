@@ -5,32 +5,25 @@ use crate::error::NotEnoughHeadroomError;
 use crate::ether_type::{EtherType, NoRecognizedEtherTypeError};
 use crate::ieee802_1q_vlan::NotDoubleTaggedError;
 use crate::vlan::Vlan;
+use core::ops::Range;
 
-pub(crate) static SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START: usize = 0;
-pub(crate) static SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_END: usize = 2;
-pub(crate) static SINGLE_TAGGED_ETHER_TYPE_START: usize = 2;
-pub(crate) static SINGLE_TAGGED_ETHER_TYPE_END: usize = 4;
+pub(crate) const SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION: Range<usize> = 0..2;
+pub(crate) const SINGLE_TAGGED_ETHER_TYPE: Range<usize> = 2..4;
+pub(crate) const VLAN_S_TAG_CONTROL_INFORMATION: Range<usize> = 0..2;
+pub(crate) const DOUBLE_TAGGED_C_TAG_INDICATOR: Range<usize> = 2..4;
+pub(crate) const DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION: Range<usize> = 4..6;
+pub(crate) const DOUBLE_TAGGED_ETHER_TYPE: Range<usize> = 6..8;
+pub(crate) const PCP_SHIFT: usize = 5;
+pub(crate) const PCP_MASK: u8 = 0b1110_0000;
+pub(crate) const DEI_SHIFT: usize = 4;
+pub(crate) const DEI_MASK: u8 = 0b0001_0000;
+pub(crate) const VID_MASK: u16 = 0b0000_1111_1111_1111;
+pub(crate) const VID_FIRST_BYTE_MASK: u8 = 0b0000_1111;
 
-pub(crate) static VLAN_S_TAG_CONTROL_INFORMATION_START: usize = 0;
-pub(crate) static VLAN_S_TAG_CONTROL_INFORMATION_END: usize = 2;
-pub(crate) static DOUBLE_TAGGED_C_TAG_INDICATOR_START: usize = 2;
-pub(crate) static DOUBLE_TAGGED_C_TAG_INDICATOR_END: usize = 4;
-pub(crate) static DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START: usize = 4;
-pub(crate) static DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_END: usize = 6;
-pub(crate) static DOUBLE_TAGGED_ETHER_TYPE_START: usize = 6;
-pub(crate) static DOUBLE_TAGGED_ETHER_TYPE_END: usize = 8;
+pub(crate) const HEADER_MIN_LEN_SINGLE_TAGGED: usize = 4;
+pub(crate) const HEADER_MIN_LEN_DOUBLE_TAGGED: usize = 8;
 
-pub(crate) static PCP_SHIFT: usize = 5;
-pub(crate) static PCP_MASK: u8 = 0b1110_0000;
-pub(crate) static DEI_SHIFT: usize = 4;
-pub(crate) static DEI_MASK: u8 = 0b0001_0000;
-pub(crate) static VID_MASK: u16 = 0b0000_1111_1111_1111;
-pub(crate) static VID_FIRST_BYTE_MASK: u8 = 0b0000_1111;
-
-pub(crate) static HEADER_MIN_LEN_SINGLE_TAGGED: usize = 4;
-pub(crate) static HEADER_MIN_LEN_DOUBLE_TAGGED: usize = 8;
-
-pub(crate) static LAYER: Layer = Layer::Ieee802_1QVlan;
+pub(crate) const LAYER: Layer = Layer::Ieee802_1QVlan;
 
 // Length manipulating methods:
 // - add_or_update_ieee802_1q_s_tag (has proof)
@@ -40,15 +33,11 @@ pub trait Ieee802_1QMethods: HeaderInformation + BufferAccess {
     #[inline]
     fn ieee802_1q_c_tag_control_information(&self) -> [u8; 2] {
         if self.header_length(LAYER) == HEADER_MIN_LEN_SINGLE_TAGGED {
-            self.data_buffer_starting_at_header(LAYER)
-                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START
-                    ..SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_END]
+            self.data_buffer_starting_at_header(LAYER)[SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION]
                 .try_into()
                 .unwrap()
         } else {
-            self.data_buffer_starting_at_header(LAYER)
-                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START
-                    ..DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_END]
+            self.data_buffer_starting_at_header(LAYER)[DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION]
                 .try_into()
                 .unwrap()
         }
@@ -58,11 +47,11 @@ pub trait Ieee802_1QMethods: HeaderInformation + BufferAccess {
     fn ieee802_1q_c_tag_priority_code_point(&self) -> u8 {
         if self.header_length(LAYER) == HEADER_MIN_LEN_SINGLE_TAGGED {
             self.data_buffer_starting_at_header(LAYER)
-                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START]
+                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION.start]
                 >> PCP_SHIFT
         } else {
             self.data_buffer_starting_at_header(LAYER)
-                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START]
+                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION.start]
                 >> PCP_SHIFT
         }
     }
@@ -71,13 +60,13 @@ pub trait Ieee802_1QMethods: HeaderInformation + BufferAccess {
     fn ieee802_1q_c_tag_drop_eligible_indicator(&self) -> bool {
         if self.header_length(LAYER) == HEADER_MIN_LEN_SINGLE_TAGGED {
             ((self.data_buffer_starting_at_header(LAYER)
-                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START]
+                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION.start]
                 & DEI_MASK)
                 >> DEI_SHIFT)
                 != 0
         } else {
             ((self.data_buffer_starting_at_header(LAYER)
-                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START]
+                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION.start]
                 & DEI_MASK)
                 >> DEI_SHIFT)
                 != 0
@@ -89,16 +78,14 @@ pub trait Ieee802_1QMethods: HeaderInformation + BufferAccess {
         if self.header_length(LAYER) == HEADER_MIN_LEN_SINGLE_TAGGED {
             u16::from_be_bytes(
                 self.data_buffer_starting_at_header(LAYER)
-                    [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START
-                        ..SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_END]
+                    [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION]
                     .try_into()
                     .unwrap(),
             ) & VID_MASK
         } else {
             u16::from_be_bytes(
                 self.data_buffer_starting_at_header(LAYER)
-                    [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START
-                        ..DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_END]
+                    [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION]
                     .try_into()
                     .unwrap(),
             ) & VID_MASK
@@ -109,8 +96,7 @@ pub trait Ieee802_1QMethods: HeaderInformation + BufferAccess {
     fn ieee802_1q_s_tag_control_information(&self) -> Option<[u8; 2]> {
         if self.header_length(LAYER) == HEADER_MIN_LEN_DOUBLE_TAGGED {
             Some(
-                self.data_buffer_starting_at_header(LAYER)
-                    [VLAN_S_TAG_CONTROL_INFORMATION_START..VLAN_S_TAG_CONTROL_INFORMATION_END]
+                self.data_buffer_starting_at_header(LAYER)[VLAN_S_TAG_CONTROL_INFORMATION]
                     .try_into()
                     .unwrap(),
             )
@@ -122,7 +108,7 @@ pub trait Ieee802_1QMethods: HeaderInformation + BufferAccess {
     fn ieee802_1q_s_tag_priority_code_point(&self) -> Option<u8> {
         if self.header_length(LAYER) == HEADER_MIN_LEN_DOUBLE_TAGGED {
             Some(
-                self.data_buffer_starting_at_header(LAYER)[VLAN_S_TAG_CONTROL_INFORMATION_START]
+                self.data_buffer_starting_at_header(LAYER)[VLAN_S_TAG_CONTROL_INFORMATION.start]
                     >> PCP_SHIFT,
             )
         } else {
@@ -135,7 +121,7 @@ pub trait Ieee802_1QMethods: HeaderInformation + BufferAccess {
         if self.header_length(LAYER) == HEADER_MIN_LEN_DOUBLE_TAGGED {
             Some(
                 ((self.data_buffer_starting_at_header(LAYER)
-                    [VLAN_S_TAG_CONTROL_INFORMATION_START]
+                    [VLAN_S_TAG_CONTROL_INFORMATION.start]
                     & DEI_MASK)
                     >> DEI_SHIFT)
                     != 0,
@@ -150,8 +136,7 @@ pub trait Ieee802_1QMethods: HeaderInformation + BufferAccess {
         if self.header_length(LAYER) == HEADER_MIN_LEN_DOUBLE_TAGGED {
             Some(
                 u16::from_be_bytes(
-                    self.data_buffer_starting_at_header(LAYER)
-                        [VLAN_S_TAG_CONTROL_INFORMATION_START..VLAN_S_TAG_CONTROL_INFORMATION_END]
+                    self.data_buffer_starting_at_header(LAYER)[VLAN_S_TAG_CONTROL_INFORMATION]
                         .try_into()
                         .unwrap(),
                 ) & VID_MASK,
@@ -174,15 +159,13 @@ pub trait Ieee802_1QMethods: HeaderInformation + BufferAccess {
     fn ieee802_1q_ether_type(&self) -> u16 {
         if self.header_length(LAYER) == HEADER_MIN_LEN_SINGLE_TAGGED {
             u16::from_be_bytes(
-                self.data_buffer_starting_at_header(LAYER)
-                    [SINGLE_TAGGED_ETHER_TYPE_START..SINGLE_TAGGED_ETHER_TYPE_END]
+                self.data_buffer_starting_at_header(LAYER)[SINGLE_TAGGED_ETHER_TYPE]
                     .try_into()
                     .unwrap(),
             )
         } else {
             u16::from_be_bytes(
-                self.data_buffer_starting_at_header(LAYER)
-                    [DOUBLE_TAGGED_ETHER_TYPE_START..DOUBLE_TAGGED_ETHER_TYPE_END]
+                self.data_buffer_starting_at_header(LAYER)[DOUBLE_TAGGED_ETHER_TYPE]
                     .try_into()
                     .unwrap(),
             )
@@ -193,16 +176,14 @@ pub trait Ieee802_1QMethods: HeaderInformation + BufferAccess {
     fn ieee802_1q_typed_ether_type(&self) -> Result<EtherType, NoRecognizedEtherTypeError> {
         if self.header_length(LAYER) == HEADER_MIN_LEN_SINGLE_TAGGED {
             u16::from_be_bytes(
-                self.data_buffer_starting_at_header(LAYER)
-                    [SINGLE_TAGGED_ETHER_TYPE_START..SINGLE_TAGGED_ETHER_TYPE_END]
+                self.data_buffer_starting_at_header(LAYER)[SINGLE_TAGGED_ETHER_TYPE]
                     .try_into()
                     .unwrap(),
             )
             .try_into()
         } else {
             u16::from_be_bytes(
-                self.data_buffer_starting_at_header(LAYER)
-                    [DOUBLE_TAGGED_ETHER_TYPE_START..DOUBLE_TAGGED_ETHER_TYPE_END]
+                self.data_buffer_starting_at_header(LAYER)[DOUBLE_TAGGED_ETHER_TYPE]
                     .try_into()
                     .unwrap(),
             )
@@ -223,13 +204,11 @@ pub trait Ieee802_1QMethodsMut:
     fn set_ieee802_1q_c_tag_control_information(&mut self, tag_control_information: &[u8; 2]) {
         if self.header_length(LAYER) == HEADER_MIN_LEN_SINGLE_TAGGED {
             self.data_buffer_starting_at_header_mut(LAYER)
-                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START
-                    ..SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_END]
+                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION]
                 .copy_from_slice(tag_control_information);
         } else {
             self.data_buffer_starting_at_header_mut(LAYER)
-                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START
-                    ..DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_END]
+                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION]
                 .copy_from_slice(tag_control_information);
         }
     }
@@ -240,17 +219,17 @@ pub trait Ieee802_1QMethodsMut:
         if self.header_length(LAYER) == HEADER_MIN_LEN_SINGLE_TAGGED {
             let priority_code_point = priority_code_point << PCP_SHIFT;
             self.data_buffer_starting_at_header_mut(LAYER)
-                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START] = (self
+                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION.start] = (self
                 .data_buffer_starting_at_header_mut(LAYER)
-                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START]
+                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION.start]
                 & !PCP_MASK)
                 | priority_code_point;
         } else {
             let priority_code_point = priority_code_point << PCP_SHIFT;
             self.data_buffer_starting_at_header_mut(LAYER)
-                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START] = (self
+                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION.start] = (self
                 .data_buffer_starting_at_header_mut(LAYER)
-                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START]
+                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION.start]
                 & !PCP_MASK)
                 | priority_code_point;
         }
@@ -261,17 +240,17 @@ pub trait Ieee802_1QMethodsMut:
         if self.header_length(LAYER) == HEADER_MIN_LEN_SINGLE_TAGGED {
             let drop_eligible_indicator = (drop_eligible_indicator as u8) << DEI_SHIFT;
             self.data_buffer_starting_at_header_mut(LAYER)
-                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START] = (self
+                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION.start] = (self
                 .data_buffer_starting_at_header_mut(LAYER)
-                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START]
+                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION.start]
                 & !DEI_MASK)
                 | drop_eligible_indicator;
         } else {
             let drop_eligible_indicator = (drop_eligible_indicator as u8) << DEI_SHIFT;
             self.data_buffer_starting_at_header_mut(LAYER)
-                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START] = (self
+                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION.start] = (self
                 .data_buffer_starting_at_header_mut(LAYER)
-                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START]
+                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION.start]
                 & !DEI_MASK)
                 | drop_eligible_indicator;
         }
@@ -283,23 +262,23 @@ pub trait Ieee802_1QMethodsMut:
         if self.header_length(LAYER) == HEADER_MIN_LEN_SINGLE_TAGGED {
             let vlan_identifier = vlan_identifier.to_be_bytes();
             self.data_buffer_starting_at_header_mut(LAYER)
-                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START] = (self
+                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION.start] = (self
                 .data_buffer_starting_at_header_mut(LAYER)
-                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START]
+                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION.start]
                 & !VID_FIRST_BYTE_MASK)
                 | (vlan_identifier[0] & VID_FIRST_BYTE_MASK);
             self.data_buffer_starting_at_header_mut(LAYER)
-                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START + 1] = vlan_identifier[1];
+                [SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION.start + 1] = vlan_identifier[1];
         } else {
             let vlan_identifier = vlan_identifier.to_be_bytes();
             self.data_buffer_starting_at_header_mut(LAYER)
-                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START] = (self
+                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION.start] = (self
                 .data_buffer_starting_at_header_mut(LAYER)
-                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START]
+                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION.start]
                 & !VID_FIRST_BYTE_MASK)
                 | (vlan_identifier[0] & VID_FIRST_BYTE_MASK);
             self.data_buffer_starting_at_header_mut(LAYER)
-                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION_START + 1] = vlan_identifier[1];
+                [DOUBLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION.start + 1] = vlan_identifier[1];
         }
     }
 
@@ -311,13 +290,11 @@ pub trait Ieee802_1QMethodsMut:
     ) -> Result<(), NotEnoughHeadroomError> {
         if self.header_length(LAYER) == HEADER_MIN_LEN_SINGLE_TAGGED {
             self.grow_header(0, 4, LAYER)?;
-            self.data_buffer_starting_at_header_mut(LAYER)
-                [DOUBLE_TAGGED_C_TAG_INDICATOR_START..DOUBLE_TAGGED_C_TAG_INDICATOR_END]
+            self.data_buffer_starting_at_header_mut(LAYER)[DOUBLE_TAGGED_C_TAG_INDICATOR]
                 .copy_from_slice(&(EtherType::CustomerTag as u16).to_be_bytes());
             self.set_double_tagged();
         }
-        self.data_buffer_starting_at_header_mut(LAYER)
-            [VLAN_S_TAG_CONTROL_INFORMATION_START..VLAN_S_TAG_CONTROL_INFORMATION_END]
+        self.data_buffer_starting_at_header_mut(LAYER)[VLAN_S_TAG_CONTROL_INFORMATION]
             .copy_from_slice(s_tag_control_information);
         Ok(())
     }
@@ -329,9 +306,9 @@ pub trait Ieee802_1QMethodsMut:
     ) -> Result<(), NotDoubleTaggedError> {
         if self.header_length(LAYER) == HEADER_MIN_LEN_DOUBLE_TAGGED {
             let priority_code_point = priority_code_point << PCP_SHIFT;
-            self.data_buffer_starting_at_header_mut(LAYER)[VLAN_S_TAG_CONTROL_INFORMATION_START] =
+            self.data_buffer_starting_at_header_mut(LAYER)[VLAN_S_TAG_CONTROL_INFORMATION.start] =
                 (self.data_buffer_starting_at_header_mut(LAYER)
-                    [VLAN_S_TAG_CONTROL_INFORMATION_START]
+                    [VLAN_S_TAG_CONTROL_INFORMATION.start]
                     & !PCP_MASK)
                     | priority_code_point;
 
@@ -348,9 +325,9 @@ pub trait Ieee802_1QMethodsMut:
     ) -> Result<(), NotDoubleTaggedError> {
         if self.header_length(LAYER) == HEADER_MIN_LEN_DOUBLE_TAGGED {
             let drop_eligible_indicator = (drop_eligible_indicator as u8) << DEI_SHIFT;
-            self.data_buffer_starting_at_header_mut(LAYER)[VLAN_S_TAG_CONTROL_INFORMATION_START] =
+            self.data_buffer_starting_at_header_mut(LAYER)[VLAN_S_TAG_CONTROL_INFORMATION.start] =
                 (self.data_buffer_starting_at_header_mut(LAYER)
-                    [VLAN_S_TAG_CONTROL_INFORMATION_START]
+                    [VLAN_S_TAG_CONTROL_INFORMATION.start]
                     & !DEI_MASK)
                     | drop_eligible_indicator;
             Ok(())
@@ -366,13 +343,13 @@ pub trait Ieee802_1QMethodsMut:
     ) -> Result<(), NotDoubleTaggedError> {
         if self.header_length(LAYER) == HEADER_MIN_LEN_DOUBLE_TAGGED {
             let vlan_identifier = vlan_identifier.to_be_bytes();
-            self.data_buffer_starting_at_header_mut(LAYER)[VLAN_S_TAG_CONTROL_INFORMATION_START] =
+            self.data_buffer_starting_at_header_mut(LAYER)[VLAN_S_TAG_CONTROL_INFORMATION.start] =
                 (self.data_buffer_starting_at_header_mut(LAYER)
-                    [VLAN_S_TAG_CONTROL_INFORMATION_START]
+                    [VLAN_S_TAG_CONTROL_INFORMATION.start]
                     & !VID_FIRST_BYTE_MASK)
                     | (vlan_identifier[0] & VID_FIRST_BYTE_MASK);
             self.data_buffer_starting_at_header_mut(LAYER)
-                [VLAN_S_TAG_CONTROL_INFORMATION_START + 1] = vlan_identifier[1];
+                [VLAN_S_TAG_CONTROL_INFORMATION.start + 1] = vlan_identifier[1];
             Ok(())
         } else {
             Err(NotDoubleTaggedError)
@@ -391,12 +368,10 @@ pub trait Ieee802_1QMethodsMut:
     #[inline]
     fn set_ieee802_1q_ether_type(&mut self, ether_type: u16) {
         if self.header_length(LAYER) == HEADER_MIN_LEN_SINGLE_TAGGED {
-            self.data_buffer_starting_at_header_mut(LAYER)
-                [SINGLE_TAGGED_ETHER_TYPE_START..SINGLE_TAGGED_ETHER_TYPE_END]
+            self.data_buffer_starting_at_header_mut(LAYER)[SINGLE_TAGGED_ETHER_TYPE]
                 .copy_from_slice(&ether_type.to_be_bytes());
         } else {
-            self.data_buffer_starting_at_header_mut(LAYER)
-                [DOUBLE_TAGGED_ETHER_TYPE_START..DOUBLE_TAGGED_ETHER_TYPE_END]
+            self.data_buffer_starting_at_header_mut(LAYER)[DOUBLE_TAGGED_ETHER_TYPE]
                 .copy_from_slice(&ether_type.to_be_bytes());
         }
     }

@@ -8,62 +8,44 @@ use crate::internet_protocol::{InternetProtocolNumber, NoRecognizedInternetProto
 use crate::ipv4::{
     Dscp, Ecn, NoRecognizedDscpError, NoRecognizedEcnError, SetIhlError, SetTotalLengthError,
 };
+use core::ops::Range;
+use core::ops::RangeInclusive;
 
-pub(crate) static VERSION_BYTE: usize = 0;
-pub(crate) static VERSION_SHIFT: usize = 4;
+pub(crate) const VERSION_BYTE: usize = 0;
+pub(crate) const VERSION_SHIFT: usize = 4;
+pub(crate) const IHL_BYTE: usize = 0;
+pub(crate) const IHL_MASK: u8 = 0b0000_1111;
+pub(crate) const DSCP_BYTE: usize = 1;
+pub(crate) const DSCP_MASK: u8 = 0b1111_1100;
+pub(crate) const DSCP_SHIFT: usize = 2;
+pub(crate) const ECN_BYTE: usize = 1;
+pub(crate) const ECN_MASK: u8 = 0b0000_0011;
+pub(crate) const TOTAL_LENGTH: Range<usize> = 2..4;
+pub(crate) const IDENTIFICATION: Range<usize> = 4..6;
+pub(crate) const FLAGS_BYTE: usize = 6;
+pub(crate) const FLAGS_MASK: u8 = 0b1110_0000;
+pub(crate) const FLAGS_SHIFT: usize = 5;
+pub(crate) const FLAGS_EVIL_MASK: u8 = 0b1000_0000;
+pub(crate) const FLAGS_EVIL_SHIFT: usize = 7;
+pub(crate) const FLAGS_DONT_FRAGMENT_MASK: u8 = 0b0100_0000;
+pub(crate) const FLAGS_DONT_FRAGMENT_SHIFT: usize = 6;
+pub(crate) const FLAGS_MORE_FRAGMENTS_MASK: u8 = 0b0010_0000;
+pub(crate) const FLAGS_MORE_FRAGMENTS_SHIFT: usize = 5;
+pub(crate) const FRAGMENT_OFFSET_MASK: u16 = 0b0001_1111_1111_1111;
+pub(crate) const FRAGMENT_OFFSET_FLAG_SHIFT: usize = 13;
+pub(crate) const FRAGMENT_OFFSET: Range<usize> = 6..8;
+pub(crate) const TIME_TO_LIVE: usize = 8;
+pub(crate) const PROTOCOL: usize = 9;
+pub(crate) const CHECKSUM: Range<usize> = 10..12;
+pub(crate) const SOURCE: Range<usize> = 12..16;
+pub(crate) const DESTINATION: Range<usize> = 16..20;
+pub(crate) const OPTIONS_START: usize = 20;
 
-pub(crate) static IHL_BYTE: usize = 0;
-pub(crate) static IHL_MASK: u8 = 0b0000_1111;
+pub(crate) const HEADER_MIN_LEN: usize = 20;
 
-pub(crate) static DSCP_BYTE: usize = 1;
-pub(crate) static DSCP_MASK: u8 = 0b1111_1100;
-pub(crate) static DSCP_SHIFT: usize = 2;
+pub(crate) const IHL_RANGE: RangeInclusive<usize> = 5..=15;
 
-pub(crate) static ECN_BYTE: usize = 1;
-pub(crate) static ECN_MASK: u8 = 0b0000_0011;
-
-pub(crate) static TOTAL_LENGTH_START: usize = 2;
-pub(crate) static TOTAL_LENGTH_END: usize = 4;
-
-pub(crate) static IDENTIFICATION_START: usize = 4;
-pub(crate) static IDENTIFICATION_END: usize = 6;
-
-pub(crate) static FLAGS_BYTE: usize = 6;
-pub(crate) static FLAGS_MASK: u8 = 0b1110_0000;
-pub(crate) static FLAGS_SHIFT: usize = 5;
-pub(crate) static FLAGS_EVIL_MASK: u8 = 0b1000_0000;
-pub(crate) static FLAGS_EVIL_SHIFT: usize = 7;
-pub(crate) static FLAGS_DONT_FRAGMENT_MASK: u8 = 0b0100_0000;
-pub(crate) static FLAGS_DONT_FRAGMENT_SHIFT: usize = 6;
-pub(crate) static FLAGS_MORE_FRAGMENTS_MASK: u8 = 0b0010_0000;
-pub(crate) static FLAGS_MORE_FRAGMENTS_SHIFT: usize = 5;
-
-pub(crate) static FRAGMENT_OFFSET_START: usize = 6;
-pub(crate) static FRAGMENT_OFFSET_MASK: u16 = 0b0001_1111_1111_1111;
-pub(crate) static FRAGMENT_OFFSET_FLAG_SHIFT: usize = 13;
-pub(crate) static FRAGMENT_OFFSET_END: usize = 8;
-
-pub(crate) static TIME_TO_LIVE: usize = 8;
-
-pub(crate) static PROTOCOL: usize = 9;
-
-pub(crate) static CHECKSUM_START: usize = 10;
-pub(crate) static CHECKSUM_END: usize = 12;
-
-pub(crate) static SOURCE_START: usize = 12;
-pub(crate) static SOURCE_END: usize = 16;
-
-pub(crate) static DESTINATION_START: usize = 16;
-pub(crate) static DESTINATION_END: usize = 20;
-
-pub(crate) static OPTIONS_START: usize = 20;
-
-pub(crate) static HEADER_MIN_LEN: usize = 20;
-
-pub(crate) static IHL_MIN_VALUE: usize = 5;
-pub(crate) static IHL_MAX_VALUE: usize = 15;
-
-pub(crate) static LAYER: Layer = Layer::Ipv4;
+pub(crate) const LAYER: Layer = Layer::Ipv4;
 
 // Length manipulating methods:
 // - set_ipv4_total_length (has proof)
@@ -103,7 +85,7 @@ pub trait Ipv4Methods: HeaderInformation + BufferAccess {
     #[inline]
     fn ipv4_total_length(&self) -> u16 {
         u16::from_be_bytes(
-            self.data_buffer_starting_at_header(LAYER)[TOTAL_LENGTH_START..TOTAL_LENGTH_END]
+            self.data_buffer_starting_at_header(LAYER)[TOTAL_LENGTH]
                 .try_into()
                 .unwrap(),
         )
@@ -112,7 +94,7 @@ pub trait Ipv4Methods: HeaderInformation + BufferAccess {
     #[inline]
     fn ipv4_identification(&self) -> u16 {
         u16::from_be_bytes(
-            self.data_buffer_starting_at_header(LAYER)[IDENTIFICATION_START..IDENTIFICATION_END]
+            self.data_buffer_starting_at_header(LAYER)[IDENTIFICATION]
                 .try_into()
                 .unwrap(),
         )
@@ -142,7 +124,7 @@ pub trait Ipv4Methods: HeaderInformation + BufferAccess {
     #[inline]
     fn ipv4_fragment_offset(&self) -> u16 {
         u16::from_be_bytes(
-            self.data_buffer_starting_at_header(LAYER)[FRAGMENT_OFFSET_START..FRAGMENT_OFFSET_END]
+            self.data_buffer_starting_at_header(LAYER)[FRAGMENT_OFFSET]
                 .try_into()
                 .unwrap(),
         ) & FRAGMENT_OFFSET_MASK
@@ -168,7 +150,7 @@ pub trait Ipv4Methods: HeaderInformation + BufferAccess {
     #[inline]
     fn ipv4_header_checksum(&self) -> u16 {
         u16::from_be_bytes(
-            self.data_buffer_starting_at_header(LAYER)[CHECKSUM_START..CHECKSUM_END]
+            self.data_buffer_starting_at_header(LAYER)[CHECKSUM]
                 .try_into()
                 .unwrap(),
         )
@@ -183,14 +165,14 @@ pub trait Ipv4Methods: HeaderInformation + BufferAccess {
 
     #[inline]
     fn ipv4_source(&self) -> Ipv4Address {
-        self.data_buffer_starting_at_header(LAYER)[SOURCE_START..SOURCE_END]
+        self.data_buffer_starting_at_header(LAYER)[SOURCE]
             .try_into()
             .unwrap()
     }
 
     #[inline]
     fn ipv4_destination(&self) -> Ipv4Address {
-        self.data_buffer_starting_at_header(LAYER)[DESTINATION_START..DESTINATION_END]
+        self.data_buffer_starting_at_header(LAYER)[DESTINATION]
             .try_into()
             .unwrap()
     }
@@ -198,7 +180,7 @@ pub trait Ipv4Methods: HeaderInformation + BufferAccess {
     #[inline]
     fn ipv4_options(&self) -> Option<&[u8]> {
         let ihl_header = usize::from(self.ipv4_ihl());
-        if ihl_header <= IHL_MIN_VALUE {
+        if ihl_header <= *IHL_RANGE.start() {
             None
         } else {
             Some(&self.data_buffer_starting_at_header(LAYER)[OPTIONS_START..ihl_header * 4])
@@ -217,7 +199,7 @@ pub trait Ipv4MethodsMut:
     #[inline]
     fn set_ipv4_ihl(&mut self, ihl: u8) -> Result<(), SetIhlError> {
         let new_ihl_usize = usize::from(ihl);
-        if new_ihl_usize < IHL_MIN_VALUE || new_ihl_usize > IHL_MAX_VALUE {
+        if !IHL_RANGE.contains(&new_ihl_usize) {
             return Err(SetIhlError::InvalidIhl { ihl: new_ihl_usize });
         }
         let current_ihl_in_bytes = usize::from(self.ipv4_ihl()) * 4;
@@ -265,14 +247,14 @@ pub trait Ipv4MethodsMut:
 
         let data_length = self.header_start_offset(LAYER) + total_length_usize;
         self.set_data_length(data_length, self.buffer_length())?;
-        self.data_buffer_starting_at_header_mut(LAYER)[TOTAL_LENGTH_START..TOTAL_LENGTH_END]
+        self.data_buffer_starting_at_header_mut(LAYER)[TOTAL_LENGTH]
             .copy_from_slice(&total_length.to_be_bytes());
         Ok(())
     }
 
     #[inline]
     fn set_ipv4_identification(&mut self, identification: u16) {
-        self.data_buffer_starting_at_header_mut(LAYER)[IDENTIFICATION_START..IDENTIFICATION_END]
+        self.data_buffer_starting_at_header_mut(LAYER)[IDENTIFICATION]
             .copy_from_slice(&identification.to_be_bytes())
     }
 
@@ -312,7 +294,7 @@ pub trait Ipv4MethodsMut:
         let mut fragment_offset = fragment_offset & FRAGMENT_OFFSET_MASK;
         fragment_offset &=
             (u16::from(self.ipv4_flags()) << FRAGMENT_OFFSET_FLAG_SHIFT) | FRAGMENT_OFFSET_MASK;
-        self.data_buffer_starting_at_header_mut(LAYER)[FRAGMENT_OFFSET_START..FRAGMENT_OFFSET_END]
+        self.data_buffer_starting_at_header_mut(LAYER)[FRAGMENT_OFFSET]
             .copy_from_slice(fragment_offset.to_be_bytes().as_slice());
     }
 
@@ -328,35 +310,32 @@ pub trait Ipv4MethodsMut:
 
     #[inline]
     fn set_ipv4_header_checksum(&mut self, checksum: u16) {
-        self.data_buffer_starting_at_header_mut(LAYER)[CHECKSUM_START..CHECKSUM_END]
+        self.data_buffer_starting_at_header_mut(LAYER)[CHECKSUM]
             .copy_from_slice(&checksum.to_be_bytes());
     }
 
     #[inline]
     fn update_ipv4_header_checksum(&mut self) {
-        self.data_buffer_starting_at_header_mut(LAYER)[CHECKSUM_START..CHECKSUM_END]
-            .copy_from_slice(&[0, 0]);
+        self.data_buffer_starting_at_header_mut(LAYER)[CHECKSUM].copy_from_slice(&[0, 0]);
         let checksum = self.ipv4_calculate_checksum();
-        self.data_buffer_starting_at_header_mut(LAYER)[CHECKSUM_START..CHECKSUM_END]
+        self.data_buffer_starting_at_header_mut(LAYER)[CHECKSUM]
             .copy_from_slice(&checksum.to_be_bytes());
     }
 
     #[inline]
     fn set_ipv4_source(&mut self, source: Ipv4Address) {
-        self.data_buffer_starting_at_header_mut(LAYER)[SOURCE_START..SOURCE_END]
-            .copy_from_slice(&source)
+        self.data_buffer_starting_at_header_mut(LAYER)[SOURCE].copy_from_slice(&source)
     }
 
     #[inline]
     fn set_ipv4_destination(&mut self, destination: Ipv4Address) {
-        self.data_buffer_starting_at_header_mut(LAYER)[DESTINATION_START..DESTINATION_END]
-            .copy_from_slice(&destination)
+        self.data_buffer_starting_at_header_mut(LAYER)[DESTINATION].copy_from_slice(&destination)
     }
 
     #[inline]
     fn ipv4_options_mut(&mut self) -> Option<&mut [u8]> {
         let ihl_header = usize::from(self.ipv4_ihl());
-        assert!(ihl_header >= IHL_MIN_VALUE);
+        assert!(ihl_header >= *IHL_RANGE.start());
 
         let ihl_in_bytes = ihl_header * 4;
         Some(&mut self.data_buffer_starting_at_header_mut(LAYER)[OPTIONS_START..ihl_in_bytes])
@@ -370,7 +349,7 @@ pub(crate) trait UpdateIpv4Length:
     fn update_ipv4_length(&mut self) {
         let ipv4_length = self.data_length() - self.header_start_offset(LAYER);
 
-        self.data_buffer_starting_at_header_mut(LAYER)[TOTAL_LENGTH_START..TOTAL_LENGTH_END]
+        self.data_buffer_starting_at_header_mut(LAYER)[TOTAL_LENGTH]
             .copy_from_slice(&(ipv4_length as u16).to_be_bytes());
     }
 }

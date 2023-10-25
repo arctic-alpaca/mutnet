@@ -29,13 +29,13 @@ mod routing {
 }
 
 mod fragment {
-    pub(crate) static FRAGMENT_OFFSET_START: usize = 2;
-    pub(crate) static FRAGMENT_OFFSET_END: usize = 4;
+    use core::ops::Range;
+
+    pub(crate) static FRAGMENT_OFFSET: Range<usize> = 2..4;
     pub(crate) static FRAGMENT_OFFSET_SHIFT: usize = 3;
     pub(crate) static MORE_FRAGMENTS_BYTE: usize = 3;
     pub(crate) static MORE_FRAGMENTS_MASK: u8 = 0b0000_0001;
-    pub(crate) static IDENTIFICATION_START: usize = 4;
-    pub(crate) static IDENTIFICATION_END: usize = 8;
+    pub(crate) static IDENTIFICATION: Range<usize> = 4..8;
 }
 
 pub(crate) static LAYER: Layer = Layer::Ipv6Ext;
@@ -181,8 +181,8 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
         match extension_metadata.ext_type {
             Ipv6Extension::Fragment => Ok(u16::from_be_bytes(
                 self.data_buffer_starting_at_header(LAYER)[extension_metadata.offset
-                    + fragment::FRAGMENT_OFFSET_START
-                    ..extension_metadata.offset + fragment::FRAGMENT_OFFSET_END]
+                    + fragment::FRAGMENT_OFFSET.start
+                    ..extension_metadata.offset + fragment::FRAGMENT_OFFSET.end]
                     .try_into()
                     .unwrap(),
             ) >> fragment::FRAGMENT_OFFSET_SHIFT),
@@ -217,8 +217,8 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
         match extension_metadata.ext_type {
             Ipv6Extension::Fragment => Ok(u32::from_be_bytes(
                 self.data_buffer_starting_at_header(LAYER)[extension_metadata.offset
-                    + fragment::IDENTIFICATION_START
-                    ..extension_metadata.offset + fragment::IDENTIFICATION_END]
+                    + fragment::IDENTIFICATION.start
+                    ..extension_metadata.offset + fragment::IDENTIFICATION.end]
                     .try_into()
                     .unwrap(),
             )),
@@ -386,8 +386,8 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
                         & fragment::MORE_FRAGMENTS_MASK) as u16;
 
                 self.data_buffer_starting_at_header_mut(LAYER)[extension_metadata.offset
-                    + fragment::FRAGMENT_OFFSET_START
-                    ..extension_metadata.offset + fragment::FRAGMENT_OFFSET_END]
+                    + fragment::FRAGMENT_OFFSET.start
+                    ..extension_metadata.offset + fragment::FRAGMENT_OFFSET.end]
                     .copy_from_slice(&fragment_offset.to_be_bytes());
 
                 Ok(())
@@ -434,8 +434,8 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
         match extension_metadata.ext_type {
             Ipv6Extension::Fragment => {
                 self.data_buffer_starting_at_header_mut(LAYER)[extension_metadata.offset
-                    + fragment::IDENTIFICATION_START
-                    ..extension_metadata.offset + fragment::IDENTIFICATION_END]
+                    + fragment::IDENTIFICATION.start
+                    ..extension_metadata.offset + fragment::IDENTIFICATION.end]
                     .copy_from_slice(&identification.to_be_bytes());
                 Ok(())
             }

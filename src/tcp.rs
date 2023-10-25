@@ -114,7 +114,7 @@ where
         )?;
         let data_offset_header_byte = lower_layer_data_buffer.payload()[DATA_OFFSET_BYTE];
         let data_offset_header = usize::from(data_offset_header_byte >> DATA_OFFSET_SHIFT);
-        if data_offset_header < DATA_OFFSET_MIN_VALUE {
+        if data_offset_header < *DATA_OFFSET_RANGE.start() {
             return Err(ParseTcpError::DataOffsetHeaderValueTooSmall { data_offset_header });
         }
 

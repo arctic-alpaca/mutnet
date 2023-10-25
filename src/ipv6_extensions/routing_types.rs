@@ -19,6 +19,7 @@ impl core::fmt::Display for RoutingType {
         f.write_fmt(format_args!("{:?}", self))
     }
 }
+
 impl TryFrom<u8> for RoutingType {
     type Error = NoRecognizedRoutingTypeError;
 
@@ -39,10 +40,12 @@ impl TryFrom<u8> for RoutingType {
         }
     }
 }
+
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct NoRecognizedRoutingTypeError {
     pub routing_type: u8,
 }
+
 impl core::fmt::Display for NoRecognizedRoutingTypeError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_fmt(format_args!(
@@ -51,10 +54,13 @@ impl core::fmt::Display for NoRecognizedRoutingTypeError {
         ))
     }
 }
+
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 impl core::error::Error for NoRecognizedRoutingTypeError {}
+
 #[cfg(feature = "std")]
 impl std::error::Error for NoRecognizedRoutingTypeError {}
+
 #[cfg(kani)]
 mod routingtype_verification {
     use super::*;

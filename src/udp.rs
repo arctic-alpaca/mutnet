@@ -123,7 +123,7 @@ where
         )?;
 
         let length_header = usize::from(u16::from_be_bytes(
-            lower_layer_data_buffer.payload()[LENGTH_START..LENGTH_END]
+            lower_layer_data_buffer.payload()[LENGTH]
                 .try_into()
                 .unwrap(),
         ));

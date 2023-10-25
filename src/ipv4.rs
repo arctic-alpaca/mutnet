@@ -107,14 +107,14 @@ where
 
         let ihl_header = usize::from(first_byte & IHL_MASK);
 
-        if ihl_header < IHL_MIN_VALUE {
+        if ihl_header < *IHL_RANGE.start() {
             return Err(ParseIpv4Error::IhlHeaderValueTooSmall { ihl: ihl_header });
         }
 
         let ihl_header_in_bytes = ihl_header * 4;
 
         let total_length_header = usize::from(u16::from_be_bytes(
-            lower_layer_data_buffer.payload()[TOTAL_LENGTH_START..TOTAL_LENGTH_END]
+            lower_layer_data_buffer.payload()[TOTAL_LENGTH]
                 .try_into()
                 .unwrap(),
         ));
@@ -134,21 +134,19 @@ where
                 actual_packet_length: header_and_payload_length,
             });
         }
-        let header_length = ihl_header_in_bytes;
+
         let header_start_offset = header_start_offset_from_phi(previous_header_information);
 
         let mut result = DataBuffer {
             header_information: Ipv4 {
                 header_start_offset,
-                header_length,
+                header_length: ihl_header_in_bytes,
                 previous_header_information: *previous_header_information,
             },
             buffer: lower_layer_data_buffer.buffer_into_inner(),
         };
 
-        let data_length =
-            result.headroom() + result.header_start_offset(LAYER) + total_length_header
-                - result.headroom();
+        let data_length = header_start_offset + total_length_header;
         result.set_data_length(data_length, result.buffer.as_ref().len())?;
 
         if check_ipv4_checksum {

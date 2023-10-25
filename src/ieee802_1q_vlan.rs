@@ -92,9 +92,7 @@ where
                     HEADER_MIN_LEN_DOUBLE_TAGGED,
                 )?;
 
-                if lower_layer_data_buffer.payload()
-                    [DOUBLE_TAGGED_C_TAG_INDICATOR_START..DOUBLE_TAGGED_C_TAG_INDICATOR_END]
-                    != [0x81, 0x00]
+                if lower_layer_data_buffer.payload()[DOUBLE_TAGGED_C_TAG_INDICATOR] != [0x81, 0x00]
                 {
                     return Err(ParseIeee802_1QError::STagWithoutCTag(STagWithoutCTagError));
                 }
