@@ -174,21 +174,7 @@ pub trait Ieee802_1QMethods: HeaderInformation + BufferAccess {
 
     #[inline]
     fn ieee802_1q_typed_ether_type(&self) -> Result<EtherType, NoRecognizedEtherTypeError> {
-        if self.header_length(LAYER) == HEADER_MIN_LEN_SINGLE_TAGGED {
-            u16::from_be_bytes(
-                self.data_buffer_starting_at_header(LAYER)[SINGLE_TAGGED_ETHER_TYPE]
-                    .try_into()
-                    .unwrap(),
-            )
-            .try_into()
-        } else {
-            u16::from_be_bytes(
-                self.data_buffer_starting_at_header(LAYER)[DOUBLE_TAGGED_ETHER_TYPE]
-                    .try_into()
-                    .unwrap(),
-            )
-            .try_into()
-        }
+        self.ieee802_1q_ether_type().try_into()
     }
 }
 

@@ -72,7 +72,7 @@ pub trait Ipv6Methods: HeaderInformation + BufferAccess {
     fn ipv6_typed_next_header(
         &self,
     ) -> Result<InternetProtocolNumber, NoRecognizedInternetProtocolNumberError> {
-        self.data_buffer_starting_at_header(LAYER)[NEXT_HEADER].try_into()
+        self.ipv6_next_header().try_into()
     }
 
     #[inline]

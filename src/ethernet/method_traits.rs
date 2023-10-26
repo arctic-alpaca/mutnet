@@ -41,12 +41,7 @@ pub trait EthernetMethods: HeaderInformation + BufferAccess {
 
     #[inline]
     fn ethernet_typed_ether_type(&self) -> Result<EtherType, NoRecognizedEtherTypeError> {
-        u16::from_be_bytes(
-            self.data_buffer_starting_at_header(LAYER)[ETHER_TYPE]
-                .try_into()
-                .unwrap(),
-        )
-        .try_into()
+        self.ethernet_ether_type().try_into()
     }
 }
 

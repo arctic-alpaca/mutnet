@@ -69,7 +69,7 @@ pub trait Ipv4Methods: HeaderInformation + BufferAccess {
 
     #[inline]
     fn ipv4_typed_dscp(&self) -> Result<Dscp, NoRecognizedDscpError> {
-        (self.data_buffer_starting_at_header(LAYER)[DSCP_BYTE] >> 2).try_into()
+        self.ipv4_dscp().try_into()
     }
 
     #[inline]
@@ -79,7 +79,7 @@ pub trait Ipv4Methods: HeaderInformation + BufferAccess {
 
     #[inline]
     fn ipv4_typed_ecn(&self) -> Result<Ecn, NoRecognizedEcnError> {
-        (self.data_buffer_starting_at_header(LAYER)[ECN_BYTE] & ECN_MASK).try_into()
+        self.ipv4_ecn().try_into()
     }
 
     #[inline]
@@ -144,7 +144,7 @@ pub trait Ipv4Methods: HeaderInformation + BufferAccess {
     fn ipv4_typed_protocol(
         &self,
     ) -> Result<InternetProtocolNumber, NoRecognizedInternetProtocolNumberError> {
-        self.data_buffer_starting_at_header(LAYER)[PROTOCOL].try_into()
+        self.ipv4_protocol().try_into()
     }
 
     #[inline]

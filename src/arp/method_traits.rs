@@ -52,12 +52,7 @@ pub trait ArpMethods: BufferAccess {
 
     #[inline]
     fn arp_typed_protocol_type(&self) -> Result<EtherType, NoRecognizedEtherTypeError> {
-        u16::from_be_bytes(
-            self.data_buffer_starting_at_header(LAYER)[PROTOCOL_TYPE]
-                .try_into()
-                .unwrap(),
-        )
-        .try_into()
+        self.arp_protocol_type().try_into()
     }
 
     #[inline]

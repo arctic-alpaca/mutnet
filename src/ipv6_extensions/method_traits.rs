@@ -69,11 +69,7 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
 
     #[inline]
     fn ipv6_ext_typed_next_header(&self) -> Result<InternetProtocolNumber, Ipv6ExtTypedHeader> {
-        let extension_metadata = self.extension(self.extensions_amount() - 1)?;
-        Ok(
-            self.data_buffer_starting_at_header(LAYER)[extension_metadata.offset + NEXT_HEADER]
-                .try_into()?,
-        )
+        Ok(self.ipv6_ext_next_header()?.try_into()?)
     }
 
     #[inline]
@@ -90,11 +86,9 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
         &self,
         extension_index: usize,
     ) -> Result<InternetProtocolNumber, Ipv6ExtTypedHeader> {
-        let extension_metadata = self.extension(extension_index)?;
-        Ok(
-            self.data_buffer_starting_at_header(LAYER)[extension_metadata.offset + NEXT_HEADER]
-                .try_into()?,
-        )
+        Ok(self
+            .ipv6_ext_per_extension_next_header(extension_index)?
+            .try_into()?)
     }
 
     /// Routing, destination options, hop by hop
