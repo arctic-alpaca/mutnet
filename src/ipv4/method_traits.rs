@@ -178,13 +178,10 @@ pub trait Ipv4Methods: HeaderInformation + BufferAccess {
     }
 
     #[inline]
-    fn ipv4_options(&self) -> Option<&[u8]> {
-        let ihl_header = usize::from(self.ipv4_ihl());
-        if ihl_header <= *IHL_RANGE.start() {
-            None
-        } else {
-            Some(&self.data_buffer_starting_at_header(LAYER)[OPTIONS_START..ihl_header * 4])
-        }
+    fn ipv4_options(&self) -> &[u8] {
+        let ihl_header = usize::from(self.ipv4_ihl()).saturating_sub(5);
+
+        &self.data_buffer_starting_at_header(LAYER)[OPTIONS_START..OPTIONS_START + ihl_header * 4]
     }
 
     #[inline]
@@ -333,12 +330,11 @@ pub trait Ipv4MethodsMut:
     }
 
     #[inline]
-    fn ipv4_options_mut(&mut self) -> Option<&mut [u8]> {
-        let ihl_header = usize::from(self.ipv4_ihl());
-        assert!(ihl_header >= *IHL_RANGE.start());
+    fn ipv4_options_mut(&mut self) -> &mut [u8] {
+        let ihl_header = usize::from(self.ipv4_ihl()).saturating_sub(5);
 
-        let ihl_in_bytes = ihl_header * 4;
-        Some(&mut self.data_buffer_starting_at_header_mut(LAYER)[OPTIONS_START..ihl_in_bytes])
+        &mut self.data_buffer_starting_at_header_mut(LAYER)
+            [OPTIONS_START..OPTIONS_START + ihl_header * 4]
     }
 }
 

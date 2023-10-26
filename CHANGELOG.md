@@ -1,7 +1,8 @@
 # Unreleased
 ### Changed
-- Changed `ArpMethodsMut` method names to match other setters
-- ARP now returns an error on non-supported operation codes
+- **breaking** Changed `ArpMethodsMut` method names to match other setters
+- **breaking** ARP now returns an error on non-supported operation codes
+- **breaking** Change `ipv4_options` and `ipv4_options_mut` from Option to empty slices if no options are present
 
 ### Removed
 - paste dependency

@@ -693,10 +693,7 @@ mod tests {
         // Options
         let ipv4_packet =
             DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
-        assert_eq!(
-            Some([0x02, 0x04, 0xFF, 0xFF].as_slice()),
-            ipv4_packet.ipv4_options()
-        );
+        assert_eq!(&[0x02, 0x04, 0xFF, 0xFF], ipv4_packet.ipv4_options());
 
         // No options
         let mut data = IPV4_PACKET;
@@ -706,7 +703,7 @@ mod tests {
 
         let ipv4_packet =
             DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(data, 0, true).unwrap();
-        assert_eq!(None, ipv4_packet.ipv4_options());
+        assert_eq!(&[0; 0], ipv4_packet.ipv4_options());
     }
 
     #[test]
@@ -979,36 +976,24 @@ mod tests {
 
         ipv4_packet
             .ipv4_options_mut()
-            .unwrap()
             .copy_from_slice(&[0x1, 0x2, 0x3, 0x4]);
-        assert_eq!(
-            Some([0x1, 0x2, 0x3, 0x4].as_slice()),
-            ipv4_packet.ipv4_options()
-        );
+        assert_eq!(&[0x1, 0x2, 0x3, 0x4], ipv4_packet.ipv4_options());
 
         ipv4_packet.set_ipv4_ihl(7).unwrap();
         ipv4_packet
             .ipv4_options_mut()
-            .unwrap()
             .copy_from_slice(&[0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9]);
         assert_eq!(
-            Some([0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9].as_slice()),
+            &[0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9],
             ipv4_packet.ipv4_options()
         );
         ipv4_packet.set_ipv4_ihl(6).unwrap();
-        assert_eq!(
-            Some([0x2, 0x3, 0x4, 0x5].as_slice()),
-            ipv4_packet.ipv4_options()
-        );
+        assert_eq!(&[0x2, 0x3, 0x4, 0x5], ipv4_packet.ipv4_options());
         ipv4_packet
             .ipv4_options_mut()
-            .unwrap()
             .copy_from_slice(&[0x6, 0x7, 0x8, 0x9]);
-        assert_eq!(
-            Some([0x6, 0x7, 0x8, 0x9].as_slice()),
-            ipv4_packet.ipv4_options()
-        );
+        assert_eq!(&[0x6, 0x7, 0x8, 0x9], ipv4_packet.ipv4_options());
         ipv4_packet.set_ipv4_ihl(5).unwrap();
-        assert_eq!(None, ipv4_packet.ipv4_options());
+        assert_eq!(&[0; 0], ipv4_packet.ipv4_options());
     }
 }
