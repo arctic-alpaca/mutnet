@@ -94,11 +94,15 @@ where
         check_ipv4_checksum: bool,
     ) -> Result<DataBuffer<B, Ipv4<PHI>>, ParseIpv4Error> {
         let previous_header_information = lower_layer_data_buffer.extract_header_information();
+
         let header_and_payload_length = check_and_calculate_data_length::<ParseIpv4Error>(
             lower_layer_data_buffer.payload_length(),
             0,
             HEADER_MIN_LEN,
         )?;
+
+        // Only accessing the buffer once, then doing math like in the IPv6 new method does not
+        // lead to improvements in benchmarks. The compiler is probably optimizing this already.
 
         let first_byte = lower_layer_data_buffer.payload()[0];
         if first_byte >> VERSION_SHIFT != 0x4 {

@@ -3,6 +3,7 @@
 - **breaking** Changed `ArpMethodsMut` method names to match other setters
 - **breaking** ARP now returns an error on non-supported operation codes
 - **breaking** Change `ipv4_options` and `ipv4_options_mut` from Option to empty slices if no options are present
+- Improve IPv6 `new()` performance by reducing buffer accesses
 
 ### Removed
 - paste dependency

@@ -91,16 +91,15 @@ where
             HEADER_MIN_LEN,
         )?;
 
-        let first_byte = lower_layer_data_buffer.payload()[0];
-        if first_byte >> VERSION_SHIFT != 0x6 {
+        // Accessing the buffer once and doing some math is faster than accessing the buffer twice
+        // to get version and payload length separately.
+        let version_and_payload_length =
+            u64::from_be_bytes(lower_layer_data_buffer.payload()[0..8].try_into().unwrap());
+        if version_and_payload_length >> (VERSION_SHIFT + 7 * 8) != 0x6 {
             return Err(ParseIpv6Error::VersionHeaderValueNotSix);
         }
 
-        let payload_length = usize::from(u16::from_be_bytes(
-            lower_layer_data_buffer.payload()[PAYLOAD_LENGTH]
-                .try_into()
-                .unwrap(),
-        ));
+        let payload_length = usize::from((version_and_payload_length >> (2 * 8)) as u16);
 
         if payload_length > header_and_payload_length - HEADER_MIN_LEN {
             return Err(ParseIpv6Error::UnexpectedBufferEnd(
@@ -111,17 +110,20 @@ where
             ));
         }
 
+        let header_start_offset = header_start_offset_from_phi(previous_header_information);
+
         let mut result = DataBuffer {
             header_information: Ipv6 {
-                header_start_offset: header_start_offset_from_phi(previous_header_information),
+                header_start_offset,
                 header_length: HEADER_MIN_LEN,
                 previous_header_information: *previous_header_information,
             },
             buffer: lower_layer_data_buffer.buffer_into_inner(),
         };
-        let data_length =
-            result.header_start_offset(LAYER) + result.header_length(LAYER) + payload_length;
+
+        let data_length = header_start_offset + HEADER_MIN_LEN + payload_length;
         result.set_data_length(data_length, result.buffer.as_ref().len())?;
+
         Ok(result)
     }
 }
