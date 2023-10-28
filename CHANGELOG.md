@@ -5,6 +5,9 @@
 - **breaking** Change `ipv4_options` and `ipv4_options_mut` from Option to empty slices if no options are present
 - Improve IPv6 `new()` performance by reducing buffer accesses
 
+### Fixed
+- Return an error on a hop by hop IPv6 extension that is not the first extension
+
 ### Removed
 - paste dependency
 

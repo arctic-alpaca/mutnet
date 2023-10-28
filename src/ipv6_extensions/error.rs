@@ -106,6 +106,7 @@ pub enum ParseIpv6ExtensionsError {
     UnexpectedBufferEnd(UnexpectedBufferEndError),
     NoRecognizedIpv6Extension(NoRecognizedIpv6ExtensionError),
     ExtensionLimitReached,
+    InvalidHopByHopPosition,
 }
 
 impl From<UnexpectedBufferEndError> for ParseIpv6ExtensionsError {
@@ -131,6 +132,9 @@ impl Display for ParseIpv6ExtensionsError {
             }
             Self::ExtensionLimitReached => {
                 write!(f, "More extensions than MAX_EXTENSION")
+            }
+            Self::InvalidHopByHopPosition => {
+                write!(f, "Hop by hop extension was not the first extension")
             }
         }
     }

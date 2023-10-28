@@ -9,6 +9,7 @@ mod metadata_trait;
 mod method_traits;
 mod routing_types;
 
+use crate::constants;
 use crate::data_buffer::traits::HeaderInformationExtraction;
 use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderInformation, HeaderInformationMut, Layer,
@@ -192,7 +193,7 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
 
     // 0 Hop by Hop https://www.rfc-editor.org/rfc/rfc8200.html
     // May only appear as first extension
-    if next_header_byte == 0 {
+    if next_header_byte == constants::HOP_BY_HOP_EXT {
         // check whether extension's first byte is in range
         if buf.len() < all_extensions_length_in_bytes + EXTENSION_MIN_LEN {
             return Err(ParseIpv6ExtensionsError::UnexpectedBufferEnd(
@@ -226,12 +227,15 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
     let extensions_start_value = extensions_amount;
     for _ in extensions_start_value..MAX_EXTENSIONS {
         match next_header_byte {
+            constants::HOP_BY_HOP_EXT => {
+                return Err(ParseIpv6ExtensionsError::InvalidHopByHopPosition)
+            }
             // Headers with |Option Type|Hdr Ext Len|... format.
             // Hdr Ext Len is the Length of the Options header in 8-octet units not including the
             // first 8 octets.
             // 43 Routing https://www.rfc-editor.org/rfc/rfc8200.html
             // 60 Destination Options https://www.rfc-editor.org/rfc/rfc8200.html
-            43 | 60 => {
+            constants::ROUTING_EXT | constants::DESTINATION_OPTIONS_EXT => {
                 // check whether extension's first byte is in range
                 if buf.len() < all_extensions_length_in_bytes + EXTENSION_MIN_LEN {
                     return Err(ParseIpv6ExtensionsError::UnexpectedBufferEnd(
@@ -262,7 +266,7 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
                 all_extensions_length_in_bytes += current_extension_length_in_bytes;
             }
             // Fragment header https://www.rfc-editor.org/rfc/rfc8200.html#section-4.5
-            44 => {
+            constants::FRAGMENTATION_EXT => {
                 // // check whether fragment header is in range
                 if buf.len() < all_extensions_length_in_bytes + EXTENSION_MIN_LEN {
                     return Err(ParseIpv6ExtensionsError::UnexpectedBufferEnd(
@@ -1036,6 +1040,21 @@ mod tests {
             DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>>::new_from_lower(
                 ipv6,
                 next_header,
+            )
+        );
+    }
+
+    #[test]
+    fn new_hop_by_hop_not_first() {
+        let mut data = IPV6_EXT_NO_HOP;
+        data[40] = Ipv6Extension::HopByHop as u8;
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(data, 0).unwrap();
+
+        assert_eq!(
+            Err(ParseIpv6ExtensionsError::InvalidHopByHopPosition),
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>>::new_from_lower(
+                ipv6,
+                Ipv6Extension::Routing,
             )
         );
     }
