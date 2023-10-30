@@ -224,8 +224,8 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
         all_extensions_length_in_bytes += current_extension_length_in_bytes;
     }
 
-    let extensions_start_value = extensions_amount;
-    for _ in extensions_start_value..MAX_EXTENSIONS {
+    #[allow(clippy::mut_range_bound)]
+    for _ in extensions_amount..MAX_EXTENSIONS {
         match next_header_byte {
             constants::HOP_BY_HOP_EXT => {
                 return Err(ParseIpv6ExtensionsError::InvalidHopByHopPosition)
@@ -267,7 +267,7 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
             }
             // Fragment header https://www.rfc-editor.org/rfc/rfc8200.html#section-4.5
             constants::FRAGMENTATION_EXT => {
-                // // check whether fragment header is in range
+                // check whether fragment header is in range
                 if buf.len() < all_extensions_length_in_bytes + EXTENSION_MIN_LEN {
                     return Err(ParseIpv6ExtensionsError::UnexpectedBufferEnd(
                         UnexpectedBufferEndError {
@@ -277,12 +277,24 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
                     ));
                 }
 
+                let fragment_offset_and_flags = u16::from_be_bytes(
+                    buf[all_extensions_length_in_bytes + 2..all_extensions_length_in_bytes + 4]
+                        .try_into()
+                        .unwrap(),
+                );
+
+                // An atomic fragment is a fragment extension that does not actually indicate any
+                // fragmentation. The RFC does allow atomic fragment extensions. It is indicated
+                // by a offset of zero and the more fragments flag unset.
+                let is_atomic_fragment = 0 == fragment_offset_and_flags & 0b1111_1111_1111_1001;
+
                 extensions[extensions_amount] =
                     Ipv6ExtensionMetadata::new(all_extensions_length_in_bytes, next_header_byte)?;
                 next_header_byte = buf[all_extensions_length_in_bytes];
                 extensions_amount += 1;
                 all_extensions_length_in_bytes += EXTENSION_MIN_LEN;
-                has_fragment = true;
+
+                has_fragment = has_fragment || !is_atomic_fragment;
             }
             _ => {
                 // Next header is no extension or an experimental extension, stop the loop.
@@ -778,6 +790,169 @@ mod tests {
         0xFF,
     ];
 
+    static IPV6_EXT_ATOMIC_AND_REGULAR_FRAGMENT: [u8; 79] = [
+        // Version, traffic class and flow label
+        0x61,
+        0x23,
+        0xFF,
+        0xFF,
+        // Payload Length
+        0x00,
+        0x27,
+        // Next header
+        Ipv6Extension::Fragment as u8,
+        // Hop limit
+        0xFF,
+        // Source
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        // Destination
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xDD,
+        // Payload
+        Ipv6Extension::Fragment as u8,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        Ipv6Extension::Fragment as u8,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        Ipv6Extension::Fragment as u8,
+        0, // Length
+        0xCC,
+        0xCC,
+        0xCC,
+        0xCC,
+        0xCC,
+        0xCC,
+        InternetProtocolNumber::Tcp as u8,
+        0,    // reserved
+        0xAB, // Fragment offset
+        0xF1, // Fragment offset, reserved, more fragments
+        0xFF, // Identification
+        0xFF, // Identification
+        0xFF, // Identification
+        0xFF, // Identification
+        0xFF, // Payload start
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+    ];
+
+    static IPV6_EXT_ONLY_ATOMIC_FRAGMENT: [u8; 64] = [
+        // Version, traffic class and flow label
+        0x61,
+        0x23,
+        0xFF,
+        0xFF,
+        // Payload Length
+        0x00,
+        0x18,
+        // Next header
+        Ipv6Extension::Fragment as u8,
+        // Hop limit
+        0xFF,
+        // Source
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        // Destination
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xDD,
+        // Payload
+        Ipv6Extension::Fragment as u8,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        InternetProtocolNumber::Tcp as u8,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        0xFF, // Payload start
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+        0xFF,
+    ];
+
     #[test]
     fn new() {
         let ipv6 =
@@ -1056,6 +1231,78 @@ mod tests {
                 ipv6,
                 Ipv6Extension::Routing,
             )
+        );
+    }
+
+    #[test]
+    fn new_atomic_and_regular_fragment() {
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(
+            IPV6_EXT_ATOMIC_AND_REGULAR_FRAGMENT,
+            0,
+        )
+        .unwrap();
+        let (ipv6_ext, is_fragment) = DataBuffer::<
+            _,
+            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>,
+        >::new_from_lower(ipv6, Ipv6Extension::Fragment)
+        .unwrap();
+        assert!(is_fragment);
+        assert_eq!(
+            Ok(Ipv6ExtensionMetadata {
+                offset: 0,
+                ext_type: Ipv6Extension::Fragment
+            }),
+            ipv6_ext.extension(0)
+        );
+        assert_eq!(
+            Ok(Ipv6ExtensionMetadata {
+                offset: 8,
+                ext_type: Ipv6Extension::Fragment
+            }),
+            ipv6_ext.extension(1)
+        );
+        assert_eq!(
+            Ok(Ipv6ExtensionMetadata {
+                offset: 16,
+                ext_type: Ipv6Extension::Fragment
+            }),
+            ipv6_ext.extension(2)
+        );
+        assert_eq!(
+            Ok(Ipv6ExtensionMetadata {
+                offset: 24,
+                ext_type: Ipv6Extension::Fragment
+            }),
+            ipv6_ext.extension(3)
+        );
+    }
+
+    #[test]
+    fn new_only_atomicfragment() {
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(
+            IPV6_EXT_ONLY_ATOMIC_FRAGMENT,
+            0,
+        )
+        .unwrap();
+        let (ipv6_ext, is_fragment) = DataBuffer::<
+            _,
+            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>,
+        >::new_from_lower(ipv6, Ipv6Extension::Fragment)
+        .unwrap();
+        assert!(!is_fragment);
+        assert_eq!(
+            Ok(Ipv6ExtensionMetadata {
+                offset: 0,
+                ext_type: Ipv6Extension::Fragment
+            }),
+            ipv6_ext.extension(0)
+        );
+        assert_eq!(
+            Ok(Ipv6ExtensionMetadata {
+                offset: 8,
+                ext_type: Ipv6Extension::Fragment
+            }),
+            ipv6_ext.extension(1)
         );
     }
 
