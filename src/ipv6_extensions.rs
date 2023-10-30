@@ -266,7 +266,7 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
                 all_extensions_length_in_bytes += current_extension_length_in_bytes;
             }
             // Fragment header https://www.rfc-editor.org/rfc/rfc8200.html#section-4.5
-            constants::FRAGMENTATION_EXT => {
+            constants::FRAGMENT_EXT => {
                 // check whether fragment header is in range
                 if buf.len() < all_extensions_length_in_bytes + EXTENSION_MIN_LEN {
                     return Err(ParseIpv6ExtensionsError::UnexpectedBufferEnd(

@@ -153,7 +153,7 @@ where
                     ipv6_eth,
                     check_udp_checksum,
                 )?)),
-                FRAGMENTATION_EXT => parse_ipv6_ext(
+                FRAGMENT_EXT => parse_ipv6_ext(
                     ipv6_eth,
                     check_tcp_checksum,
                     check_udp_checksum,
@@ -331,7 +331,7 @@ where
                         check_udp_checksum,
                     )?,
                 )),
-                FRAGMENTATION_EXT => parse_ipv6_ext_vlan(
+                FRAGMENT_EXT => parse_ipv6_ext_vlan(
                     ipv6_vlan_eth,
                     check_tcp_checksum,
                     check_udp_checksum,
