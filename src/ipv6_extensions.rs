@@ -1278,7 +1278,7 @@ mod tests {
     }
 
     #[test]
-    fn new_only_atomicfragment() {
+    fn new_only_atomic_fragment() {
         let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(
             IPV6_EXT_ONLY_ATOMIC_FRAGMENT,
             0,
