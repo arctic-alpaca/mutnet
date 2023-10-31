@@ -304,8 +304,10 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
     }
 
     match next_header_byte {
-        43 | 44 | 60 => Err(ParseIpv6ExtensionsError::ExtensionLimitReached),
-
+        constants::HOP_BY_HOP_EXT
+        | constants::ROUTING_EXT
+        | constants::DESTINATION_OPTIONS_EXT
+        | constants::FRAGMENT_EXT => Err(ParseIpv6ExtensionsError::ExtensionLimitReached),
         _ => Ok((
             all_extensions_length_in_bytes,
             extensions_amount,
