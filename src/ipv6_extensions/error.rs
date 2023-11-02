@@ -144,24 +144,24 @@ impl Display for ParseIpv6ExtensionsError {
 impl error::Error for ParseIpv6ExtensionsError {}
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub enum Ipv6ExtTypedHeader {
+pub enum Ipv6ExtTypedHeaderError {
     Ipv6ExtensionIndexOutOfBounds(Ipv6ExtensionIndexOutOfBoundsError),
     NoRecognizedInternetProtocolNumber(NoRecognizedInternetProtocolNumberError),
 }
 
-impl From<Ipv6ExtensionIndexOutOfBoundsError> for Ipv6ExtTypedHeader {
+impl From<Ipv6ExtensionIndexOutOfBoundsError> for Ipv6ExtTypedHeaderError {
     fn from(value: Ipv6ExtensionIndexOutOfBoundsError) -> Self {
         Self::Ipv6ExtensionIndexOutOfBounds(value)
     }
 }
 
-impl From<NoRecognizedInternetProtocolNumberError> for Ipv6ExtTypedHeader {
+impl From<NoRecognizedInternetProtocolNumberError> for Ipv6ExtTypedHeaderError {
     fn from(value: NoRecognizedInternetProtocolNumberError) -> Self {
         Self::NoRecognizedInternetProtocolNumber(value)
     }
 }
 
-impl Display for Ipv6ExtTypedHeader {
+impl Display for Ipv6ExtTypedHeaderError {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Ipv6ExtensionIndexOutOfBounds(err) => {
@@ -175,4 +175,4 @@ impl Display for Ipv6ExtTypedHeader {
 }
 
 #[cfg(feature = "error_trait")]
-impl error::Error for Ipv6ExtTypedHeader {}
+impl error::Error for Ipv6ExtTypedHeaderError {}

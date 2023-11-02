@@ -6,7 +6,7 @@ use crate::ipv6::UpdateIpv6Length;
 use crate::ipv6_extensions::metadata_trait::{Ipv6ExtMetaData, Ipv6ExtMetaDataMut};
 use crate::ipv6_extensions::routing_types::RoutingType;
 use crate::ipv6_extensions::{
-    Ipv6ExtFieldError, Ipv6ExtSetFieldError, Ipv6ExtTypedHeader, Ipv6Extension,
+    Ipv6ExtFieldError, Ipv6ExtSetFieldError, Ipv6ExtTypedHeaderError, Ipv6Extension,
     Ipv6ExtensionIndexOutOfBoundsError,
 };
 use core::cmp::Ordering;
@@ -68,7 +68,9 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     }
 
     #[inline]
-    fn ipv6_ext_typed_next_header(&self) -> Result<InternetProtocolNumber, Ipv6ExtTypedHeader> {
+    fn ipv6_ext_typed_next_header(
+        &self,
+    ) -> Result<InternetProtocolNumber, Ipv6ExtTypedHeaderError> {
         Ok(self.ipv6_ext_next_header()?.try_into()?)
     }
 
@@ -85,7 +87,7 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     fn ipv6_ext_per_extension_typed_next_header(
         &self,
         extension_index: usize,
-    ) -> Result<InternetProtocolNumber, Ipv6ExtTypedHeader> {
+    ) -> Result<InternetProtocolNumber, Ipv6ExtTypedHeaderError> {
         Ok(self
             .ipv6_ext_per_extension_next_header(extension_index)?
             .try_into()?)

@@ -5,6 +5,7 @@
 - **breaking** Change `ipv4_options` and `ipv4_options_mut` from Option to empty slices if no options are present
 - Improve IPv6 `new()` performance by reducing buffer accesses
 - Properly handle atomic IPv6 fragment extensions
+- **breaking** Rename `Ipv6ExtTypedHeader` to `Ipv6ExtTypedHeaderError`
 
 ### Fixed
 - Return an error on a hop by hop IPv6 extension that is not the first extension

@@ -535,7 +535,7 @@ mod tests {
     use crate::ipv6_extensions::routing_types::RoutingType;
     use crate::ipv6_extensions::{
         Ipv6ExtFieldError, Ipv6ExtMethods, Ipv6ExtMethodsMut, Ipv6ExtSetFieldError,
-        Ipv6ExtTypedHeader, Ipv6Extension, Ipv6ExtensionIndexOutOfBoundsError,
+        Ipv6ExtTypedHeaderError, Ipv6Extension, Ipv6ExtensionIndexOutOfBoundsError,
         Ipv6ExtensionMetadata, Ipv6Extensions,
     };
     use crate::no_previous_header::NoPreviousHeaderInformation;
@@ -1438,7 +1438,7 @@ mod tests {
         );
 
         assert_eq!(
-            Err(Ipv6ExtTypedHeader::Ipv6ExtensionIndexOutOfBounds(
+            Err(Ipv6ExtTypedHeaderError::Ipv6ExtensionIndexOutOfBounds(
                 Ipv6ExtensionIndexOutOfBoundsError {
                     used_index: 4,
                     extension_amount: 4
