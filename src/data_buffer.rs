@@ -190,6 +190,7 @@ where
         self.buffer
     }
 
+    #[inline]
     fn buffer_get_ref(&self) -> &[u8] {
         self.buffer.as_ref()
     }
@@ -200,6 +201,7 @@ where
     B: AsRef<[u8]> + Clone,
     H: HeaderInformation + HeaderInformationMut + Copy,
 {
+    #[inline]
     fn clone(&self) -> Self {
         DataBuffer {
             buffer: self.buffer.clone(),

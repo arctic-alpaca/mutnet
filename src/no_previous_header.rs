@@ -33,6 +33,7 @@ where
     ///
     /// Returns an error if:
     /// - the provided data buffer is shorter than expected.
+    #[inline]
     pub(crate) fn new(
         buf: B,
         headroom: usize,

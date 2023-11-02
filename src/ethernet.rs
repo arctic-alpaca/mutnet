@@ -43,6 +43,7 @@ where
     /// # Errors
     ///
     /// Returns an error if the provided data buffer is shorter than expected.
+    #[inline]
     pub fn new(buf: B, headroom: usize) -> Result<DataBuffer<B, Eth>, UnexpectedBufferEndError> {
         let data_length =
             check_and_calculate_data_length(buf.as_ref().len(), headroom, HEADER_MIN_LEN)?;
