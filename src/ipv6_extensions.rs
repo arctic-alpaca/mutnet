@@ -38,6 +38,7 @@ pub struct Ipv6ExtensionMetadata {
 }
 
 impl Default for Ipv6ExtensionMetadata {
+    #[inline]
     fn default() -> Self {
         Self {
             offset: 0,
@@ -47,11 +48,9 @@ impl Default for Ipv6ExtensionMetadata {
 }
 
 impl Ipv6ExtensionMetadata {
-    pub(crate) fn new(offset: usize, ext_type: u8) -> Result<Self, NoRecognizedIpv6ExtensionError> {
-        Ok(Self {
-            offset,
-            ext_type: ext_type.try_into()?,
-        })
+    #[inline]
+    pub(crate) fn new_typed_ext_type(offset: usize, ext_type: Ipv6Extension) -> Self {
+        Self { offset, ext_type }
     }
 }
 
@@ -204,8 +203,14 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
             ));
         }
 
-        let current_extension_length_in_bytes =
-            (usize::from(buf[all_extensions_length_in_bytes + 1]) + 1) * 8;
+        let next_header_and_length = u16::from_be_bytes(
+            buf[all_extensions_length_in_bytes..all_extensions_length_in_bytes + 2]
+                .try_into()
+                .unwrap(),
+        );
+        next_header_byte = (next_header_and_length >> 8) as u8;
+        let current_extension_length_in_bytes = (usize::from(next_header_and_length as u8) + 1) * 8;
+
         // check whether whole extension is in range
         if buf.len() < all_extensions_length_in_bytes + current_extension_length_in_bytes {
             return Err(ParseIpv6ExtensionsError::UnexpectedBufferEnd(
@@ -217,9 +222,10 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
             ));
         }
 
-        extensions[extensions_amount] =
-            Ipv6ExtensionMetadata::new(all_extensions_length_in_bytes, next_header_byte)?;
-        next_header_byte = buf[all_extensions_length_in_bytes];
+        extensions[extensions_amount] = Ipv6ExtensionMetadata::new_typed_ext_type(
+            all_extensions_length_in_bytes,
+            Ipv6Extension::HopByHop,
+        );
         extensions_amount += 1;
         all_extensions_length_in_bytes += current_extension_length_in_bytes;
     }
@@ -235,7 +241,7 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
             // first 8 octets.
             // 43 Routing https://www.rfc-editor.org/rfc/rfc8200.html
             // 60 Destination Options https://www.rfc-editor.org/rfc/rfc8200.html
-            constants::ROUTING_EXT | constants::DESTINATION_OPTIONS_EXT => {
+            constants::ROUTING_EXT => {
                 // check whether extension's first byte is in range
                 if buf.len() < all_extensions_length_in_bytes + EXTENSION_MIN_LEN {
                     return Err(ParseIpv6ExtensionsError::UnexpectedBufferEnd(
@@ -246,8 +252,15 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
                     ));
                 }
 
+                let next_header_and_length = u16::from_be_bytes(
+                    buf[all_extensions_length_in_bytes..all_extensions_length_in_bytes + 2]
+                        .try_into()
+                        .unwrap(),
+                );
+                next_header_byte = (next_header_and_length >> 8) as u8;
                 let current_extension_length_in_bytes =
-                    (usize::from(buf[all_extensions_length_in_bytes + 1]) + 1) * 8;
+                    (usize::from(next_header_and_length as u8) + 1) * 8;
+
                 // check whether whole extension is in range
                 if buf.len() < all_extensions_length_in_bytes + current_extension_length_in_bytes {
                     return Err(ParseIpv6ExtensionsError::UnexpectedBufferEnd(
@@ -259,9 +272,50 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
                     ));
                 }
 
-                extensions[extensions_amount] =
-                    Ipv6ExtensionMetadata::new(all_extensions_length_in_bytes, next_header_byte)?;
-                next_header_byte = buf[all_extensions_length_in_bytes];
+                extensions[extensions_amount] = Ipv6ExtensionMetadata::new_typed_ext_type(
+                    all_extensions_length_in_bytes,
+                    Ipv6Extension::Routing,
+                );
+
+                extensions_amount += 1;
+                all_extensions_length_in_bytes += current_extension_length_in_bytes;
+            }
+
+            constants::DESTINATION_OPTIONS_EXT => {
+                // check whether extension's first byte is in range
+                if buf.len() < all_extensions_length_in_bytes + EXTENSION_MIN_LEN {
+                    return Err(ParseIpv6ExtensionsError::UnexpectedBufferEnd(
+                        UnexpectedBufferEndError {
+                            expected_length: all_extensions_length_in_bytes + EXTENSION_MIN_LEN,
+                            actual_length: buf.len(),
+                        },
+                    ));
+                }
+
+                let next_header_and_length = u16::from_be_bytes(
+                    buf[all_extensions_length_in_bytes..all_extensions_length_in_bytes + 2]
+                        .try_into()
+                        .unwrap(),
+                );
+                next_header_byte = (next_header_and_length >> 8) as u8;
+                let current_extension_length_in_bytes =
+                    (usize::from(next_header_and_length as u8) + 1) * 8;
+
+                // check whether whole extension is in range
+                if buf.len() < all_extensions_length_in_bytes + current_extension_length_in_bytes {
+                    return Err(ParseIpv6ExtensionsError::UnexpectedBufferEnd(
+                        UnexpectedBufferEndError {
+                            expected_length: all_extensions_length_in_bytes
+                                + current_extension_length_in_bytes,
+                            actual_length: buf.len(),
+                        },
+                    ));
+                }
+
+                extensions[extensions_amount] = Ipv6ExtensionMetadata::new_typed_ext_type(
+                    all_extensions_length_in_bytes,
+                    Ipv6Extension::DestinationOptions,
+                );
                 extensions_amount += 1;
                 all_extensions_length_in_bytes += current_extension_length_in_bytes;
             }
@@ -277,20 +331,23 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
                     ));
                 }
 
-                let fragment_offset_and_flags = u16::from_be_bytes(
-                    buf[all_extensions_length_in_bytes + 2..all_extensions_length_in_bytes + 4]
+                let next_header_reserved_frag_offset_flags = u32::from_be_bytes(
+                    buf[all_extensions_length_in_bytes..all_extensions_length_in_bytes + 4]
                         .try_into()
                         .unwrap(),
                 );
+                let fragment_offset_and_flags = next_header_reserved_frag_offset_flags as u16;
+                next_header_byte = (next_header_reserved_frag_offset_flags >> 24) as u8;
 
                 // An atomic fragment is a fragment extension that does not actually indicate any
                 // fragmentation. The RFC does allow atomic fragment extensions. It is indicated
                 // by a offset of zero and the more fragments flag unset.
                 let is_atomic_fragment = 0 == fragment_offset_and_flags & 0b1111_1111_1111_1001;
 
-                extensions[extensions_amount] =
-                    Ipv6ExtensionMetadata::new(all_extensions_length_in_bytes, next_header_byte)?;
-                next_header_byte = buf[all_extensions_length_in_bytes];
+                extensions[extensions_amount] = Ipv6ExtensionMetadata::new_typed_ext_type(
+                    all_extensions_length_in_bytes,
+                    Ipv6Extension::Fragment,
+                );
                 extensions_amount += 1;
                 all_extensions_length_in_bytes += EXTENSION_MIN_LEN;
 
@@ -450,7 +507,7 @@ where
         if self.extensions_amount <= idx {
             Err(Ipv6ExtensionIndexOutOfBoundsError {
                 used_index: idx,
-                extension_amount: self.extensions_amount(),
+                extension_amount: self.extensions_amount,
             })
         } else {
             Ok(self.extensions[idx])
