@@ -70,7 +70,7 @@ fn set_ipv4_ihl_proof_complete() {
                 let new_ipv4_ihl = kani::any();
                 let new_ipv4_ihl_bytes_usize = usize::from(new_ipv4_ihl) * 4;
 
-                let internal_headroom = to_test.headroom();
+                let internal_headroom = to_test.headroom_internal();
                 let data_length = to_test.data_length();
                 let eth_header_start_offset = to_test.header_start_offset(Layer::EthernetII);
                 let eth_header_length = to_test.header_length(Layer::EthernetII);
@@ -84,7 +84,7 @@ fn set_ipv4_ihl_proof_complete() {
                         core::cmp::Ordering::Less => {
                             let difference = new_ipv4_ihl_bytes_usize - old_ipv4_ihl_bytes_usize;
                             any_headroom -= difference;
-                            assert_eq!(internal_headroom - difference, to_test.headroom());
+                            assert_eq!(internal_headroom - difference, to_test.headroom_internal());
                             assert_eq!(data_length + difference, to_test.data_length());
                             assert_eq!(
                                 eth_header_start_offset,
@@ -106,7 +106,7 @@ fn set_ipv4_ihl_proof_complete() {
                             assert_eq!(tcp_header_length, to_test.header_length(Layer::Tcp));
                         }
                         core::cmp::Ordering::Equal => {
-                            assert_eq!(internal_headroom, to_test.headroom());
+                            assert_eq!(internal_headroom, to_test.headroom_internal());
                             assert_eq!(data_length, to_test.data_length());
                             assert_eq!(
                                 eth_header_start_offset,
@@ -127,7 +127,7 @@ fn set_ipv4_ihl_proof_complete() {
                         core::cmp::Ordering::Greater => {
                             let difference = old_ipv4_ihl_bytes_usize - new_ipv4_ihl_bytes_usize;
                             any_headroom += difference;
-                            assert_eq!(internal_headroom + difference, to_test.headroom());
+                            assert_eq!(internal_headroom + difference, to_test.headroom_internal());
                             assert_eq!(data_length - difference, to_test.data_length());
                             assert_eq!(
                                 eth_header_start_offset,
@@ -245,7 +245,7 @@ fn ipv4_set_total_length_proof_complete() {
                 let new_ipv4_total_length = kani::any();
                 let new_ipv4_total_length_usize = usize::from(new_ipv4_total_length);
 
-                let internal_headroom = to_test.headroom();
+                let internal_headroom = to_test.headroom_internal();
                 let data_length = to_test.data_length();
                 let eth_header_start_offset = to_test.header_start_offset(Layer::EthernetII);
                 let eth_header_length = to_test.header_length(Layer::EthernetII);
@@ -273,7 +273,7 @@ fn ipv4_set_total_length_proof_complete() {
                 } else {
                     assert_eq!(data_length, to_test.data_length());
                 }
-                assert_eq!(internal_headroom, to_test.headroom());
+                assert_eq!(internal_headroom, to_test.headroom_internal());
                 assert_eq!(
                     eth_header_start_offset,
                     to_test.header_start_offset(Layer::EthernetII)

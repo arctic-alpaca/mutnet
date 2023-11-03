@@ -53,7 +53,7 @@ where
 
 impl HeaderInformation for NoPreviousHeaderInformation {
     #[inline]
-    fn headroom(&self) -> usize {
+    fn headroom_internal(&self) -> usize {
         self.headroom
     }
 
@@ -80,7 +80,7 @@ impl HeaderInformation for NoPreviousHeaderInformation {
 
 impl HeaderInformationMut for NoPreviousHeaderInformation {
     #[inline]
-    fn headroom_mut(&mut self) -> &mut usize {
+    fn headroom_internal_mut(&mut self) -> &mut usize {
         &mut self.headroom
     }
 

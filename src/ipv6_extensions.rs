@@ -378,8 +378,8 @@ where
     PHI: HeaderInformation + HeaderInformationMut,
 {
     #[inline]
-    fn headroom(&self) -> usize {
-        self.previous_header_information.headroom()
+    fn headroom_internal(&self) -> usize {
+        self.previous_header_information.headroom_internal()
     }
 
     #[inline]
@@ -416,8 +416,8 @@ where
     PHI: HeaderInformation + HeaderInformationMut,
 {
     #[inline]
-    fn headroom_mut(&mut self) -> &mut usize {
-        self.previous_header_information.headroom_mut()
+    fn headroom_internal_mut(&mut self) -> &mut usize {
+        self.previous_header_information.headroom_internal_mut()
     }
 
     #[inline]

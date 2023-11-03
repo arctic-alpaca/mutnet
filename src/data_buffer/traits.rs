@@ -112,7 +112,7 @@ pub(crate) trait HeaderInformation {
     /// |  Headroom   |                      Data                       |
     /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     /// ```
-    fn headroom(&self) -> usize;
+    fn headroom_internal(&self) -> usize;
 
     /// Returns the offset of the start of the requested layers header from the start of the
     /// data buffer.
@@ -162,16 +162,17 @@ pub(crate) trait HeaderManipulation:
         grow_by: usize,
         layer: Layer,
     ) -> Result<(), NotEnoughHeadroomError> {
-        if self.headroom() >= grow_by {
+        if self.headroom_internal() >= grow_by {
             assert!(current_header_bytes_to_move <= self.header_length(layer));
 
-            let start = self.headroom();
-            let end =
-                self.headroom() + self.header_start_offset(layer) + current_header_bytes_to_move;
-            let destination = self.headroom() - grow_by;
+            let start = self.headroom_internal();
+            let end = self.headroom_internal()
+                + self.header_start_offset(layer)
+                + current_header_bytes_to_move;
+            let destination = self.headroom_internal() - grow_by;
             *self.header_length_mut(layer) += grow_by;
             self.increase_header_start_offset(grow_by, layer);
-            *self.headroom_mut() -= grow_by;
+            *self.headroom_internal_mut() -= grow_by;
             let data_length = self.data_length() + grow_by;
             self.set_data_length(data_length, self.buffer_length())
                 .expect("grow_by cannot set the data end higher than the buffer length");
@@ -180,7 +181,7 @@ pub(crate) trait HeaderManipulation:
         } else {
             Err(NotEnoughHeadroomError {
                 required: grow_by,
-                available: self.headroom(),
+                available: self.headroom_internal(),
             })
         }
     }
@@ -204,12 +205,14 @@ pub(crate) trait HeaderManipulation:
         assert!(self.header_length(layer) > shrink_by);
         assert!(current_header_bytes_to_move <= self.header_length(layer) - shrink_by);
 
-        let start = self.headroom();
-        let end = self.headroom() + self.header_start_offset(layer) + current_header_bytes_to_move;
-        let destination = self.headroom() + shrink_by;
+        let start = self.headroom_internal();
+        let end = self.headroom_internal()
+            + self.header_start_offset(layer)
+            + current_header_bytes_to_move;
+        let destination = self.headroom_internal() + shrink_by;
         *self.header_length_mut(layer) -= shrink_by;
         self.decrease_header_start_offset(shrink_by, layer);
-        *self.headroom_mut() += shrink_by;
+        *self.headroom_internal_mut() += shrink_by;
         let data_length = self.data_length() - shrink_by;
         self.set_data_length(data_length, self.buffer_length())
             .expect("shrink_header cannot set the data end higher than the buffer length");
@@ -227,7 +230,7 @@ pub(crate) trait HeaderInformationMut {
     /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     /// ^-------------^
     /// ```
-    fn headroom_mut(&mut self) -> &mut usize;
+    fn headroom_internal_mut(&mut self) -> &mut usize;
 
     /// Increases the header start offset of all layers higher than `layer`.
     fn increase_header_start_offset(&mut self, increase_by: usize, layer: Layer);

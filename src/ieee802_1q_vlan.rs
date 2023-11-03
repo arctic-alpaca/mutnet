@@ -151,8 +151,8 @@ where
     PHI: HeaderInformation + HeaderInformationMut,
 {
     #[inline]
-    fn headroom(&self) -> usize {
-        self.previous_header_information.headroom()
+    fn headroom_internal(&self) -> usize {
+        self.previous_header_information.headroom_internal()
     }
 
     #[inline]
@@ -189,8 +189,8 @@ where
     PHI: HeaderInformation + HeaderInformationMut,
 {
     #[inline]
-    fn headroom_mut(&mut self) -> &mut usize {
-        self.previous_header_information.headroom_mut()
+    fn headroom_internal_mut(&mut self) -> &mut usize {
+        self.previous_header_information.headroom_internal_mut()
     }
 
     #[inline]
@@ -830,7 +830,7 @@ mod tests {
             single_tagged.ethernet_ether_type()
         );
         assert_eq!(Vlan::DoubleTagged, single_tagged.ieee802_1q_typed_vlan());
-        assert_eq!(0, single_tagged.headroom());
+        assert_eq!(0, single_tagged.headroom_internal());
         let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
             DataBuffer::<_, Eth>::new(
                 data_buffer::BufferIntoInner::buffer_into_inner(single_tagged),
@@ -1028,7 +1028,7 @@ mod tests {
         double_tagged.cut_ieee802_1q_s_tag();
         assert_eq!(4, double_tagged.header_length(LAYER));
         assert_eq!(Vlan::SingleTagged, double_tagged.ieee802_1q_typed_vlan());
-        let headroom = double_tagged.headroom();
+        let headroom = double_tagged.headroom_internal();
         assert_eq!(
             DOUBLE_TAGGED[4..],
             data_buffer::BufferIntoInner::buffer_into_inner(double_tagged)[headroom..]
@@ -1052,7 +1052,7 @@ mod tests {
         );
         assert_eq!(4, double_tagged.header_length(LAYER));
         assert_eq!(Vlan::SingleTagged, double_tagged.ieee802_1q_typed_vlan());
-        let headroom = double_tagged.headroom() + double_tagged.header_start_offset(LAYER);
+        let headroom = double_tagged.headroom_internal() + double_tagged.header_start_offset(LAYER);
         assert_eq!(
             DOUBLE_TAGGED[4..],
             data_buffer::BufferIntoInner::buffer_into_inner(double_tagged)[headroom..]

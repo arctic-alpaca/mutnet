@@ -62,8 +62,8 @@ where
     H: HeaderInformation + HeaderInformationMut,
 {
     #[inline]
-    fn headroom_mut(&mut self) -> &mut usize {
-        self.header_information.headroom_mut()
+    fn headroom_internal_mut(&mut self) -> &mut usize {
+        self.header_information.headroom_internal_mut()
     }
 
     #[inline]
@@ -107,8 +107,8 @@ where
     H: HeaderInformation + HeaderInformationMut,
 {
     #[inline]
-    fn headroom(&self) -> usize {
-        self.header_information.headroom()
+    fn headroom_internal(&self) -> usize {
+        self.header_information.headroom_internal()
     }
     #[inline]
     fn header_start_offset(&self, layer: Layer) -> usize {
@@ -174,10 +174,10 @@ where
     B: AsRef<[u8]>,
     H: HeaderInformation + HeaderInformationMut,
 {
-    let start = data_buffer.header_information.headroom()
+    let start = data_buffer.header_information.headroom_internal()
         + data_buffer.header_information.header_start_offset(layer);
-    let end =
-        data_buffer.header_information.headroom() + data_buffer.header_information.data_length();
+    let end = data_buffer.header_information.headroom_internal()
+        + data_buffer.header_information.data_length();
     start..end
 }
 
@@ -220,7 +220,7 @@ where
 {
     #[inline]
     fn headroom(&self) -> usize {
-        HeaderInformation::headroom(self)
+        HeaderInformation::headroom_internal(self)
     }
 
     #[inline]

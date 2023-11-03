@@ -131,8 +131,8 @@ where
     PHI: HeaderInformation + HeaderInformationMut,
 {
     #[inline]
-    fn headroom(&self) -> usize {
-        self.previous_header_information.headroom()
+    fn headroom_internal(&self) -> usize {
+        self.previous_header_information.headroom_internal()
     }
 
     #[inline]
@@ -169,8 +169,8 @@ where
     PHI: HeaderInformation + HeaderInformationMut,
 {
     #[inline]
-    fn headroom_mut(&mut self) -> &mut usize {
-        self.previous_header_information.headroom_mut()
+    fn headroom_internal_mut(&mut self) -> &mut usize {
+        self.previous_header_information.headroom_internal_mut()
     }
 
     #[inline]
@@ -448,7 +448,7 @@ mod tests {
     fn headroom() {
         let arp_packet =
             DataBuffer::<_, Arp<NoPreviousHeaderInformation>>::new(ARP_IPV4_REQUEST, 0).unwrap();
-        assert_eq!(0, arp_packet.headroom());
+        assert_eq!(0, arp_packet.headroom_internal());
     }
 
     #[test]
@@ -515,13 +515,13 @@ mod tests {
         let arp_packet =
             DataBuffer::<_, Arp<NoPreviousHeaderInformation>>::new(&mut data, 36).unwrap();
 
-        assert_eq!(36, arp_packet.headroom());
+        assert_eq!(36, arp_packet.headroom_internal());
         assert_eq!(0, arp_packet.header_start_offset(Layer::Arp));
         assert_eq!(28, arp_packet.header_length(Layer::Arp));
 
         let arp_packet =
             DataBuffer::<_, Arp<NoPreviousHeaderInformation>>::new(&mut data, 36).unwrap();
-        assert_eq!(36, arp_packet.headroom());
+        assert_eq!(36, arp_packet.headroom_internal());
         assert_eq!(0, arp_packet.header_start_offset(Layer::Arp));
         assert_eq!(28, arp_packet.header_length(Layer::Arp));
     }

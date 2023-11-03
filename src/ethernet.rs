@@ -62,7 +62,7 @@ where
 
 impl HeaderInformation for Eth {
     #[inline]
-    fn headroom(&self) -> usize {
+    fn headroom_internal(&self) -> usize {
         self.headroom
     }
 
@@ -95,7 +95,7 @@ impl HeaderInformation for Eth {
 
 impl HeaderInformationMut for Eth {
     #[inline]
-    fn headroom_mut(&mut self) -> &mut usize {
+    fn headroom_internal_mut(&mut self) -> &mut usize {
         &mut self.headroom
     }
 

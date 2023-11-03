@@ -203,7 +203,7 @@ fn add_or_update_ieee802_1q_s_tag_complete() {
                 if let Ok(mut to_test) =
                     DataBuffer::<_, Tcp<Ipv6<Ieee802_1QVlan<Eth>>>>::new_from_lower(to_test, true)
                 {
-                    let internal_headroom = to_test.headroom();
+                    let internal_headroom = to_test.headroom_internal();
                     let data_length = to_test.data_length();
                     let eth_header_start_offset = to_test.header_start_offset(Layer::EthernetII);
                     let eth_header_length = to_test.header_length(Layer::EthernetII);
@@ -222,7 +222,7 @@ fn add_or_update_ieee802_1q_s_tag_complete() {
                         vlan = Vlan::DoubleTagged;
                         any_headroom -= 4;
                         // data start
-                        assert_eq!(internal_headroom - 4, to_test.headroom());
+                        assert_eq!(internal_headroom - 4, to_test.headroom_internal());
                         // data length
                         assert_eq!(data_length + 4, to_test.data_length());
                         // vlan header length
@@ -242,7 +242,7 @@ fn add_or_update_ieee802_1q_s_tag_complete() {
                         assert_eq!(EtherType::ServiceTag as u16, to_test.ethernet_ether_type());
                     } else {
                         // data start
-                        assert_eq!(internal_headroom, to_test.headroom());
+                        assert_eq!(internal_headroom, to_test.headroom_internal());
                         // data length
                         assert_eq!(data_length, to_test.data_length());
                         // vlan header length
@@ -467,7 +467,7 @@ fn cut_ieee802_1q_s_tag_complete() {
                 if let Ok(mut to_test) =
                     DataBuffer::<_, Tcp<Ipv6<Ieee802_1QVlan<Eth>>>>::new_from_lower(to_test, true)
                 {
-                    let internal_headroom = to_test.headroom();
+                    let internal_headroom = to_test.headroom_internal();
                     let data_length = to_test.data_length();
                     let eth_header_start_offset = to_test.header_start_offset(Layer::EthernetII);
                     let eth_header_length = to_test.header_length(Layer::EthernetII);
@@ -483,7 +483,7 @@ fn cut_ieee802_1q_s_tag_complete() {
                     if vlan == Vlan::DoubleTagged {
                         any_headroom += 4;
                         // data start
-                        assert_eq!(internal_headroom + 4, to_test.headroom());
+                        assert_eq!(internal_headroom + 4, to_test.headroom_internal());
                         // data length
                         assert_eq!(data_length - 4, to_test.data_length());
                         // vlan header length
@@ -502,7 +502,7 @@ fn cut_ieee802_1q_s_tag_complete() {
                         );
                     } else {
                         // data start
-                        assert_eq!(internal_headroom, to_test.headroom());
+                        assert_eq!(internal_headroom, to_test.headroom_internal());
                         // data length
                         assert_eq!(data_length, to_test.data_length());
                         // vlan header length
