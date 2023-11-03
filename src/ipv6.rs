@@ -656,6 +656,7 @@ mod tests {
         assert_eq!(0x12, ipv6_packet.ipv6_traffic_class());
         ipv6_packet.set_ipv6_traffic_class(0xFF);
         assert_eq!(0xFF, ipv6_packet.ipv6_traffic_class());
+        assert_eq!(6, ipv6_packet.ipv6_version());
     }
 
     #[test]
@@ -666,6 +667,7 @@ mod tests {
         assert_eq!(0x3FFFF, ipv6_packet.ipv6_flow_label());
         ipv6_packet.set_ipv6_flow_label(0xF1111);
         assert_eq!(0xF1111, ipv6_packet.ipv6_flow_label());
+        assert_eq!(6, ipv6_packet.ipv6_version());
     }
 
     #[test]

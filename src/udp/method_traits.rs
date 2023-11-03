@@ -21,45 +21,33 @@ pub(crate) const LAYER: Layer = Layer::Udp;
 pub trait UdpMethods: HeaderInformation + TcpUdpChecksum + BufferAccess {
     #[inline]
     fn udp_source_port(&self) -> u16 {
-        u16::from_be_bytes(
-            self.data_buffer_starting_at_header(LAYER)[SOURCE_PORT]
-                .try_into()
-                .unwrap(),
-        )
+        u16::from_be_bytes(self.read_array(LAYER, SOURCE_PORT))
     }
 
     #[inline]
     fn udp_destination_port(&self) -> u16 {
-        u16::from_be_bytes(
-            self.data_buffer_starting_at_header(LAYER)[DESTINATION_PORT]
-                .try_into()
-                .unwrap(),
-        )
+        u16::from_be_bytes(self.read_array(LAYER, DESTINATION_PORT))
     }
 
     #[inline]
     fn udp_length(&self) -> u16 {
-        u16::from_be_bytes(
-            self.data_buffer_starting_at_header(LAYER)[LENGTH]
-                .try_into()
-                .unwrap(),
-        )
+        u16::from_be_bytes(self.read_array(LAYER, LENGTH))
     }
 
     #[inline]
     fn udp_checksum(&self) -> u16 {
-        u16::from_be_bytes(
-            self.data_buffer_starting_at_header(LAYER)[CHECKSUM]
-                .try_into()
-                .unwrap(),
-        )
+        u16::from_be_bytes(self.read_array(LAYER, CHECKSUM))
     }
 
     #[inline]
     fn udp_calculate_checksum(&self) -> u16 {
-        let checksum = self.pseudoheader_checksum();
+        let pseudoheader_checksum = self.pseudoheader_checksum();
 
-        internet_checksum::<4>(checksum, self.data_buffer_starting_at_header(LAYER))
+        let payload_end = usize::from(self.udp_length());
+        internet_checksum::<4>(
+            pseudoheader_checksum,
+            &self.data_buffer_starting_at_header(LAYER)[..payload_end],
+        )
     }
 }
 
@@ -74,14 +62,12 @@ pub trait UdpMethodsMut:
 {
     #[inline]
     fn set_udp_source_port(&mut self, port: u16) {
-        self.data_buffer_starting_at_header_mut(LAYER)[SOURCE_PORT]
-            .copy_from_slice(&port.to_be_bytes());
+        self.write_slice(LAYER, SOURCE_PORT, &port.to_be_bytes());
     }
 
     #[inline]
     fn set_udp_destination_port(&mut self, port: u16) {
-        self.data_buffer_starting_at_header_mut(LAYER)[DESTINATION_PORT]
-            .copy_from_slice(&port.to_be_bytes());
+        self.write_slice(LAYER, DESTINATION_PORT, &port.to_be_bytes());
     }
 
     #[inline]
@@ -97,23 +83,20 @@ pub trait UdpMethodsMut:
         let data_length = self.header_start_offset(LAYER) + length_usize;
         self.set_data_length(data_length, self.buffer_length())?;
 
-        self.data_buffer_starting_at_header_mut(LAYER)[LENGTH]
-            .copy_from_slice(&length.to_be_bytes());
+        self.write_slice(LAYER, LENGTH, &length.to_be_bytes());
         self.update_ip_length();
         Ok(())
     }
 
     #[inline]
     fn set_udp_checksum(&mut self, checksum: u16) {
-        self.data_buffer_starting_at_header_mut(LAYER)[CHECKSUM]
-            .copy_from_slice(&checksum.to_be_bytes())
+        self.write_slice(LAYER, CHECKSUM, &checksum.to_be_bytes())
     }
 
     #[inline]
     fn update_udp_checksum(&mut self) {
-        self.data_buffer_starting_at_header_mut(LAYER)[CHECKSUM].copy_from_slice(&[0, 0]);
+        self.write_slice(LAYER, CHECKSUM, &[0, 0]);
         let checksum = self.udp_calculate_checksum();
-        self.data_buffer_starting_at_header_mut(LAYER)[CHECKSUM]
-            .copy_from_slice(&checksum.to_be_bytes());
+        self.write_slice(LAYER, CHECKSUM, &checksum.to_be_bytes());
     }
 }

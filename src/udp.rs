@@ -290,8 +290,8 @@ where
     PHI: HeaderInformation + HeaderInformationMut + Ipv6ExtMarker<MAX_EXTENSIONS>,
 {
     #[inline]
-    fn extensions(&self) -> &[Ipv6ExtensionMetadata; MAX_EXTENSIONS] {
-        self.previous_header_information.extensions()
+    fn extensions_array(&self) -> &[Ipv6ExtensionMetadata; MAX_EXTENSIONS] {
+        self.previous_header_information.extensions_array()
     }
 
     #[inline]
@@ -313,8 +313,8 @@ where
     PHI: HeaderInformation + HeaderInformationMut + Ipv6ExtMarker<MAX_EXTENSIONS>,
 {
     #[inline]
-    fn extensions_mut(&mut self) -> &mut [Ipv6ExtensionMetadata; MAX_EXTENSIONS] {
-        self.previous_header_information.extensions_mut()
+    fn extensions_array_mut(&mut self) -> &mut [Ipv6ExtensionMetadata; MAX_EXTENSIONS] {
+        self.previous_header_information.extensions_array_mut()
     }
 }
 

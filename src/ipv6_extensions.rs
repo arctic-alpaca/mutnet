@@ -495,7 +495,7 @@ where
     PHI: HeaderInformation + HeaderInformationMut,
 {
     #[inline]
-    fn extensions(&self) -> &[Ipv6ExtensionMetadata; MAX_EXTENSIONS] {
+    fn extensions_array(&self) -> &[Ipv6ExtensionMetadata; MAX_EXTENSIONS] {
         &self.extensions
     }
 
@@ -526,7 +526,7 @@ where
     PHI: HeaderInformation + HeaderInformationMut,
 {
     #[inline]
-    fn extensions_mut(&mut self) -> &mut [Ipv6ExtensionMetadata; MAX_EXTENSIONS] {
+    fn extensions_array_mut(&mut self) -> &mut [Ipv6ExtensionMetadata; MAX_EXTENSIONS] {
         &mut self.extensions
     }
 }
@@ -552,8 +552,8 @@ where
     H: HeaderInformation + HeaderInformationMut + Ipv6ExtMarker<MAX_EXTENSIONS>,
 {
     #[inline]
-    fn extensions(&self) -> &[Ipv6ExtensionMetadata; MAX_EXTENSIONS] {
-        self.header_information.extensions()
+    fn extensions_array(&self) -> &[Ipv6ExtensionMetadata; MAX_EXTENSIONS] {
+        self.header_information.extensions_array()
     }
 
     #[inline]
@@ -576,8 +576,8 @@ where
     H: HeaderInformation + HeaderInformationMut + Ipv6ExtMarker<MAX_EXTENSIONS>,
 {
     #[inline]
-    fn extensions_mut(&mut self) -> &mut [Ipv6ExtensionMetadata; MAX_EXTENSIONS] {
-        self.header_information.extensions_mut()
+    fn extensions_array_mut(&mut self) -> &mut [Ipv6ExtensionMetadata; MAX_EXTENSIONS] {
+        self.header_information.extensions_array_mut()
     }
 }
 
@@ -1903,7 +1903,7 @@ mod tests {
                     ext_type: Ipv6Extension::HopByHop
                 },
             ],
-            exts.extensions()
+            exts.extensions_array()
         );
 
         assert_eq!(
@@ -1985,7 +1985,7 @@ mod tests {
                     ext_type: Ipv6Extension::HopByHop
                 },
             ],
-            exts.extensions()
+            exts.extensions_array()
         );
         assert_eq!(
             [

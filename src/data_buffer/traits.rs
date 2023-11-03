@@ -1,5 +1,6 @@
 use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError};
 use crate::ipv6_extensions::{Ipv6ExtMetaData, Ipv6ExtMetaDataMut};
+use core::ops::Range;
 
 /// Provides access to the underlying data buffer.
 pub trait BufferIntoInner<B>
@@ -82,6 +83,10 @@ pub(crate) trait BufferAccess {
     fn buffer_length(&self) -> usize;
     /// Returns a slice containing header and payload of the layer indicated by `layer`.
     fn data_buffer_starting_at_header(&self, layer: Layer) -> &[u8];
+
+    fn read_slice(&self, layer: Layer, range: Range<usize>) -> &[u8];
+    fn read_value(&self, layer: Layer, idx: usize) -> u8;
+    fn read_array<const N: usize>(&self, layer: Layer, range: Range<usize>) -> [u8; N];
 }
 
 /// Methods to mutably access the data buffer.
@@ -91,6 +96,10 @@ pub(crate) trait BufferAccessMut {
 
     /// Returns a slice to the whole data buffer.
     fn buffer_mut(&mut self) -> &mut [u8];
+
+    fn get_slice_mut(&mut self, layer: Layer, range: Range<usize>) -> &mut [u8];
+    fn write_value(&mut self, layer: Layer, idx: usize, value: u8);
+    fn write_slice(&mut self, layer: Layer, range: Range<usize>, slice: &[u8]);
 }
 
 /// Methods to access information about the start of data and header.

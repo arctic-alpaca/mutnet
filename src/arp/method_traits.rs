@@ -34,20 +34,12 @@ pub(crate) const LAYER: Layer = Layer::Arp;
 pub trait ArpMethods: BufferAccess {
     #[inline]
     fn arp_hardware_type(&self) -> u16 {
-        u16::from_be_bytes(
-            self.data_buffer_starting_at_header(LAYER)[HARDWARE_TYPE]
-                .try_into()
-                .unwrap(),
-        )
+        u16::from_be_bytes(self.read_array(LAYER, HARDWARE_TYPE))
     }
 
     #[inline]
     fn arp_protocol_type(&self) -> u16 {
-        u16::from_be_bytes(
-            self.data_buffer_starting_at_header(LAYER)[PROTOCOL_TYPE]
-                .try_into()
-                .unwrap(),
-        )
+        u16::from_be_bytes(self.read_array(LAYER, PROTOCOL_TYPE))
     }
 
     #[inline]
@@ -57,11 +49,7 @@ pub trait ArpMethods: BufferAccess {
 
     #[inline]
     fn arp_operation_code(&self) -> u16 {
-        u16::from_be_bytes(
-            self.data_buffer_starting_at_header(LAYER)[OPERATION_CODE]
-                .try_into()
-                .unwrap(),
-        )
+        u16::from_be_bytes(self.read_array(LAYER, OPERATION_CODE))
     }
 
     #[inline]
@@ -77,71 +65,62 @@ pub trait ArpMethods: BufferAccess {
 
     #[inline]
     fn arp_hardware_address_length(&self) -> u8 {
-        self.data_buffer_starting_at_header(LAYER)[HARDWARE_ADDRESS_LENGTH]
+        self.read_value(LAYER, HARDWARE_ADDRESS_LENGTH)
     }
 
     #[inline]
     fn arp_protocol_address_length(&self) -> u8 {
-        self.data_buffer_starting_at_header(LAYER)[PROTOCOL_ADDRESS_LENGTH]
+        self.read_value(LAYER, PROTOCOL_ADDRESS_LENGTH)
     }
 
     #[inline]
     fn arp_sender_hardware_address(&self) -> MacAddress {
-        self.data_buffer_starting_at_header(LAYER)[SENDER_HARDWARE_ADDRESS]
-            .try_into()
-            .unwrap()
+        self.read_array(LAYER, SENDER_HARDWARE_ADDRESS)
     }
 
     #[inline]
     fn arp_sender_protocol_address(&self) -> Ipv4Address {
-        self.data_buffer_starting_at_header(LAYER)[SENDER_PROTOCOL_ADDRESS]
-            .try_into()
-            .unwrap()
+        self.read_array(LAYER, SENDER_PROTOCOL_ADDRESS)
     }
 
     #[inline]
     fn arp_target_hardware_address(&self) -> MacAddress {
-        self.data_buffer_starting_at_header(LAYER)[TARGET_HARDWARE_ADDRESS]
-            .try_into()
-            .unwrap()
+        self.read_array(LAYER, TARGET_HARDWARE_ADDRESS)
     }
 
     #[inline]
     fn arp_target_protocol_address(&self) -> Ipv4Address {
-        self.data_buffer_starting_at_header(LAYER)[TARGET_PROTOCOL_ADDRESS]
-            .try_into()
-            .unwrap()
+        self.read_array(LAYER, TARGET_PROTOCOL_ADDRESS)
     }
 }
 
 pub trait ArpMethodsMut: ArpMethods + BufferAccessMut + HeaderManipulation + Sized {
     #[inline]
     fn set_arp_operation_code(&mut self, operation_code: OperationCode) {
-        self.data_buffer_starting_at_header_mut(LAYER)[OPERATION_CODE]
-            .copy_from_slice(&(operation_code as u16).to_be_bytes())
+        self.write_slice(
+            LAYER,
+            OPERATION_CODE,
+            &(operation_code as u16).to_be_bytes(),
+        );
     }
 
     #[inline]
     fn set_arp_sender_hardware_address(&mut self, sender_addr: &MacAddress) {
-        self.data_buffer_starting_at_header_mut(LAYER)[SENDER_HARDWARE_ADDRESS]
-            .copy_from_slice(sender_addr)
+        self.write_slice(LAYER, SENDER_HARDWARE_ADDRESS, sender_addr);
     }
 
     #[inline]
     fn set_arp_sender_protocol_address(&mut self, sender_addr: &Ipv4Address) {
-        self.data_buffer_starting_at_header_mut(LAYER)[SENDER_PROTOCOL_ADDRESS]
-            .copy_from_slice(sender_addr)
+        self.write_slice(LAYER, SENDER_PROTOCOL_ADDRESS, sender_addr);
     }
 
     #[inline]
     fn set_arp_target_hardware_address(&mut self, target_addr: &MacAddress) {
-        self.data_buffer_starting_at_header_mut(LAYER)[TARGET_HARDWARE_ADDRESS]
-            .copy_from_slice(target_addr)
+        self.write_slice(LAYER, TARGET_HARDWARE_ADDRESS, target_addr);
     }
 
     #[inline]
     fn set_arp_target_protocol_address(&mut self, target_addr: &Ipv4Address) {
-        self.data_buffer_starting_at_header_mut(LAYER)[TARGET_PROTOCOL_ADDRESS]
-            .copy_from_slice(target_addr)
+        self.write_slice(LAYER, TARGET_PROTOCOL_ADDRESS, target_addr);
     }
 }

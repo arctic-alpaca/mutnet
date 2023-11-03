@@ -18,25 +18,17 @@ pub(crate) const LAYER: Layer = Layer::EthernetII;
 pub trait EthernetMethods: HeaderInformation + BufferAccess {
     #[inline]
     fn ethernet_destination(&self) -> MacAddress {
-        self.data_buffer_starting_at_header(LAYER)[DESTINATION_MAC]
-            .try_into()
-            .unwrap()
+        self.read_array(LAYER, DESTINATION_MAC)
     }
 
     #[inline]
     fn ethernet_source(&self) -> MacAddress {
-        self.data_buffer_starting_at_header(LAYER)[SOURCE_MAC]
-            .try_into()
-            .unwrap()
+        self.read_array(LAYER, SOURCE_MAC)
     }
 
     #[inline]
     fn ethernet_ether_type(&self) -> u16 {
-        u16::from_be_bytes(
-            self.data_buffer_starting_at_header(LAYER)[ETHER_TYPE]
-                .try_into()
-                .unwrap(),
-        )
+        u16::from_be_bytes(self.read_array(LAYER, ETHER_TYPE))
     }
 
     #[inline]
@@ -50,17 +42,16 @@ pub trait EthernetMethodsMut:
 {
     #[inline]
     fn set_ethernet_destination(&mut self, mac_addr: &MacAddress) {
-        self.data_buffer_starting_at_header_mut(LAYER)[DESTINATION_MAC].copy_from_slice(mac_addr)
+        self.write_slice(LAYER, DESTINATION_MAC, mac_addr);
     }
 
     #[inline]
     fn set_ethernet_source(&mut self, mac_addr: &MacAddress) {
-        self.data_buffer_starting_at_header_mut(LAYER)[SOURCE_MAC].copy_from_slice(mac_addr)
+        self.write_slice(LAYER, SOURCE_MAC, mac_addr);
     }
 
     #[inline]
     fn set_ethernet_ether_type(&mut self, ether_type: EtherType) {
-        self.data_buffer_starting_at_header_mut(LAYER)[ETHER_TYPE]
-            .copy_from_slice(&(ether_type as u16).to_be_bytes())
+        self.write_slice(LAYER, ETHER_TYPE, &(ether_type as u16).to_be_bytes());
     }
 }

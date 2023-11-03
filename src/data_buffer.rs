@@ -32,6 +32,7 @@ use crate::data_buffer::traits::HeaderInformationExtraction;
 pub(crate) use crate::data_buffer::traits::*;
 pub use crate::data_buffer::traits::{BufferIntoInner, Payload, PayloadMut};
 use crate::error::UnexpectedBufferEndError;
+use core::ops::Range;
 
 /// Wraps the underlying buffer containing the network data and optional headroom.
 #[derive(Eq, PartialEq, Hash, Debug)]
@@ -142,15 +143,33 @@ where
     /// Data length aware
     #[inline]
     fn data_buffer_starting_at_header(&self, layer: Layer) -> &[u8] {
-        &self.buffer.as_ref()[calulcate_data_buffer_starting_at_header_start_and_end(self, layer)]
+        let range = calculate_range_from_header_offset_to_data_end(self, layer);
+        &self.buffer.as_ref()[range]
+    }
+
+    #[inline]
+    fn read_slice(&self, layer: Layer, range: Range<usize>) -> &[u8] {
+        &self.data_buffer_starting_at_header(layer)[range]
+    }
+
+    #[inline]
+    fn read_array<const N: usize>(&self, layer: Layer, range: Range<usize>) -> [u8; N] {
+        self.data_buffer_starting_at_header(layer)[range]
+            .try_into()
+            .unwrap()
+    }
+
+    #[inline]
+    fn read_value(&self, layer: Layer, idx: usize) -> u8 {
+        self.data_buffer_starting_at_header(layer)[idx]
     }
 }
 
 #[inline]
-fn calulcate_data_buffer_starting_at_header_start_and_end<B, H>(
+fn calculate_range_from_header_offset_to_data_end<B, H>(
     data_buffer: &DataBuffer<B, H>,
     layer: Layer,
-) -> core::ops::Range<usize>
+) -> Range<usize>
 where
     B: AsRef<[u8]>,
     H: HeaderInformation + HeaderInformationMut,
@@ -159,7 +178,6 @@ where
         + data_buffer.header_information.header_start_offset(layer);
     let end =
         data_buffer.header_information.headroom() + data_buffer.header_information.data_length();
-    assert!(start <= end);
     start..end
 }
 
@@ -170,13 +188,28 @@ where
 {
     #[inline]
     fn data_buffer_starting_at_header_mut(&mut self, layer: Layer) -> &mut [u8] {
-        let range = calulcate_data_buffer_starting_at_header_start_and_end(self, layer);
+        let range = calculate_range_from_header_offset_to_data_end(self, layer);
         &mut self.buffer.as_mut()[range]
     }
 
     #[inline]
     fn buffer_mut(&mut self) -> &mut [u8] {
         &mut self.buffer.as_mut()[..]
+    }
+
+    #[inline]
+    fn get_slice_mut(&mut self, layer: Layer, range: Range<usize>) -> &mut [u8] {
+        &mut self.data_buffer_starting_at_header_mut(layer)[range]
+    }
+
+    #[inline]
+    fn write_slice(&mut self, layer: Layer, range: Range<usize>, slice: &[u8]) {
+        self.data_buffer_starting_at_header_mut(layer)[range].copy_from_slice(slice);
+    }
+
+    #[inline]
+    fn write_value(&mut self, layer: Layer, idx: usize, value: u8) {
+        self.data_buffer_starting_at_header_mut(layer)[idx] = value;
     }
 }
 
