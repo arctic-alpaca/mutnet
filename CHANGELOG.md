@@ -14,6 +14,7 @@
 ### Fixed
 - Return an error on a hop by hop IPv6 extension that is not the first extension
 
+# 0.3.1 (24. October 2023)
 ### Removed
 - paste dependency
 
