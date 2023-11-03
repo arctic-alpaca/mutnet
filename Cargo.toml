@@ -73,6 +73,18 @@ name = "ipv6"
 harness = false
 
 [[bench]]
+name = "ipv6_extensions"
+harness = false
+
+[[bench]]
+name = "tcp"
+harness = false
+
+[[bench]]
+name = "udp"
+harness = false
+
+[[bench]]
 name = "combined"
 harness = false
 

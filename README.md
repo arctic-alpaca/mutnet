@@ -70,7 +70,6 @@ For more see [parse_from_iface.rs](examples/parse_from_iface.rs).
 
 ## Roadmap
 - [ ] Additional protocols, see [Protocols](#protocols)
-- [ ] Improved benchmarks
 - [ ] TLV iterator
 - [ ] IPv4 options iterator
 - [ ] Insertion of IPv6 extensions into existing IPv6 extensions layer

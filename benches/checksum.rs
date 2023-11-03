@@ -2,14 +2,14 @@ use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughpu
 use mutnet::checksum::{internet_checksum, internet_checksum_up_to_64_bytes};
 
 fn random_bytes<const SIZE: usize>() -> [u8; SIZE] {
-    rand::random::<[u8; SIZE]>()
+    rand::random()
 }
 
 pub const VARIABLE_CHUNK: usize = 4;
 
 pub fn bytes_20(c: &mut Criterion) {
     let mut group = c.benchmark_group("checksum");
-    //group.measurement_time(Duration::from_secs(90));
+
     group.throughput(Throughput::Bytes(20));
 
     group.bench_function("20 byte ipv4 only rnd", |b| {
@@ -38,7 +38,7 @@ pub fn bytes_20(c: &mut Criterion) {
 
 pub fn bytes_40(c: &mut Criterion) {
     let mut group = c.benchmark_group("checksum");
-    //group.measurement_time(Duration::from_secs(90));
+
     group.throughput(Throughput::Bytes(40));
 
     group.bench_function("40 byte ipv4 only rnd", |b| {
@@ -67,7 +67,7 @@ pub fn bytes_40(c: &mut Criterion) {
 
 pub fn bytes_60(c: &mut Criterion) {
     let mut group = c.benchmark_group("checksum");
-    //group.measurement_time(Duration::from_secs(90));
+
     group.throughput(Throughput::Bytes(60));
 
     group.bench_function("60 byte ipv4 only rnd", |b| {
@@ -96,7 +96,7 @@ pub fn bytes_60(c: &mut Criterion) {
 
 pub fn bytes_150(c: &mut Criterion) {
     let mut group = c.benchmark_group("checksum");
-    //group.measurement_time(Duration::from_secs(90));
+
     group.throughput(Throughput::Bytes(150));
 
     group.bench_function("150 byte variable chunks rnd", |b| {
@@ -115,7 +115,7 @@ pub fn bytes_150(c: &mut Criterion) {
 
 pub fn bytes_300(c: &mut Criterion) {
     let mut group = c.benchmark_group("checksum");
-    //group.measurement_time(Duration::from_secs(90));
+
     group.throughput(Throughput::Bytes(300));
 
     group.bench_function("300 byte variable chunks rnd", |b| {
@@ -134,7 +134,7 @@ pub fn bytes_300(c: &mut Criterion) {
 
 pub fn bytes_550(c: &mut Criterion) {
     let mut group = c.benchmark_group("checksum");
-    //group.measurement_time(Duration::from_secs(90));
+
     group.throughput(Throughput::Bytes(550));
 
     group.bench_function("550 byte variable chunks rnd", |b| {
@@ -153,7 +153,7 @@ pub fn bytes_550(c: &mut Criterion) {
 
 pub fn bytes_1000(c: &mut Criterion) {
     let mut group = c.benchmark_group("checksum");
-    //group.measurement_time(Duration::from_secs(90));
+
     group.throughput(Throughput::Bytes(1000));
 
     group.bench_function("1000 byte variable chunks rnd", |b| {
@@ -172,7 +172,7 @@ pub fn bytes_1000(c: &mut Criterion) {
 
 pub fn bytes_1500(c: &mut Criterion) {
     let mut group = c.benchmark_group("checksum");
-    //group.measurement_time(Duration::from_secs(90));
+
     group.throughput(Throughput::Bytes(1500));
 
     group.bench_function("1500 byte variable chunks rnd", |b| {
@@ -191,7 +191,7 @@ pub fn bytes_1500(c: &mut Criterion) {
 
 pub fn bytes_5000(c: &mut Criterion) {
     let mut group = c.benchmark_group("checksum");
-    //group.measurement_time(Duration::from_secs(90));
+
     group.throughput(Throughput::Bytes(5000));
 
     group.bench_function("5000 byte variable chunks rnd", |b| {
@@ -210,7 +210,7 @@ pub fn bytes_5000(c: &mut Criterion) {
 
 pub fn bytes_15000(c: &mut Criterion) {
     let mut group = c.benchmark_group("checksum");
-    //group.measurement_time(Duration::from_secs(90));
+
     group.throughput(Throughput::Bytes(15000));
 
     group.bench_function("15000 byte variable chunks rnd", |b| {
