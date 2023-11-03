@@ -6,6 +6,9 @@ pub trait BufferIntoInner<B>
 where
     B: AsRef<[u8]>,
 {
+    /// Returns the amount of headroom the buffer currently has.
+    fn headroom(&self) -> usize;
+
     /// Returns the underlying buffer.
     fn buffer_into_inner(self) -> B;
 

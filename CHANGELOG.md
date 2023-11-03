@@ -1,4 +1,7 @@
 # Unreleased
+### Added
+- `headroom` method to `BufferIntoInner` trait, allows users to know how much of the buffer is headroom
+
 ### Changed
 - **breaking** Changed `ArpMethodsMut` method names to match other setters
 - **breaking** ARP now returns an error on non-supported operation codes

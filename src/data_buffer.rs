@@ -186,6 +186,11 @@ where
     H: HeaderInformation + HeaderInformationMut,
 {
     #[inline]
+    fn headroom(&self) -> usize {
+        HeaderInformation::headroom(self)
+    }
+
+    #[inline]
     fn buffer_into_inner(self) -> B {
         self.buffer
     }

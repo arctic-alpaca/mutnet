@@ -262,8 +262,9 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::data_buffer;
     use crate::data_buffer::traits::HeaderInformation;
-    use crate::data_buffer::{BufferIntoInner, DataBuffer, Payload, PayloadMut};
+    use crate::data_buffer::{DataBuffer, Payload, PayloadMut};
     use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError};
     use crate::ether_type::EtherType;
     use crate::ethernet::{Eth, EthernetMethods};
@@ -831,7 +832,11 @@ mod tests {
         assert_eq!(Vlan::DoubleTagged, single_tagged.ieee802_1q_typed_vlan());
         assert_eq!(0, single_tagged.headroom());
         let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-            DataBuffer::<_, Eth>::new(single_tagged.buffer_into_inner(), 0).unwrap(),
+            DataBuffer::<_, Eth>::new(
+                data_buffer::BufferIntoInner::buffer_into_inner(single_tagged),
+                0,
+            )
+            .unwrap(),
             Vlan::DoubleTagged,
         )
         .unwrap();
@@ -1026,7 +1031,7 @@ mod tests {
         let headroom = double_tagged.headroom();
         assert_eq!(
             DOUBLE_TAGGED[4..],
-            double_tagged.buffer_into_inner()[headroom..]
+            data_buffer::BufferIntoInner::buffer_into_inner(double_tagged)[headroom..]
         );
 
         let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
@@ -1050,7 +1055,7 @@ mod tests {
         let headroom = double_tagged.headroom() + double_tagged.header_start_offset(LAYER);
         assert_eq!(
             DOUBLE_TAGGED[4..],
-            double_tagged.buffer_into_inner()[headroom..]
+            data_buffer::BufferIntoInner::buffer_into_inner(double_tagged)[headroom..]
         );
     }
 
