@@ -9,6 +9,7 @@
 - Improve IPv6 `new()` performance by reducing buffer accesses
 - Properly handle atomic IPv6 fragment extensions
 - **breaking** Rename `Ipv6ExtTypedHeader` to `Ipv6ExtTypedHeaderError`
+- **breaking** `Ipv6ExtMethods::ipv6_extensions` now returns options in the array to indicate the amount of extensions 
 
 ### Fixed
 - Return an error on a hop by hop IPv6 extension that is not the first extension

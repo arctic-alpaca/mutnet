@@ -52,12 +52,12 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     }
 
     #[inline]
-    fn ipv6_extensions(&self) -> [Ipv6Extension; MAX_EXTENSIONS] {
-        let mut result = [Ipv6Extension::HopByHop; MAX_EXTENSIONS];
+    fn ipv6_extensions(&self) -> [Option<Ipv6Extension>; MAX_EXTENSIONS] {
+        let mut result = [None; MAX_EXTENSIONS];
         self.extensions()[..self.extensions_amount()]
             .iter()
             .enumerate()
-            .for_each(|(i, ext)| result[i] = ext.ext_type);
+            .for_each(|(i, ext)| result[i] = Some(ext.ext_type));
         result
     }
 

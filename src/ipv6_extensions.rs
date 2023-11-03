@@ -1393,11 +1393,11 @@ mod tests {
         .unwrap();
         assert_eq!(
             [
-                Ipv6Extension::HopByHop,
-                Ipv6Extension::Routing,
-                Ipv6Extension::DestinationOptions,
-                Ipv6Extension::Fragment,
-                Ipv6Extension::HopByHop,
+                Some(Ipv6Extension::HopByHop),
+                Some(Ipv6Extension::Routing),
+                Some(Ipv6Extension::DestinationOptions),
+                Some(Ipv6Extension::Fragment),
+                None,
             ],
             exts.ipv6_extensions()
         );
