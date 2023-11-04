@@ -1,34 +1,9 @@
 use crate::error::UnexpectedBufferEndError;
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
-
 use core::fmt::{Debug, Display, Formatter};
 #[cfg(feature = "std")]
 use std::error;
-
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub enum Ipv6Error {
-    ParseIpv6(ParseIpv6Error),
-}
-
-impl Display for Ipv6Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::ParseIpv6(err) => {
-                write!(f, "{err}")
-            }
-        }
-    }
-}
-
-impl From<ParseIpv6Error> for Ipv6Error {
-    fn from(value: ParseIpv6Error) -> Self {
-        Self::ParseIpv6(value)
-    }
-}
-
-#[cfg(feature = "error_trait")]
-impl error::Error for Ipv6Error {}
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum ParseIpv6Error {
@@ -54,6 +29,9 @@ impl Display for ParseIpv6Error {
         }
     }
 }
+
+#[cfg(feature = "error_trait")]
+impl error::Error for ParseIpv6Error {}
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum SetPayloadLengthError {
@@ -82,3 +60,6 @@ impl Display for SetPayloadLengthError {
         }
     }
 }
+
+#[cfg(feature = "error_trait")]
+impl error::Error for SetPayloadLengthError {}

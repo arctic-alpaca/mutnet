@@ -3,6 +3,9 @@
 mod error;
 mod method_traits;
 
+pub use error::*;
+pub use method_traits::*;
+
 #[cfg(all(feature = "remove_checksum", feature = "verify_ipv6", kani))]
 mod verification;
 
@@ -17,8 +20,6 @@ use crate::data_buffer::{
 use crate::error::UnexpectedBufferEndError;
 use crate::internal_utils::{check_and_calculate_data_length, header_start_offset_from_phi};
 use crate::no_previous_header::NoPreviousHeaderInformation;
-pub use error::*;
-pub use method_traits::*;
 
 /// IPv6 metadata.
 ///
@@ -269,10 +270,12 @@ mod tests {
     use crate::data_buffer::{DataBuffer, Payload, PayloadMut};
     use crate::error::UnexpectedBufferEndError;
     use crate::ethernet::Eth;
-    use crate::internet_protocol::InternetProtocolNumber;
     use crate::ipv6::{Ipv6, Ipv6Methods, Ipv6MethodsMut, ParseIpv6Error, SetPayloadLengthError};
-    use crate::ipv6_extensions::{Ipv6Extension, Ipv6Extensions, RoutingType};
+    use crate::ipv6_extensions::Ipv6Extensions;
     use crate::no_previous_header::NoPreviousHeaderInformation;
+    use crate::packet_data_enums::InternetProtocolNumber;
+    use crate::packet_data_enums::Ipv6ExtensionType;
+    use crate::packet_data_enums::RoutingType;
     use crate::tcp::Tcp;
 
     const ETH_IPV6_EXT_TCP: [u8; 104] = [
@@ -299,7 +302,7 @@ mod tests {
         0x00,
         0x32,
         // Next header
-        Ipv6Extension::HopByHop as u8,
+        Ipv6ExtensionType::HopByHop as u8,
         // Hop limit
         0xFF,
         // Source
@@ -337,7 +340,7 @@ mod tests {
         0xFF,
         0xDD,
         // Payload
-        Ipv6Extension::Routing as u8,
+        Ipv6ExtensionType::Routing as u8,
         0, // Length
         0xAA,
         0xAA,
@@ -345,7 +348,7 @@ mod tests {
         0xAA,
         0xAA,
         0xAA,
-        Ipv6Extension::DestinationOptions as u8,
+        Ipv6ExtensionType::DestinationOptions as u8,
         0,                              // Length
         RoutingType::SourceRoute as u8, // Routing type
         5,                              // Segments left
@@ -704,7 +707,7 @@ mod tests {
                     DataBuffer::<_, Eth>::new(ETH_IPV6_EXT_TCP, 0).unwrap(),
                 )
                 .unwrap(),
-                Ipv6Extension::HopByHop,
+                Ipv6ExtensionType::HopByHop,
             )
             .unwrap()
             .0,
@@ -734,7 +737,7 @@ mod tests {
                 DataBuffer::<_, Eth>::new(ETH_IPV6_EXT_TCP, 0).unwrap(),
             )
             .unwrap(),
-            Ipv6Extension::HopByHop,
+            Ipv6ExtensionType::HopByHop,
         )
         .unwrap()
         .0;

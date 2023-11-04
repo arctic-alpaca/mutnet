@@ -2,8 +2,8 @@ use crate::addresses::ipv6::Ipv6Addr;
 use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderInformation, HeaderManipulation, Layer,
 };
-use crate::internet_protocol::{InternetProtocolNumber, NoRecognizedInternetProtocolNumberError};
 use crate::ipv6::SetPayloadLengthError;
+use crate::packet_data_enums::{InternetProtocolNumber, UnrecognizedInternetProtocolNumberError};
 use core::ops::Range;
 
 pub(crate) const VERSION_BYTE: usize = 0;
@@ -60,7 +60,7 @@ pub trait Ipv6Methods: HeaderInformation + BufferAccess {
     #[inline]
     fn ipv6_typed_next_header(
         &self,
-    ) -> Result<InternetProtocolNumber, NoRecognizedInternetProtocolNumberError> {
+    ) -> Result<InternetProtocolNumber, UnrecognizedInternetProtocolNumberError> {
         self.ipv6_next_header().try_into()
     }
 

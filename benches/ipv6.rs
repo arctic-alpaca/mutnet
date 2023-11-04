@@ -2,9 +2,9 @@ use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughpu
 use etherparse::{Ipv6HeaderSlice, ReadError};
 use mutnet::addresses::ipv6::Ipv6Addr;
 use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
-use mutnet::internet_protocol::InternetProtocolNumber;
 use mutnet::ipv6::{Ipv6, Ipv6Methods, Ipv6MethodsMut, ParseIpv6Error};
 use mutnet::no_previous_header::NoPreviousHeaderInformation;
+use mutnet::packet_data_enums::InternetProtocolNumber;
 
 #[rustfmt::skip]
 const IPV6: [u8; 60] = [

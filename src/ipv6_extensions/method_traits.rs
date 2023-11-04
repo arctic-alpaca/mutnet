@@ -1,14 +1,14 @@
 use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderInformation, HeaderManipulation, Layer,
 };
-use crate::internet_protocol::InternetProtocolNumber;
 use crate::ipv6::UpdateIpv6Length;
 use crate::ipv6_extensions::metadata_trait::{Ipv6ExtMetaData, Ipv6ExtMetaDataMut};
-use crate::ipv6_extensions::routing_types::RoutingType;
 use crate::ipv6_extensions::{
-    Ipv6ExtFieldError, Ipv6ExtSetFieldError, Ipv6ExtTypedHeaderError, Ipv6Extension,
-    Ipv6ExtensionIndexOutOfBoundsError,
+    Ipv6ExtFieldError, Ipv6ExtSetFieldError, Ipv6ExtTypedHeaderError,
+    Ipv6ExtensionIndexOutOfBoundsError, Ipv6ExtensionType,
 };
+use crate::packet_data_enums::InternetProtocolNumber;
+use crate::packet_data_enums::RoutingType;
 use core::cmp::Ordering;
 
 pub(crate) static NEXT_HEADER: usize = 0;
@@ -52,7 +52,7 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     }
 
     #[inline]
-    fn ipv6_extensions(&self) -> [Option<Ipv6Extension>; MAX_EXTENSIONS] {
+    fn ipv6_extensions(&self) -> [Option<Ipv6ExtensionType>; MAX_EXTENSIONS] {
         let mut result = [None; MAX_EXTENSIONS];
         self.extensions_array()[..self.extensions_amount()]
             .iter()
@@ -98,10 +98,10 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     fn ipv6_ext_length(&self, extension_index: usize) -> Result<u8, Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
         match extension_metadata.ext_type {
-            Ipv6Extension::Fragment => Err(Ipv6ExtFieldError::FieldDoesNotExist),
-            Ipv6Extension::DestinationOptions
-            | Ipv6Extension::HopByHop
-            | Ipv6Extension::Routing => Ok(self.read_value(
+            Ipv6ExtensionType::Fragment => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Ipv6ExtensionType::DestinationOptions
+            | Ipv6ExtensionType::HopByHop
+            | Ipv6ExtensionType::Routing => Ok(self.read_value(
                 LAYER,
                 extension_metadata.offset + shared_dest_opt_hop_by_hop_routing::LENGTH,
             )),
@@ -115,10 +115,10 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     ) -> Result<usize, Ipv6ExtensionIndexOutOfBoundsError> {
         let extension_metadata = self.extension(extension_index)?;
         match extension_metadata.ext_type {
-            Ipv6Extension::Fragment => Ok(8),
-            Ipv6Extension::DestinationOptions
-            | Ipv6Extension::HopByHop
-            | Ipv6Extension::Routing => Ok((usize::from(self.read_value(
+            Ipv6ExtensionType::Fragment => Ok(8),
+            Ipv6ExtensionType::DestinationOptions
+            | Ipv6ExtensionType::HopByHop
+            | Ipv6ExtensionType::Routing => Ok((usize::from(self.read_value(
                 LAYER,
                 extension_metadata.offset + shared_dest_opt_hop_by_hop_routing::LENGTH,
             )) + 1)
@@ -131,13 +131,13 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     fn ipv6_ext_data(&self, extension_index: usize) -> Result<&[u8], Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
         let data_range = match extension_metadata.ext_type {
-            Ipv6Extension::Fragment => return Err(Ipv6ExtFieldError::FieldDoesNotExist),
-            Ipv6Extension::Routing => {
+            Ipv6ExtensionType::Fragment => return Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Ipv6ExtensionType::Routing => {
                 let data_end = self.ipv6_ext_length_in_bytes(extension_index)?;
                 extension_metadata.offset + routing::DATA_START
                     ..extension_metadata.offset + data_end
             }
-            Ipv6Extension::DestinationOptions | Ipv6Extension::HopByHop => {
+            Ipv6ExtensionType::DestinationOptions | Ipv6ExtensionType::HopByHop => {
                 let data_end = self.ipv6_ext_length_in_bytes(extension_index)?;
                 extension_metadata.offset + dest_opt_and_hop_by_hop::DATA_START
                     ..extension_metadata.offset + data_end
@@ -151,12 +151,12 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     fn ipv6_ext_routing_type(&self, extension_index: usize) -> Result<u8, Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
         match extension_metadata.ext_type {
-            Ipv6Extension::Routing => {
+            Ipv6ExtensionType::Routing => {
                 Ok(self.read_value(LAYER, extension_metadata.offset + routing::ROUTING_TYPE))
             }
-            Ipv6Extension::DestinationOptions
-            | Ipv6Extension::HopByHop
-            | Ipv6Extension::Fragment => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Ipv6ExtensionType::DestinationOptions
+            | Ipv6ExtensionType::HopByHop
+            | Ipv6ExtensionType::Fragment => Err(Ipv6ExtFieldError::FieldDoesNotExist),
         }
     }
 
@@ -165,12 +165,12 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     fn ipv6_ext_segments_left(&self, extension_index: usize) -> Result<u8, Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
         match extension_metadata.ext_type {
-            Ipv6Extension::Routing => {
+            Ipv6ExtensionType::Routing => {
                 Ok(self.read_value(LAYER, extension_metadata.offset + routing::SEGMENTS_LEFT))
             }
-            Ipv6Extension::DestinationOptions
-            | Ipv6Extension::HopByHop
-            | Ipv6Extension::Fragment => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Ipv6ExtensionType::DestinationOptions
+            | Ipv6ExtensionType::HopByHop
+            | Ipv6ExtensionType::Fragment => Err(Ipv6ExtFieldError::FieldDoesNotExist),
         }
     }
 
@@ -179,14 +179,14 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     fn ipv6_ext_fragment_offset(&self, extension_index: usize) -> Result<u16, Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
         match extension_metadata.ext_type {
-            Ipv6Extension::Fragment => Ok(u16::from_be_bytes(self.read_array(
+            Ipv6ExtensionType::Fragment => Ok(u16::from_be_bytes(self.read_array(
                 LAYER,
                 extension_metadata.offset + fragment::FRAGMENT_OFFSET.start
                     ..extension_metadata.offset + fragment::FRAGMENT_OFFSET.end,
             )) >> fragment::FRAGMENT_OFFSET_SHIFT),
-            Ipv6Extension::DestinationOptions
-            | Ipv6Extension::HopByHop
-            | Ipv6Extension::Routing => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Ipv6ExtensionType::DestinationOptions
+            | Ipv6ExtensionType::HopByHop
+            | Ipv6ExtensionType::Routing => Err(Ipv6ExtFieldError::FieldDoesNotExist),
         }
     }
 
@@ -195,14 +195,14 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     fn ipv6_ext_more_fragments(&self, extension_index: usize) -> Result<bool, Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
         match extension_metadata.ext_type {
-            Ipv6Extension::Fragment => Ok((self.read_value(
+            Ipv6ExtensionType::Fragment => Ok((self.read_value(
                 LAYER,
                 extension_metadata.offset + fragment::MORE_FRAGMENTS_BYTE,
             ) & fragment::MORE_FRAGMENTS_MASK)
                 != 0),
-            Ipv6Extension::DestinationOptions
-            | Ipv6Extension::HopByHop
-            | Ipv6Extension::Routing => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Ipv6ExtensionType::DestinationOptions
+            | Ipv6ExtensionType::HopByHop
+            | Ipv6ExtensionType::Routing => Err(Ipv6ExtFieldError::FieldDoesNotExist),
         }
     }
 
@@ -214,14 +214,14 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     ) -> Result<u32, Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
         match extension_metadata.ext_type {
-            Ipv6Extension::Fragment => Ok(u32::from_be_bytes(self.read_array(
+            Ipv6ExtensionType::Fragment => Ok(u32::from_be_bytes(self.read_array(
                 LAYER,
                 extension_metadata.offset + fragment::IDENTIFICATION.start
                     ..extension_metadata.offset + fragment::IDENTIFICATION.end,
             ))),
-            Ipv6Extension::DestinationOptions
-            | Ipv6Extension::HopByHop
-            | Ipv6Extension::Routing => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Ipv6ExtensionType::DestinationOptions
+            | Ipv6ExtensionType::HopByHop
+            | Ipv6ExtensionType::Routing => Err(Ipv6ExtFieldError::FieldDoesNotExist),
         }
     }
 }
@@ -260,10 +260,10 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
         let extension_metadata = self.extension(extension_index)?;
 
         match extension_metadata.ext_type {
-            Ipv6Extension::Fragment => Err(Ipv6ExtSetFieldError::FieldDoesNotExist),
-            Ipv6Extension::DestinationOptions
-            | Ipv6Extension::HopByHop
-            | Ipv6Extension::Routing => {
+            Ipv6ExtensionType::Fragment => Err(Ipv6ExtSetFieldError::FieldDoesNotExist),
+            Ipv6ExtensionType::DestinationOptions
+            | Ipv6ExtensionType::HopByHop
+            | Ipv6ExtensionType::Routing => {
                 let new_length_in_bytes = (usize::from(new_length) + 1) * 8;
                 let old_length_in_bytes = self.ipv6_ext_length_in_bytes(extension_index)?;
 
@@ -318,13 +318,13 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
     ) -> Result<&mut [u8], Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
         let data_range = match extension_metadata.ext_type {
-            Ipv6Extension::Fragment => return Err(Ipv6ExtFieldError::FieldDoesNotExist),
-            Ipv6Extension::Routing => {
+            Ipv6ExtensionType::Fragment => return Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Ipv6ExtensionType::Routing => {
                 let data_end = self.ipv6_ext_length_in_bytes(extension_index)?;
                 extension_metadata.offset + routing::DATA_START
                     ..extension_metadata.offset + data_end
             }
-            Ipv6Extension::DestinationOptions | Ipv6Extension::HopByHop => {
+            Ipv6ExtensionType::DestinationOptions | Ipv6ExtensionType::HopByHop => {
                 let data_end = self.ipv6_ext_length_in_bytes(extension_index)?;
                 extension_metadata.offset + dest_opt_and_hop_by_hop::DATA_START
                     ..extension_metadata.offset + data_end
@@ -342,7 +342,7 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
     ) -> Result<(), Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
         match extension_metadata.ext_type {
-            Ipv6Extension::Routing => {
+            Ipv6ExtensionType::Routing => {
                 self.write_value(
                     LAYER,
                     extension_metadata.offset + routing::ROUTING_TYPE,
@@ -350,9 +350,9 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
                 );
                 Ok(())
             }
-            Ipv6Extension::DestinationOptions
-            | Ipv6Extension::HopByHop
-            | Ipv6Extension::Fragment => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Ipv6ExtensionType::DestinationOptions
+            | Ipv6ExtensionType::HopByHop
+            | Ipv6ExtensionType::Fragment => Err(Ipv6ExtFieldError::FieldDoesNotExist),
         }
     }
 
@@ -365,7 +365,7 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
     ) -> Result<(), Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
         match extension_metadata.ext_type {
-            Ipv6Extension::Routing => {
+            Ipv6ExtensionType::Routing => {
                 self.write_value(
                     LAYER,
                     extension_metadata.offset + routing::SEGMENTS_LEFT,
@@ -373,9 +373,9 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
                 );
                 Ok(())
             }
-            Ipv6Extension::DestinationOptions
-            | Ipv6Extension::HopByHop
-            | Ipv6Extension::Fragment => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Ipv6ExtensionType::DestinationOptions
+            | Ipv6ExtensionType::HopByHop
+            | Ipv6ExtensionType::Fragment => Err(Ipv6ExtFieldError::FieldDoesNotExist),
         }
     }
 
@@ -388,7 +388,7 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
     ) -> Result<(), Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
         match extension_metadata.ext_type {
-            Ipv6Extension::Fragment => {
+            Ipv6ExtensionType::Fragment => {
                 fragment_offset <<= fragment::FRAGMENT_OFFSET_SHIFT;
                 fragment_offset |= (self.read_value(LAYER, fragment::MORE_FRAGMENTS_BYTE)
                     & fragment::MORE_FRAGMENTS_MASK) as u16;
@@ -402,9 +402,9 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
 
                 Ok(())
             }
-            Ipv6Extension::DestinationOptions
-            | Ipv6Extension::HopByHop
-            | Ipv6Extension::Routing => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Ipv6ExtensionType::DestinationOptions
+            | Ipv6ExtensionType::HopByHop
+            | Ipv6ExtensionType::Routing => Err(Ipv6ExtFieldError::FieldDoesNotExist),
         }
     }
 
@@ -417,7 +417,7 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
     ) -> Result<(), Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
         match extension_metadata.ext_type {
-            Ipv6Extension::Fragment => {
+            Ipv6ExtensionType::Fragment => {
                 let byte_to_set = (self.read_value(LAYER, fragment::MORE_FRAGMENTS_BYTE)
                     & !fragment::MORE_FRAGMENTS_MASK)
                     | u8::from(more_fragments);
@@ -429,9 +429,9 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
 
                 Ok(())
             }
-            Ipv6Extension::DestinationOptions
-            | Ipv6Extension::HopByHop
-            | Ipv6Extension::Routing => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Ipv6ExtensionType::DestinationOptions
+            | Ipv6ExtensionType::HopByHop
+            | Ipv6ExtensionType::Routing => Err(Ipv6ExtFieldError::FieldDoesNotExist),
         }
     }
 
@@ -444,7 +444,7 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
     ) -> Result<(), Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
         match extension_metadata.ext_type {
-            Ipv6Extension::Fragment => {
+            Ipv6ExtensionType::Fragment => {
                 self.write_slice(
                     LAYER,
                     extension_metadata.offset + fragment::IDENTIFICATION.start
@@ -453,9 +453,9 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
                 );
                 Ok(())
             }
-            Ipv6Extension::DestinationOptions
-            | Ipv6Extension::HopByHop
-            | Ipv6Extension::Routing => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Ipv6ExtensionType::DestinationOptions
+            | Ipv6ExtensionType::HopByHop
+            | Ipv6ExtensionType::Routing => Err(Ipv6ExtFieldError::FieldDoesNotExist),
         }
     }
 }

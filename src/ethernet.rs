@@ -1,7 +1,8 @@
 //! Ethernet II type and method traits.
 
-mod error;
 mod method_traits;
+
+pub use method_traits::*;
 
 #[cfg(all(feature = "remove_checksum", feature = "verify_ethernet", kani))]
 mod verification;
@@ -11,11 +12,9 @@ use crate::data_buffer::traits::{
 };
 use crate::data_buffer::{DataBuffer, EthernetMarker, Payload, PayloadMut};
 use crate::error::UnexpectedBufferEndError;
-use crate::ether_type::EtherType;
 use crate::ieee802_1q_vlan::UpdateEtherTypeBelowIeee802_1q;
 use crate::internal_utils::check_and_calculate_data_length;
-pub use error::*;
-pub use method_traits::*;
+use crate::packet_data_enums::EtherType;
 
 /// Ethernet II metadata.
 ///
@@ -194,8 +193,8 @@ mod tests {
     use crate::data_buffer::traits::HeaderInformationMut;
     use crate::data_buffer::{DataBuffer, Payload, PayloadMut};
     use crate::error::UnexpectedBufferEndError;
-    use crate::ether_type::EtherType;
     use crate::ethernet::{Eth, EthernetMethods, EthernetMethodsMut};
+    use crate::packet_data_enums::EtherType;
     use crate::test_utils::copy_into_slice;
 
     const ETHERNET_FRAME: [u8; 64] = [

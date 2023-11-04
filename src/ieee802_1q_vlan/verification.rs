@@ -1,9 +1,9 @@
 use super::*;
-use crate::constants::{CUSTOMER_TAG_802_1Q, SERVICE_TAG_802_1Q};
 use crate::data_buffer::traits::BufferIntoInner;
-use crate::ether_type::EtherType;
 use crate::ethernet::{Eth, EthernetMethods};
 use crate::ipv6::Ipv6;
+use crate::packet_data_enums::constants;
+use crate::packet_data_enums::EtherType;
 use crate::tcp::Tcp;
 
 const SLICE_LENGTH: usize = 60;
@@ -22,8 +22,8 @@ fn get_ieee_802_1q_proof() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
-            CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
-            SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
+            constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
+            constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
         if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
@@ -56,8 +56,8 @@ fn set_ieee802_1q_c_tag_control_information() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
-            CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
-            SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
+            constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
+            constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
         if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
@@ -83,8 +83,8 @@ fn set_ieee802_1q_c_tag_priority_code_point() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
-            CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
-            SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
+            constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
+            constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
         if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
@@ -109,8 +109,8 @@ fn set_ieee802_1q_c_tag_drop_eligible_indicator() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
-            CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
-            SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
+            constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
+            constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
         if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
@@ -135,8 +135,8 @@ fn set_ieee802_1q_c_tag_vlan_identifier() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
-            CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
-            SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
+            constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
+            constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
         if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
@@ -161,8 +161,8 @@ fn add_or_update_ieee802_1q_s_tag() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let mut vlan = match to_test.ethernet_ether_type() {
-            CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
-            SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
+            constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
+            constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
         if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
@@ -193,8 +193,8 @@ fn add_or_update_ieee802_1q_s_tag_complete() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let mut vlan = match to_test.ethernet_ether_type() {
-            CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
-            SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
+            constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
+            constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
         if let Ok(to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan) {
@@ -311,8 +311,8 @@ fn set_ieee802_1q_s_tag_priority_code_point() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
-            CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
-            SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
+            constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
+            constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
         if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
@@ -349,8 +349,8 @@ fn set_ieee802_1q_s_tag_drop_eligible_indicator() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
-            CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
-            SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
+            constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
+            constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
         if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
@@ -387,8 +387,8 @@ fn set_ieee802_1q_s_tag_vlan_identifier() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
-            CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
-            SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
+            constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
+            constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
         if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
@@ -426,8 +426,8 @@ fn cut_ieee802_1q_s_tag() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let mut vlan = match to_test.ethernet_ether_type() {
-            CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
-            SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
+            constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
+            constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
         if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
@@ -457,8 +457,8 @@ fn cut_ieee802_1q_s_tag_complete() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
-            CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
-            SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
+            constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
+            constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
         if let Ok(to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan) {
@@ -561,8 +561,8 @@ fn set_ieee802_1q_ether_type() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
-            CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
-            SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
+            constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
+            constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
         if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)

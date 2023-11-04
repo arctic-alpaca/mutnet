@@ -3,10 +3,12 @@
 mod error;
 mod method_traits;
 
+pub use error::*;
+pub use method_traits::*;
+
 #[cfg(all(feature = "remove_checksum", feature = "verify_tcp", kani))]
 mod verification;
 
-use crate::constants::TCP;
 use crate::data_buffer::traits::HeaderInformationExtraction;
 use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderInformation, HeaderInformationMut, Layer,
@@ -25,9 +27,8 @@ use crate::ipv6::{Ipv6, UpdateIpv6Length};
 use crate::ipv6_extensions::{Ipv6ExtMetaData, Ipv6ExtMetaDataMut, Ipv6Extensions};
 use crate::ipv6_extensions::{Ipv6ExtensionIndexOutOfBoundsError, Ipv6ExtensionMetadata};
 use crate::no_previous_header::NoPreviousHeaderInformation;
+use crate::packet_data_enums::constants;
 use crate::utility_traits::{TcpUdpChecksum, UpdateIpLength};
-pub use error::*;
-pub use method_traits::*;
 
 /// TCP metadata.
 ///
@@ -209,7 +210,7 @@ where
 {
     #[inline]
     fn pseudoheader_checksum(&self) -> u64 {
-        pseudoheader_checksum_ipv4_internal(self, TCP)
+        pseudoheader_checksum_ipv4_internal(self, constants::TCP)
     }
 }
 
@@ -220,7 +221,7 @@ where
 {
     #[inline]
     fn pseudoheader_checksum(&self) -> u64 {
-        pseudoheader_checksum_ipv6_internal(self, TCP)
+        pseudoheader_checksum_ipv6_internal(self, constants::TCP)
     }
 }
 
@@ -232,7 +233,7 @@ where
 {
     #[inline]
     fn pseudoheader_checksum(&self) -> u64 {
-        pseudoheader_checksum_ipv6_internal(self, TCP)
+        pseudoheader_checksum_ipv6_internal(self, constants::TCP)
     }
 }
 
@@ -403,13 +404,13 @@ where
 mod tests {
     use crate::data_buffer::traits::{HeaderInformation, Layer};
     use crate::data_buffer::{DataBuffer, Payload, PayloadMut};
-    use crate::error::{SetDataOffsetError, UnexpectedBufferEndError, WrongChecksumError};
+    use crate::error::{UnexpectedBufferEndError, WrongChecksumError};
     use crate::ethernet::Eth;
-    use crate::internet_protocol::InternetProtocolNumber;
     use crate::ipv4::{Ipv4, Ipv4MethodsMut};
     use crate::ipv6::Ipv6;
     use crate::no_previous_header::NoPreviousHeaderInformation;
-    use crate::tcp::{ParseTcpError, Tcp, TcpMethods, TcpMethodsMut};
+    use crate::packet_data_enums::InternetProtocolNumber;
+    use crate::tcp::{ParseTcpError, SetDataOffsetError, Tcp, TcpMethods, TcpMethodsMut};
     use crate::test_utils::copy_into_slice;
 
     const ETH_IPV4_TCP: [u8; 64] = [

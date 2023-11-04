@@ -2,7 +2,7 @@ use crate::addresses::mac::MacAddress;
 use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderInformation, HeaderManipulation, Layer,
 };
-use crate::ether_type::{EtherType, NoRecognizedEtherTypeError};
+use crate::packet_data_enums::{EtherType, UnrecognizedEtherTypeError};
 use core::ops::Range;
 
 pub(crate) const DESTINATION_MAC: Range<usize> = 0..6;
@@ -32,7 +32,7 @@ pub trait EthernetMethods: HeaderInformation + BufferAccess {
     }
 
     #[inline]
-    fn ethernet_typed_ether_type(&self) -> Result<EtherType, NoRecognizedEtherTypeError> {
+    fn ethernet_typed_ether_type(&self) -> Result<EtherType, UnrecognizedEtherTypeError> {
         self.ethernet_ether_type().try_into()
     }
 }

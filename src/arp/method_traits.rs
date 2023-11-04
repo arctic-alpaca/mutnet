@@ -1,8 +1,8 @@
 use crate::addresses::ipv4::Ipv4Address;
 use crate::addresses::mac::MacAddress;
-use crate::arp::{NoRecognizedOperationCodeError, OperationCode};
 use crate::data_buffer::traits::{BufferAccess, BufferAccessMut, HeaderManipulation, Layer};
-use crate::ether_type::{EtherType, NoRecognizedEtherTypeError};
+use crate::packet_data_enums::{EtherType, UnrecognizedEtherTypeError};
+use crate::packet_data_enums::{OperationCode, UnrecognizedOperationCodeError};
 use core::ops::Range;
 
 pub(crate) const HARDWARE_TYPE: Range<usize> = 0..2;
@@ -43,7 +43,7 @@ pub trait ArpMethods: BufferAccess {
     }
 
     #[inline]
-    fn arp_typed_protocol_type(&self) -> Result<EtherType, NoRecognizedEtherTypeError> {
+    fn arp_typed_protocol_type(&self) -> Result<EtherType, UnrecognizedEtherTypeError> {
         self.arp_protocol_type().try_into()
     }
 
@@ -53,14 +53,8 @@ pub trait ArpMethods: BufferAccess {
     }
 
     #[inline]
-    fn arp_typed_operation_code(&self) -> Result<OperationCode, NoRecognizedOperationCodeError> {
-        match self.arp_operation_code() {
-            1 => Ok(OperationCode::Request),
-            2 => Ok(OperationCode::Reply),
-            operation_code_bytes => Err(NoRecognizedOperationCodeError {
-                operation_code: operation_code_bytes,
-            }),
-        }
+    fn arp_typed_operation_code(&self) -> Result<OperationCode, UnrecognizedOperationCodeError> {
+        self.arp_operation_code().try_into()
     }
 
     #[inline]

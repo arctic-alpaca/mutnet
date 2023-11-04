@@ -1,106 +1,17 @@
 use crate::arp::ParseArpError;
-use crate::ether_type::NoRecognizedEtherTypeError;
-use crate::ethernet::EthernetError;
 use crate::ieee802_1q_vlan::ParseIeee802_1QError;
-use crate::internet_protocol::NoRecognizedInternetProtocolNumberError;
-use crate::ipv4::{Ipv4Error, ParseIpv4Error};
+use crate::ipv4::ParseIpv4Error;
 use crate::ipv6::ParseIpv6Error;
 use crate::ipv6_extensions::ParseIpv6ExtensionsError;
+use crate::packet_data_enums::UnrecognizedEtherTypeError;
+use crate::packet_data_enums::UnrecognizedInternetProtocolNumberError;
 use crate::tcp::ParseTcpError;
-
+use crate::udp::ParseUdpError;
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
-
-use crate::udp::ParseUdpError;
 use core::fmt::{Debug, Display, Formatter};
 #[cfg(feature = "std")]
 use std::error;
-
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub enum Error {
-    Ethernet(EthernetError),
-    Arp(ParseArpError),
-    IpV4(Ipv4Error),
-    ParseTcp(ParseTcpError),
-    ParseIpv4(ParseIpv4Error),
-    ParseIpv6(ParseIpv6Error),
-    UnexpectedBufferEnd(UnexpectedBufferEndError),
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::Ethernet(err) => {
-                write!(f, "{err}")
-            }
-            Self::Arp(err) => {
-                write!(f, "{err}")
-            }
-            Self::IpV4(err) => {
-                write!(f, "{err}")
-            }
-            Self::UnexpectedBufferEnd(err) => {
-                write!(f, "{err}")
-            }
-            Self::ParseTcp(err) => {
-                write!(f, "{err}")
-            }
-            Self::ParseIpv4(err) => {
-                write!(f, "{err}")
-            }
-            Self::ParseIpv6(err) => {
-                write!(f, "{err}")
-            }
-        }
-    }
-}
-
-impl From<EthernetError> for Error {
-    #[inline]
-    fn from(value: EthernetError) -> Self {
-        Self::Ethernet(value)
-    }
-}
-
-impl From<ParseArpError> for Error {
-    #[inline]
-    fn from(value: ParseArpError) -> Self {
-        Self::Arp(value)
-    }
-}
-impl From<Ipv4Error> for Error {
-    #[inline]
-    fn from(value: Ipv4Error) -> Self {
-        Self::IpV4(value)
-    }
-}
-impl From<UnexpectedBufferEndError> for Error {
-    #[inline]
-    fn from(value: UnexpectedBufferEndError) -> Self {
-        Self::UnexpectedBufferEnd(value)
-    }
-}
-impl From<ParseTcpError> for Error {
-    #[inline]
-    fn from(value: ParseTcpError) -> Self {
-        Self::ParseTcp(value)
-    }
-}
-impl From<ParseIpv4Error> for Error {
-    #[inline]
-    fn from(value: ParseIpv4Error) -> Self {
-        Self::ParseIpv4(value)
-    }
-}
-impl From<ParseIpv6Error> for Error {
-    #[inline]
-    fn from(value: ParseIpv6Error) -> Self {
-        Self::ParseIpv6(value)
-    }
-}
-
-#[cfg(feature = "error_trait")]
-impl error::Error for Error {}
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct UnexpectedBufferEndError {
@@ -159,55 +70,9 @@ impl Display for WrongChecksumError {
 impl error::Error for WrongChecksumError {}
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub enum ParseEthernetIpv4TcpError {
-    ParseIpv4(ParseIpv4Error),
-    ParseTcp(ParseTcpError),
-    UnexpectedBufferEnd(UnexpectedBufferEndError),
-}
-
-impl From<ParseIpv4Error> for ParseEthernetIpv4TcpError {
-    #[inline]
-    fn from(value: ParseIpv4Error) -> Self {
-        Self::ParseIpv4(value)
-    }
-}
-
-impl From<ParseTcpError> for ParseEthernetIpv4TcpError {
-    #[inline]
-    fn from(value: ParseTcpError) -> Self {
-        Self::ParseTcp(value)
-    }
-}
-impl From<UnexpectedBufferEndError> for ParseEthernetIpv4TcpError {
-    #[inline]
-    fn from(value: UnexpectedBufferEndError) -> Self {
-        Self::UnexpectedBufferEnd(value)
-    }
-}
-
-impl Display for ParseEthernetIpv4TcpError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::ParseIpv4(err) => {
-                write!(f, "{err}")
-            }
-            Self::ParseTcp(err) => {
-                write!(f, "{err}")
-            }
-            Self::UnexpectedBufferEnd(err) => {
-                write!(f, "{err}")
-            }
-        }
-    }
-}
-
-#[cfg(feature = "error_trait")]
-impl error::Error for ParseEthernetIpv4TcpError {}
-
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum ParseNetworkDataError {
-    NoRecognizedEtherType(NoRecognizedEtherTypeError),
-    NoRecognizedInternetProtocolNumber(NoRecognizedInternetProtocolNumberError),
+    UnrecognizedEtherType(UnrecognizedEtherTypeError),
+    UnrecognizedInternetProtocolNumber(UnrecognizedInternetProtocolNumberError),
     ParseIeee802_1Q(ParseIeee802_1QError),
     ParseArp(ParseArpError),
     ParseIpv4(ParseIpv4Error),
@@ -218,17 +83,17 @@ pub enum ParseNetworkDataError {
     UnexpectedBufferEnd(UnexpectedBufferEndError),
 }
 
-impl From<NoRecognizedEtherTypeError> for ParseNetworkDataError {
+impl From<UnrecognizedEtherTypeError> for ParseNetworkDataError {
     #[inline]
-    fn from(value: NoRecognizedEtherTypeError) -> Self {
-        Self::NoRecognizedEtherType(value)
+    fn from(value: UnrecognizedEtherTypeError) -> Self {
+        Self::UnrecognizedEtherType(value)
     }
 }
 
-impl From<NoRecognizedInternetProtocolNumberError> for ParseNetworkDataError {
+impl From<UnrecognizedInternetProtocolNumberError> for ParseNetworkDataError {
     #[inline]
-    fn from(value: NoRecognizedInternetProtocolNumberError) -> Self {
-        Self::NoRecognizedInternetProtocolNumber(value)
+    fn from(value: UnrecognizedInternetProtocolNumberError) -> Self {
+        Self::UnrecognizedInternetProtocolNumber(value)
     }
 }
 
@@ -291,10 +156,10 @@ impl From<UnexpectedBufferEndError> for ParseNetworkDataError {
 impl Display for ParseNetworkDataError {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::NoRecognizedEtherType(err) => {
+            Self::UnrecognizedEtherType(err) => {
                 write!(f, "{err}")
             }
-            Self::NoRecognizedInternetProtocolNumber(err) => {
+            Self::UnrecognizedInternetProtocolNumber(err) => {
                 write!(f, "{err}")
             }
             Self::ParseIeee802_1Q(err) => {
@@ -327,35 +192,3 @@ impl Display for ParseNetworkDataError {
 
 #[cfg(feature = "error_trait")]
 impl error::Error for ParseNetworkDataError {}
-
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub enum SetDataOffsetError {
-    InvalidDataOffset { data_offset: usize },
-    NotEnoughHeadroom(NotEnoughHeadroomError),
-}
-
-impl Display for SetDataOffsetError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::InvalidDataOffset { data_offset } => {
-                write!(
-                    f,
-                    "Data offset header value invalid, expected to be between 5 and 20 (inclusive): {data_offset}"
-                )
-            }
-            Self::NotEnoughHeadroom(err) => {
-                write!(f, "{err}")
-            }
-        }
-    }
-}
-
-impl From<NotEnoughHeadroomError> for SetDataOffsetError {
-    #[inline]
-    fn from(value: NotEnoughHeadroomError) -> Self {
-        Self::NotEnoughHeadroom(value)
-    }
-}
-
-#[cfg(feature = "error_trait")]
-impl error::Error for SetDataOffsetError {}

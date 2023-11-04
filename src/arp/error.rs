@@ -12,7 +12,7 @@ use std::error;
 pub enum ParseArpError {
     UnexpectedBufferEnd(UnexpectedBufferEndError),
     UnsupportedHardwareOrProtocolFields,
-    InvalidOperationCode { operation_code: u16 },
+    UnsupportedOperationCode { operation_code: u16 },
 }
 
 impl From<UnexpectedBufferEndError> for ParseArpError {
@@ -34,10 +34,10 @@ impl Display for ParseArpError {
             Self::UnexpectedBufferEnd(err) => {
                 write!(f, "{err}")
             }
-            Self::InvalidOperationCode { operation_code } => {
+            Self::UnsupportedOperationCode { operation_code } => {
                 write!(
                     f,
-                    "Invalid operation code, only request(1) and reply(2) are supported, was: {operation_code}"
+                    "Unsupported operation code, only request(1) and reply(2) are supported, was: {operation_code}"
                 )
             }
         }
@@ -46,21 +46,3 @@ impl Display for ParseArpError {
 
 #[cfg(feature = "error_trait")]
 impl error::Error for ParseArpError {}
-
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub struct NoRecognizedOperationCodeError {
-    pub operation_code: u16,
-}
-
-impl Display for NoRecognizedOperationCodeError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        write!(
-            f,
-            "No valid or supported operation code, was: {}",
-            self.operation_code
-        )
-    }
-}
-
-#[cfg(feature = "error_trait")]
-impl error::Error for NoRecognizedOperationCodeError {}

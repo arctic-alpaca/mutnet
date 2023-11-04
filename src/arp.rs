@@ -2,7 +2,10 @@
 
 mod error;
 mod method_traits;
-mod operation_code;
+
+pub use error::*;
+pub use method_traits::*;
+
 #[cfg(all(feature = "remove_checksum", feature = "verify_arp", kani))]
 mod verification;
 
@@ -14,9 +17,6 @@ use crate::data_buffer::{
 use crate::error::UnexpectedBufferEndError;
 use crate::internal_utils::{check_and_calculate_data_length, header_start_offset_from_phi};
 use crate::no_previous_header::NoPreviousHeaderInformation;
-pub use error::*;
-pub use method_traits::*;
-pub use operation_code::*;
 
 /// ARP metadata.
 ///
@@ -104,7 +104,7 @@ where
         };
 
         if !(1..3).contains(&result.arp_operation_code()) {
-            return Err(ParseArpError::InvalidOperationCode {
+            return Err(ParseArpError::UnsupportedOperationCode {
                 operation_code: result.arp_operation_code(),
             });
         }
@@ -213,13 +213,13 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::arp::ParseArpError;
     use crate::arp::{Arp, ArpMethods, ArpMethodsMut};
-    use crate::arp::{OperationCode, ParseArpError};
     use crate::data_buffer::traits::{HeaderInformation, Layer};
     use crate::data_buffer::DataBuffer;
     use crate::error::UnexpectedBufferEndError;
-    use crate::ether_type::EtherType;
     use crate::no_previous_header::NoPreviousHeaderInformation;
+    use crate::packet_data_enums::{EtherType, OperationCode};
     use crate::test_utils::copy_into_slice;
 
     // ARP for IPv4
@@ -347,7 +347,7 @@ mod tests {
         let mut wrong_operation_code = ARP_IPV4_REQUEST;
         wrong_operation_code[7] = 3;
         assert_eq!(
-            Err(ParseArpError::InvalidOperationCode { operation_code: 3 }),
+            Err(ParseArpError::UnsupportedOperationCode { operation_code: 3 }),
             DataBuffer::<_, Arp<NoPreviousHeaderInformation>>::new(wrong_operation_code, 0)
         );
     }

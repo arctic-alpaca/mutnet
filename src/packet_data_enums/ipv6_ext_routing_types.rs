@@ -21,10 +21,10 @@ impl core::fmt::Display for RoutingType {
 }
 
 impl TryFrom<u8> for RoutingType {
-    type Error = NoRecognizedRoutingTypeError;
+    type Error = UnrecognizedRoutingTypeError;
 
     #[inline]
-    fn try_from(value: u8) -> Result<Self, NoRecognizedRoutingTypeError> {
+    fn try_from(value: u8) -> Result<Self, UnrecognizedRoutingTypeError> {
         match value {
             0 => Ok(RoutingType::SourceRoute),
             1 => Ok(RoutingType::Nimrod),
@@ -34,7 +34,7 @@ impl TryFrom<u8> for RoutingType {
             253 => Ok(RoutingType::Rfc3692StyleExperiment1),
             254 => Ok(RoutingType::Rfc3692StyleExperiment2),
             255 => Ok(RoutingType::Reserved),
-            _ => Err(NoRecognizedRoutingTypeError {
+            _ => Err(UnrecognizedRoutingTypeError {
                 routing_type: value,
             }),
         }
@@ -42,24 +42,24 @@ impl TryFrom<u8> for RoutingType {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub struct NoRecognizedRoutingTypeError {
+pub struct UnrecognizedRoutingTypeError {
     pub routing_type: u8,
 }
 
-impl core::fmt::Display for NoRecognizedRoutingTypeError {
+impl core::fmt::Display for UnrecognizedRoutingTypeError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_fmt(format_args!(
-            "Not a valid header value , was: {:?}",
+            "Unrecognized routing type, was: {:?}",
             self.routing_type
         ))
     }
 }
 
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
-impl core::error::Error for NoRecognizedRoutingTypeError {}
+impl core::error::Error for UnrecognizedRoutingTypeError {}
 
 #[cfg(feature = "std")]
-impl std::error::Error for NoRecognizedRoutingTypeError {}
+impl std::error::Error for UnrecognizedRoutingTypeError {}
 
 #[cfg(kani)]
 mod routingtype_verification {
@@ -74,7 +74,7 @@ mod routingtype_verification {
             }
             Err(err) => {
                 assert_eq!(
-                    NoRecognizedRoutingTypeError {
+                    UnrecognizedRoutingTypeError {
                         routing_type: try_value
                     },
                     err

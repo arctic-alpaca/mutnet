@@ -4,10 +4,9 @@ use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderInformation, HeaderManipulation, Layer,
 };
 use crate::internal_utils::grow_or_shrink_header_at_end;
-use crate::internet_protocol::{InternetProtocolNumber, NoRecognizedInternetProtocolNumberError};
-use crate::ipv4::{
-    Dscp, Ecn, NoRecognizedDscpError, NoRecognizedEcnError, SetIhlError, SetTotalLengthError,
-};
+use crate::ipv4::{SetIhlError, SetTotalLengthError};
+use crate::packet_data_enums::{Dscp, Ecn, UnrecognizedDscpError, UnrecognizedEcnError};
+use crate::packet_data_enums::{InternetProtocolNumber, UnrecognizedInternetProtocolNumberError};
 use core::ops::Range;
 use core::ops::RangeInclusive;
 
@@ -68,7 +67,7 @@ pub trait Ipv4Methods: HeaderInformation + BufferAccess {
     }
 
     #[inline]
-    fn ipv4_typed_dscp(&self) -> Result<Dscp, NoRecognizedDscpError> {
+    fn ipv4_typed_dscp(&self) -> Result<Dscp, UnrecognizedDscpError> {
         self.ipv4_dscp().try_into()
     }
 
@@ -78,7 +77,7 @@ pub trait Ipv4Methods: HeaderInformation + BufferAccess {
     }
 
     #[inline]
-    fn ipv4_typed_ecn(&self) -> Result<Ecn, NoRecognizedEcnError> {
+    fn ipv4_typed_ecn(&self) -> Result<Ecn, UnrecognizedEcnError> {
         self.ipv4_ecn().try_into()
     }
 
@@ -131,7 +130,7 @@ pub trait Ipv4Methods: HeaderInformation + BufferAccess {
     #[inline]
     fn ipv4_typed_protocol(
         &self,
-    ) -> Result<InternetProtocolNumber, NoRecognizedInternetProtocolNumberError> {
+    ) -> Result<InternetProtocolNumber, UnrecognizedInternetProtocolNumberError> {
         self.ipv4_protocol().try_into()
     }
 

@@ -2,8 +2,8 @@ use crate::checksum::internet_checksum;
 use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderInformation, HeaderManipulation, Layer,
 };
-use crate::error::SetDataOffsetError;
 use crate::internal_utils::grow_or_shrink_header_at_end;
+use crate::tcp::SetDataOffsetError;
 use crate::utility_traits::{TcpUdpChecksum, UpdateIpLength};
 use core::ops::Range;
 use core::ops::RangeInclusive;

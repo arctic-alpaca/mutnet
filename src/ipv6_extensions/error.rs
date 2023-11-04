@@ -1,14 +1,11 @@
-use core::fmt::{Debug, Display, Formatter};
-
+use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError};
+use crate::packet_data_enums::UnrecognizedInternetProtocolNumberError;
+use crate::packet_data_enums::UnrecognizedIpv6ExtensionError;
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
-
+use core::fmt::{Debug, Display, Formatter};
 #[cfg(feature = "std")]
 use std::error;
-
-use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError};
-use crate::internet_protocol::NoRecognizedInternetProtocolNumberError;
-use crate::ipv6_extensions::NoRecognizedIpv6ExtensionError;
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Ipv6ExtensionIndexOutOfBoundsError {
@@ -104,7 +101,7 @@ impl error::Error for Ipv6ExtSetFieldError {}
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum ParseIpv6ExtensionsError {
     UnexpectedBufferEnd(UnexpectedBufferEndError),
-    NoRecognizedIpv6Extension(NoRecognizedIpv6ExtensionError),
+    UnrecognizedIpv6Extension(UnrecognizedIpv6ExtensionError),
     ExtensionLimitReached,
     InvalidHopByHopPosition,
 }
@@ -115,9 +112,9 @@ impl From<UnexpectedBufferEndError> for ParseIpv6ExtensionsError {
     }
 }
 
-impl From<NoRecognizedIpv6ExtensionError> for ParseIpv6ExtensionsError {
-    fn from(value: NoRecognizedIpv6ExtensionError) -> Self {
-        Self::NoRecognizedIpv6Extension(value)
+impl From<UnrecognizedIpv6ExtensionError> for ParseIpv6ExtensionsError {
+    fn from(value: UnrecognizedIpv6ExtensionError) -> Self {
+        Self::UnrecognizedIpv6Extension(value)
     }
 }
 
@@ -127,7 +124,7 @@ impl Display for ParseIpv6ExtensionsError {
             Self::UnexpectedBufferEnd(err) => {
                 write!(f, "{err}")
             }
-            Self::NoRecognizedIpv6Extension(err) => {
+            Self::UnrecognizedIpv6Extension(err) => {
                 write!(f, "{err}")
             }
             Self::ExtensionLimitReached => {
@@ -146,7 +143,7 @@ impl error::Error for ParseIpv6ExtensionsError {}
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum Ipv6ExtTypedHeaderError {
     Ipv6ExtensionIndexOutOfBounds(Ipv6ExtensionIndexOutOfBoundsError),
-    NoRecognizedInternetProtocolNumber(NoRecognizedInternetProtocolNumberError),
+    UnrecognizedInternetProtocolNumber(UnrecognizedInternetProtocolNumberError),
 }
 
 impl From<Ipv6ExtensionIndexOutOfBoundsError> for Ipv6ExtTypedHeaderError {
@@ -155,9 +152,9 @@ impl From<Ipv6ExtensionIndexOutOfBoundsError> for Ipv6ExtTypedHeaderError {
     }
 }
 
-impl From<NoRecognizedInternetProtocolNumberError> for Ipv6ExtTypedHeaderError {
-    fn from(value: NoRecognizedInternetProtocolNumberError) -> Self {
-        Self::NoRecognizedInternetProtocolNumber(value)
+impl From<UnrecognizedInternetProtocolNumberError> for Ipv6ExtTypedHeaderError {
+    fn from(value: UnrecognizedInternetProtocolNumberError) -> Self {
+        Self::UnrecognizedInternetProtocolNumber(value)
     }
 }
 
@@ -167,7 +164,7 @@ impl Display for Ipv6ExtTypedHeaderError {
             Self::Ipv6ExtensionIndexOutOfBounds(err) => {
                 write!(f, "{err}")
             }
-            Self::NoRecognizedInternetProtocolNumber(err) => {
+            Self::UnrecognizedInternetProtocolNumber(err) => {
                 write!(f, "{err}")
             }
         }

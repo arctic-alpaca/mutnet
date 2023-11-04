@@ -1,12 +1,13 @@
 use mutnet::addresses::ipv4::Ipv4Address;
 use mutnet::addresses::ipv6::Ipv6Addr;
-use mutnet::arp::{ArpMethods, OperationCode};
-use mutnet::ether_type::EtherType;
+use mutnet::arp::ArpMethods;
 use mutnet::ethernet::EthernetMethods;
-use mutnet::internet_protocol::InternetProtocolNumber;
 use mutnet::ipv4::Ipv4Methods;
 use mutnet::ipv6::Ipv6Methods;
 use mutnet::multi_step_parser::{parse_network_data, EthernetMultiStepParserResult};
+use mutnet::packet_data_enums::EtherType;
+use mutnet::packet_data_enums::InternetProtocolNumber;
+use mutnet::packet_data_enums::OperationCode;
 use mutnet::tcp::TcpMethods;
 use mutnet::udp::UdpMethods;
 use std::io::{stdout, Write};

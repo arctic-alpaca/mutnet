@@ -1,9 +1,11 @@
 //! IPv4 type and method traits.
 
-mod dscp_ecn_options;
 mod error;
-
 mod method_traits;
+
+pub use error::*;
+pub use method_traits::*;
+
 #[cfg(all(feature = "remove_checksum", feature = "verify_ipv4", kani))]
 mod verification;
 
@@ -18,9 +20,6 @@ use crate::data_buffer::{
 use crate::error::{UnexpectedBufferEndError, WrongChecksumError};
 use crate::internal_utils::{check_and_calculate_data_length, header_start_offset_from_phi};
 use crate::no_previous_header::NoPreviousHeaderInformation;
-pub use dscp_ecn_options::*;
-pub use error::*;
-pub use method_traits::*;
 
 /// IPv4 metadata.
 ///
@@ -305,12 +304,12 @@ mod tests {
     use crate::data_buffer::{DataBuffer, Payload, PayloadMut};
     use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError, WrongChecksumError};
     use crate::ethernet::Eth;
-    use crate::internet_protocol::InternetProtocolNumber;
     use crate::ipv4::{
-        Dscp, Ecn, Ipv4, Ipv4Methods, Ipv4MethodsMut, ParseIpv4Error, SetIhlError,
-        SetTotalLengthError,
+        Ipv4, Ipv4Methods, Ipv4MethodsMut, ParseIpv4Error, SetIhlError, SetTotalLengthError,
     };
     use crate::no_previous_header::NoPreviousHeaderInformation;
+    use crate::packet_data_enums::InternetProtocolNumber;
+    use crate::packet_data_enums::{Dscp, Ecn};
     use crate::tcp::Tcp;
     use crate::test_utils::copy_into_slice;
 

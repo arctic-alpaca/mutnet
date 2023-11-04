@@ -1,49 +1,10 @@
 use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError, WrongChecksumError};
-
-use core::fmt::{Debug, Display, Formatter};
-
+use crate::packet_data_enums::UnrecognizedInternetProtocolNumberError;
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
-
-use crate::internet_protocol::NoRecognizedInternetProtocolNumberError;
+use core::fmt::{Debug, Display, Formatter};
 #[cfg(feature = "std")]
 use std::error;
-
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub enum Ipv4Error {
-    ParseIpv4(ParseIpv4Error),
-    Checksum(ChecksumError),
-}
-
-impl Display for Ipv4Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::ParseIpv4(err) => {
-                write!(f, "{err}")
-            }
-            Self::Checksum(err) => {
-                write!(f, "{err}")
-            }
-        }
-    }
-}
-
-impl From<ParseIpv4Error> for Ipv4Error {
-    #[inline]
-    fn from(value: ParseIpv4Error) -> Self {
-        Self::ParseIpv4(value)
-    }
-}
-
-impl From<ChecksumError> for Ipv4Error {
-    #[inline]
-    fn from(value: ChecksumError) -> Self {
-        Self::Checksum(value)
-    }
-}
-
-#[cfg(feature = "error_trait")]
-impl error::Error for Ipv4Error {}
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum ParseIpv4Error {
@@ -64,14 +25,14 @@ pub enum ParseIpv4Error {
         ihl_header_in_bytes: usize,
         actual_packet_length: usize,
     },
-    NoRecognizedInternetProtocolNumber(NoRecognizedInternetProtocolNumberError),
+    UnrecognizedInternetProtocolNumber(UnrecognizedInternetProtocolNumberError),
     WrongChecksum(WrongChecksumError),
 }
 
-impl From<NoRecognizedInternetProtocolNumberError> for ParseIpv4Error {
+impl From<UnrecognizedInternetProtocolNumberError> for ParseIpv4Error {
     #[inline]
-    fn from(value: NoRecognizedInternetProtocolNumberError) -> Self {
-        Self::NoRecognizedInternetProtocolNumber(value)
+    fn from(value: UnrecognizedInternetProtocolNumberError) -> Self {
+        Self::UnrecognizedInternetProtocolNumber(value)
     }
 }
 
@@ -119,7 +80,7 @@ impl Display for ParseIpv4Error {
                     "Total length expected to be larger than header length, total was: {total_length_header} header was: {ihl_header_in_bytes}"
                 )
             }
-            Self::NoRecognizedInternetProtocolNumber(err) => {
+            Self::UnrecognizedInternetProtocolNumber(err) => {
                 write!(f, "{err}")
             }
             Self::UnexpectedBufferEnd(err) => {

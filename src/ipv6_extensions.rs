@@ -4,12 +4,13 @@
 mod verification;
 
 mod error;
-mod extension_types;
 mod metadata_trait;
 mod method_traits;
-mod routing_types;
 
-use crate::constants;
+pub use error::*;
+pub(crate) use metadata_trait::{Ipv6ExtMetaData, Ipv6ExtMetaDataMut};
+pub use method_traits::*;
+
 use crate::data_buffer::traits::HeaderInformationExtraction;
 use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderInformation, HeaderInformationMut, Layer,
@@ -22,11 +23,8 @@ use crate::error::UnexpectedBufferEndError;
 use crate::internal_utils::header_start_offset_from_phi;
 use crate::ipv6::UpdateIpv6Length;
 use crate::no_previous_header::NoPreviousHeaderInformation;
-pub use error::*;
-pub use extension_types::*;
-pub(crate) use metadata_trait::{Ipv6ExtMetaData, Ipv6ExtMetaDataMut};
-pub use method_traits::*;
-pub use routing_types::*;
+use crate::packet_data_enums::constants;
+use crate::packet_data_enums::Ipv6ExtensionType;
 
 /// Information about a single extension header.
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
@@ -34,7 +32,7 @@ pub struct Ipv6ExtensionMetadata {
     /// Offset from the start of the layer.
     pub offset: usize,
     /// Type of the extension.
-    pub ext_type: Ipv6Extension,
+    pub ext_type: Ipv6ExtensionType,
 }
 
 impl Default for Ipv6ExtensionMetadata {
@@ -42,14 +40,14 @@ impl Default for Ipv6ExtensionMetadata {
     fn default() -> Self {
         Self {
             offset: 0,
-            ext_type: Ipv6Extension::HopByHop,
+            ext_type: Ipv6ExtensionType::HopByHop,
         }
     }
 }
 
 impl Ipv6ExtensionMetadata {
     #[inline]
-    pub(crate) fn new_typed_ext_type(offset: usize, ext_type: Ipv6Extension) -> Self {
+    pub(crate) fn new_typed_ext_type(offset: usize, ext_type: Ipv6ExtensionType) -> Self {
         Self { offset, ext_type }
     }
 }
@@ -113,7 +111,7 @@ where
     pub fn new(
         buf: B,
         headroom: usize,
-        next_header_byte: Ipv6Extension,
+        next_header_byte: Ipv6ExtensionType,
     ) -> Result<
         (
             DataBuffer<B, Ipv6Extensions<NoPreviousHeaderInformation, MAX_EXTENSIONS>>,
@@ -146,7 +144,7 @@ where
             + Payload
             + BufferIntoInner<B>
             + HeaderInformationExtraction<PHI>,
-        first_extension: Ipv6Extension,
+        first_extension: Ipv6ExtensionType,
     ) -> Result<(DataBuffer<B, Ipv6Extensions<PHI, MAX_EXTENSIONS>>, bool), ParseIpv6ExtensionsError>
     {
         let previous_header_information = lower_layer_data_buffer.extract_header_information();
@@ -224,7 +222,7 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
 
         extensions[extensions_amount] = Ipv6ExtensionMetadata::new_typed_ext_type(
             all_extensions_length_in_bytes,
-            Ipv6Extension::HopByHop,
+            Ipv6ExtensionType::HopByHop,
         );
         extensions_amount += 1;
         all_extensions_length_in_bytes += current_extension_length_in_bytes;
@@ -274,7 +272,7 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
 
                 extensions[extensions_amount] = Ipv6ExtensionMetadata::new_typed_ext_type(
                     all_extensions_length_in_bytes,
-                    Ipv6Extension::Routing,
+                    Ipv6ExtensionType::Routing,
                 );
 
                 extensions_amount += 1;
@@ -314,7 +312,7 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
 
                 extensions[extensions_amount] = Ipv6ExtensionMetadata::new_typed_ext_type(
                     all_extensions_length_in_bytes,
-                    Ipv6Extension::DestinationOptions,
+                    Ipv6ExtensionType::DestinationOptions,
                 );
                 extensions_amount += 1;
                 all_extensions_length_in_bytes += current_extension_length_in_bytes;
@@ -346,7 +344,7 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
 
                 extensions[extensions_amount] = Ipv6ExtensionMetadata::new_typed_ext_type(
                     all_extensions_length_in_bytes,
-                    Ipv6Extension::Fragment,
+                    Ipv6ExtensionType::Fragment,
                 );
                 extensions_amount += 1;
                 all_extensions_length_in_bytes += EXTENSION_MIN_LEN;
@@ -585,17 +583,17 @@ where
 mod tests {
     use crate::data_buffer::{BufferIntoInner, DataBuffer, Payload, PayloadMut};
     use crate::error::UnexpectedBufferEndError;
-    use crate::internet_protocol::InternetProtocolNumber;
     use crate::ipv6::{Ipv6, Ipv6Methods, Ipv6MethodsMut};
     use crate::ipv6_extensions::error::ParseIpv6ExtensionsError;
     use crate::ipv6_extensions::metadata_trait::Ipv6ExtMetaData;
-    use crate::ipv6_extensions::routing_types::RoutingType;
     use crate::ipv6_extensions::{
         Ipv6ExtFieldError, Ipv6ExtMethods, Ipv6ExtMethodsMut, Ipv6ExtSetFieldError,
-        Ipv6ExtTypedHeaderError, Ipv6Extension, Ipv6ExtensionIndexOutOfBoundsError,
-        Ipv6ExtensionMetadata, Ipv6Extensions,
+        Ipv6ExtTypedHeaderError, Ipv6ExtensionIndexOutOfBoundsError, Ipv6ExtensionMetadata,
+        Ipv6ExtensionType, Ipv6Extensions,
     };
     use crate::no_previous_header::NoPreviousHeaderInformation;
+    use crate::packet_data_enums::InternetProtocolNumber;
+    use crate::packet_data_enums::RoutingType;
     use crate::test_utils::copy_into_slice;
 
     static IPV6_EXTENSIONS: [u8; 79] = [
@@ -608,7 +606,7 @@ mod tests {
         0x00,
         0x27,
         // Next header
-        Ipv6Extension::HopByHop as u8,
+        Ipv6ExtensionType::HopByHop as u8,
         // Hop limit
         0xFF,
         // Source
@@ -646,7 +644,7 @@ mod tests {
         0xFF,
         0xDD,
         // Payload
-        Ipv6Extension::Routing as u8,
+        Ipv6ExtensionType::Routing as u8,
         0, // Length
         0xAA,
         0xAA,
@@ -654,7 +652,7 @@ mod tests {
         0xAA,
         0xAA,
         0xAA,
-        Ipv6Extension::DestinationOptions as u8,
+        Ipv6ExtensionType::DestinationOptions as u8,
         0,                              // Length
         RoutingType::SourceRoute as u8, // Routing type
         5,                              // Segments left
@@ -662,7 +660,7 @@ mod tests {
         0xBB,                           // Data
         0xBB,                           // Data
         0xBB,                           // Data
-        Ipv6Extension::Fragment as u8,
+        Ipv6ExtensionType::Fragment as u8,
         0, // Length
         0xCC,
         0xCC,
@@ -697,7 +695,7 @@ mod tests {
         0x00,
         0x1F,
         // Next header
-        Ipv6Extension::HopByHop as u8,
+        Ipv6ExtensionType::HopByHop as u8,
         // Hop limit
         0xFF,
         // Source
@@ -735,7 +733,7 @@ mod tests {
         0xFF,
         0xDD,
         // Payload
-        Ipv6Extension::Routing as u8,
+        Ipv6ExtensionType::Routing as u8,
         0, // Length
         0xAA,
         0xAA,
@@ -743,7 +741,7 @@ mod tests {
         0xAA,
         0xAA,
         0xAA,
-        Ipv6Extension::DestinationOptions as u8,
+        Ipv6ExtensionType::DestinationOptions as u8,
         0,                              // Length
         RoutingType::SourceRoute as u8, // Routing type
         5,                              // Segments left
@@ -778,7 +776,7 @@ mod tests {
         0x00,
         0x1F,
         // Next header
-        Ipv6Extension::Routing as u8,
+        Ipv6ExtensionType::Routing as u8,
         // Hop limit
         0xFF,
         // Source
@@ -816,7 +814,7 @@ mod tests {
         0xFF,
         0xFF,
         // Payload
-        Ipv6Extension::DestinationOptions as u8,
+        Ipv6ExtensionType::DestinationOptions as u8,
         0,                              // Length
         RoutingType::SourceRoute as u8, // Routing type
         5,                              // Segments left
@@ -824,7 +822,7 @@ mod tests {
         0xFF,                           // Data
         0xFF,                           // Data
         0xFF,                           // Data
-        Ipv6Extension::Fragment as u8,
+        Ipv6ExtensionType::Fragment as u8,
         0, // Length
         0xFF,
         0xFF,
@@ -859,7 +857,7 @@ mod tests {
         0x00,
         0x27,
         // Next header
-        Ipv6Extension::Fragment as u8,
+        Ipv6ExtensionType::Fragment as u8,
         // Hop limit
         0xFF,
         // Source
@@ -897,7 +895,7 @@ mod tests {
         0xFF,
         0xDD,
         // Payload
-        Ipv6Extension::Fragment as u8,
+        Ipv6ExtensionType::Fragment as u8,
         0x0,
         0x0,
         0x0,
@@ -905,7 +903,7 @@ mod tests {
         0x0,
         0x0,
         0x0,
-        Ipv6Extension::Fragment as u8,
+        Ipv6ExtensionType::Fragment as u8,
         0x0,
         0x0,
         0x0,
@@ -913,7 +911,7 @@ mod tests {
         0x0,
         0x0,
         0x0,
-        Ipv6Extension::Fragment as u8,
+        Ipv6ExtensionType::Fragment as u8,
         0, // Length
         0xCC,
         0xCC,
@@ -948,7 +946,7 @@ mod tests {
         0x00,
         0x18,
         // Next header
-        Ipv6Extension::Fragment as u8,
+        Ipv6ExtensionType::Fragment as u8,
         // Hop limit
         0xFF,
         // Source
@@ -986,7 +984,7 @@ mod tests {
         0xFF,
         0xDD,
         // Payload
-        Ipv6Extension::Fragment as u8,
+        Ipv6ExtensionType::Fragment as u8,
         0x0,
         0x0,
         0x0,
@@ -1041,7 +1039,7 @@ mod tests {
         let _ = DataBuffer::<_, Ipv6Extensions<NoPreviousHeaderInformation, 10>>::new(
             &IPV6_EXTENSIONS[40..],
             0,
-            Ipv6Extension::HopByHop,
+            Ipv6ExtensionType::HopByHop,
         )
         .unwrap();
     }
@@ -1077,7 +1075,7 @@ mod tests {
             DataBuffer::<_, Ipv6Extensions<NoPreviousHeaderInformation, 10>>::new(
                 &IPV6_EXTENSIONS[40..47],
                 0,
-                Ipv6Extension::HopByHop
+                Ipv6ExtensionType::HopByHop
             )
         );
     }
@@ -1088,7 +1086,7 @@ mod tests {
             DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>>::new_from_lower(
                 DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(&IPV6_EXTENSIONS, 0)
                     .unwrap(),
-                Ipv6Extension::HopByHop,
+                Ipv6ExtensionType::HopByHop,
             )
             .unwrap();
 
@@ -1098,7 +1096,7 @@ mod tests {
             DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>>::new_from_lower(
                 DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(&IPV6_NO_FRAGMENT, 0)
                     .unwrap(),
-                Ipv6Extension::HopByHop,
+                Ipv6ExtensionType::HopByHop,
             )
             .unwrap();
 
@@ -1117,7 +1115,7 @@ mod tests {
             DataBuffer::<_, Ipv6Extensions<NoPreviousHeaderInformation, 10>>::new(
                 &IPV6_EXTENSIONS[40..],
                 290,
-                Ipv6Extension::HopByHop
+                Ipv6ExtensionType::HopByHop
             )
         );
     }
@@ -1281,14 +1279,14 @@ mod tests {
     #[test]
     fn new_hop_by_hop_not_first() {
         let mut data = IPV6_EXT_NO_HOP;
-        data[40] = Ipv6Extension::HopByHop as u8;
+        data[40] = Ipv6ExtensionType::HopByHop as u8;
         let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(data, 0).unwrap();
 
         assert_eq!(
             Err(ParseIpv6ExtensionsError::InvalidHopByHopPosition),
             DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>>::new_from_lower(
                 ipv6,
-                Ipv6Extension::Routing,
+                Ipv6ExtensionType::Routing,
             )
         );
     }
@@ -1303,34 +1301,34 @@ mod tests {
         let (ipv6_ext, is_fragment) = DataBuffer::<
             _,
             Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>,
-        >::new_from_lower(ipv6, Ipv6Extension::Fragment)
+        >::new_from_lower(ipv6, Ipv6ExtensionType::Fragment)
         .unwrap();
         assert!(is_fragment);
         assert_eq!(
             Ok(Ipv6ExtensionMetadata {
                 offset: 0,
-                ext_type: Ipv6Extension::Fragment
+                ext_type: Ipv6ExtensionType::Fragment
             }),
             ipv6_ext.extension(0)
         );
         assert_eq!(
             Ok(Ipv6ExtensionMetadata {
                 offset: 8,
-                ext_type: Ipv6Extension::Fragment
+                ext_type: Ipv6ExtensionType::Fragment
             }),
             ipv6_ext.extension(1)
         );
         assert_eq!(
             Ok(Ipv6ExtensionMetadata {
                 offset: 16,
-                ext_type: Ipv6Extension::Fragment
+                ext_type: Ipv6ExtensionType::Fragment
             }),
             ipv6_ext.extension(2)
         );
         assert_eq!(
             Ok(Ipv6ExtensionMetadata {
                 offset: 24,
-                ext_type: Ipv6Extension::Fragment
+                ext_type: Ipv6ExtensionType::Fragment
             }),
             ipv6_ext.extension(3)
         );
@@ -1346,20 +1344,20 @@ mod tests {
         let (ipv6_ext, is_fragment) = DataBuffer::<
             _,
             Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>,
-        >::new_from_lower(ipv6, Ipv6Extension::Fragment)
+        >::new_from_lower(ipv6, Ipv6ExtensionType::Fragment)
         .unwrap();
         assert!(!is_fragment);
         assert_eq!(
             Ok(Ipv6ExtensionMetadata {
                 offset: 0,
-                ext_type: Ipv6Extension::Fragment
+                ext_type: Ipv6ExtensionType::Fragment
             }),
             ipv6_ext.extension(0)
         );
         assert_eq!(
             Ok(Ipv6ExtensionMetadata {
                 offset: 8,
-                ext_type: Ipv6Extension::Fragment
+                ext_type: Ipv6ExtensionType::Fragment
             }),
             ipv6_ext.extension(1)
         );
@@ -1393,10 +1391,10 @@ mod tests {
         .unwrap();
         assert_eq!(
             [
-                Some(Ipv6Extension::HopByHop),
-                Some(Ipv6Extension::Routing),
-                Some(Ipv6Extension::DestinationOptions),
-                Some(Ipv6Extension::Fragment),
+                Some(Ipv6ExtensionType::HopByHop),
+                Some(Ipv6ExtensionType::Routing),
+                Some(Ipv6ExtensionType::DestinationOptions),
+                Some(Ipv6ExtensionType::Fragment),
                 None,
             ],
             exts.ipv6_extensions()
@@ -1455,7 +1453,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(
-            Ok(Ipv6Extension::Routing as u8),
+            Ok(Ipv6ExtensionType::Routing as u8),
             exts.ipv6_ext_per_extension_next_header(0)
         );
         assert_eq!(
@@ -1884,23 +1882,23 @@ mod tests {
             &[
                 Ipv6ExtensionMetadata {
                     offset: 0,
-                    ext_type: Ipv6Extension::HopByHop
+                    ext_type: Ipv6ExtensionType::HopByHop
                 },
                 Ipv6ExtensionMetadata {
                     offset: 16,
-                    ext_type: Ipv6Extension::Routing
+                    ext_type: Ipv6ExtensionType::Routing
                 },
                 Ipv6ExtensionMetadata {
                     offset: 24,
-                    ext_type: Ipv6Extension::DestinationOptions
+                    ext_type: Ipv6ExtensionType::DestinationOptions
                 },
                 Ipv6ExtensionMetadata {
                     offset: 32,
-                    ext_type: Ipv6Extension::Fragment
+                    ext_type: Ipv6ExtensionType::Fragment
                 },
                 Ipv6ExtensionMetadata {
                     offset: 0,
-                    ext_type: Ipv6Extension::HopByHop
+                    ext_type: Ipv6ExtensionType::HopByHop
                 },
             ],
             exts.extensions_array()
@@ -1908,7 +1906,7 @@ mod tests {
 
         assert_eq!(
             [
-                Ipv6Extension::Routing as u8,
+                Ipv6ExtensionType::Routing as u8,
                 1, // Length
                 0xAA,
                 0xAA,
@@ -1916,7 +1914,7 @@ mod tests {
                 0xAA,
                 0xAA,
                 0xAA,
-                Ipv6Extension::Routing as u8,
+                Ipv6ExtensionType::Routing as u8,
                 0, // Length
                 0xAA,
                 0xAA,
@@ -1924,7 +1922,7 @@ mod tests {
                 0xAA,
                 0xAA,
                 0xAA,
-                Ipv6Extension::DestinationOptions as u8,
+                Ipv6ExtensionType::DestinationOptions as u8,
                 0,                              // Length
                 RoutingType::SourceRoute as u8, // Routing type
                 5,                              // Segments left
@@ -1932,7 +1930,7 @@ mod tests {
                 0xBB,                           // Data
                 0xBB,                           // Data
                 0xBB,                           // Data
-                Ipv6Extension::Fragment as u8,
+                Ipv6ExtensionType::Fragment as u8,
                 0, // Length
                 0xCC,
                 0xCC,
@@ -1966,23 +1964,23 @@ mod tests {
             &[
                 Ipv6ExtensionMetadata {
                     offset: 0,
-                    ext_type: Ipv6Extension::HopByHop
+                    ext_type: Ipv6ExtensionType::HopByHop
                 },
                 Ipv6ExtensionMetadata {
                     offset: 8,
-                    ext_type: Ipv6Extension::Routing
+                    ext_type: Ipv6ExtensionType::Routing
                 },
                 Ipv6ExtensionMetadata {
                     offset: 16,
-                    ext_type: Ipv6Extension::DestinationOptions
+                    ext_type: Ipv6ExtensionType::DestinationOptions
                 },
                 Ipv6ExtensionMetadata {
                     offset: 24,
-                    ext_type: Ipv6Extension::Fragment
+                    ext_type: Ipv6ExtensionType::Fragment
                 },
                 Ipv6ExtensionMetadata {
                     offset: 0,
-                    ext_type: Ipv6Extension::HopByHop
+                    ext_type: Ipv6ExtensionType::HopByHop
                 },
             ],
             exts.extensions_array()
@@ -1990,7 +1988,7 @@ mod tests {
         assert_eq!(
             [
                 0xDD,
-                Ipv6Extension::Routing as u8,
+                Ipv6ExtensionType::Routing as u8,
                 0, // Length
                 0xAA,
                 0xAA,
@@ -1998,7 +1996,7 @@ mod tests {
                 0xAA,
                 0xAA,
                 0xAA,
-                Ipv6Extension::DestinationOptions as u8,
+                Ipv6ExtensionType::DestinationOptions as u8,
                 0,                              // Length
                 RoutingType::SourceRoute as u8, // Routing type
                 5,                              // Segments left
@@ -2006,7 +2004,7 @@ mod tests {
                 0xBB,                           // Data
                 0xBB,                           // Data
                 0xBB,                           // Data
-                Ipv6Extension::Fragment as u8,
+                Ipv6ExtensionType::Fragment as u8,
                 0, // Length
                 0xCC,
                 0xCC,

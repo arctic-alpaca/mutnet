@@ -1,15 +1,16 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
 use etherparse::{Ipv6ExtensionsSlice, ReadError};
 use mutnet::data_buffer::DataBuffer;
-use mutnet::ipv6_extensions::{Ipv6Extension, Ipv6Extensions, ParseIpv6ExtensionsError};
+use mutnet::ipv6_extensions::{Ipv6Extensions, ParseIpv6ExtensionsError};
 use mutnet::no_previous_header::NoPreviousHeaderInformation;
+use mutnet::packet_data_enums::Ipv6ExtensionType;
 use rand::{thread_rng, Rng};
 
 const MEM_TO_FILL: usize = 64;
 const MAX_EXTENSIONS: usize = 16;
 /// MEM_TO_FILL needs to be at least 8 bytes.
-pub fn random_valid_ipv6_extensions<const MEM_TO_FILL: usize>() -> ([u8; MEM_TO_FILL], Ipv6Extension)
-{
+pub fn random_valid_ipv6_extensions<const MEM_TO_FILL: usize>(
+) -> ([u8; MEM_TO_FILL], Ipv6ExtensionType) {
     assert!(MEM_TO_FILL >= 8);
 
     let mut rng = thread_rng();
@@ -17,7 +18,7 @@ pub fn random_valid_ipv6_extensions<const MEM_TO_FILL: usize>() -> ([u8; MEM_TO_
     let mut idx = 0;
     let mut next_header;
     let mut this_header;
-    let mut first_extension = Ipv6Extension::HopByHop as u8;
+    let mut first_extension = Ipv6ExtensionType::HopByHop as u8;
     let mut length = rng.gen_range(0..3);
     let mut remaining_space = MEM_TO_FILL;
 
@@ -29,9 +30,9 @@ pub fn random_valid_ipv6_extensions<const MEM_TO_FILL: usize>() -> ([u8; MEM_TO_
 
         remaining_space = remaining_space.saturating_sub((usize::from(length) + 1) * 8);
         next_header = match rng.gen_range(0..3) {
-            0_u8 => Ipv6Extension::Routing as u8,
-            1 => Ipv6Extension::Fragment as u8,
-            2.. => Ipv6Extension::DestinationOptions as u8,
+            0_u8 => Ipv6ExtensionType::Routing as u8,
+            1 => Ipv6ExtensionType::Fragment as u8,
+            2.. => Ipv6ExtensionType::DestinationOptions as u8,
         };
 
         data_buffer[idx] = next_header;
@@ -46,26 +47,26 @@ pub fn random_valid_ipv6_extensions<const MEM_TO_FILL: usize>() -> ([u8; MEM_TO_
         this_header = next_header;
     } else {
         first_extension = match rng.gen_range(0..3) {
-            0_u8 => Ipv6Extension::Routing as u8,
-            1 => Ipv6Extension::Fragment as u8,
-            2.. => Ipv6Extension::DestinationOptions as u8,
+            0_u8 => Ipv6ExtensionType::Routing as u8,
+            1 => Ipv6ExtensionType::Fragment as u8,
+            2.. => Ipv6ExtensionType::DestinationOptions as u8,
         };
 
         this_header = first_extension;
 
         next_header = if remaining_space >= 8 {
             match rng.gen_range(0..3) {
-                0_u8 => Ipv6Extension::Routing as u8,
-                1 => Ipv6Extension::Fragment as u8,
-                2.. => Ipv6Extension::DestinationOptions as u8,
+                0_u8 => Ipv6ExtensionType::Routing as u8,
+                1 => Ipv6ExtensionType::Fragment as u8,
+                2.. => Ipv6ExtensionType::DestinationOptions as u8,
             }
         } else {
-            rng.gen_range(Ipv6Extension::DestinationOptions as u8 + 1..u8::MAX)
+            rng.gen_range(Ipv6ExtensionType::DestinationOptions as u8 + 1..u8::MAX)
         };
     }
 
-    while Ipv6Extension::try_from(next_header).is_ok() {
-        if this_header == Ipv6Extension::Fragment as u8 {
+    while Ipv6ExtensionType::try_from(next_header).is_ok() {
+        if this_header == Ipv6ExtensionType::Fragment as u8 {
             length = 0;
         } else {
             length = rng.gen_range(0..3);
@@ -79,12 +80,12 @@ pub fn random_valid_ipv6_extensions<const MEM_TO_FILL: usize>() -> ([u8; MEM_TO_
 
         next_header = if remaining_space >= 8 {
             match rng.gen_range(0..3) {
-                0_u8 => Ipv6Extension::Routing as u8,
-                1 => Ipv6Extension::Fragment as u8,
-                2.. => Ipv6Extension::DestinationOptions as u8,
+                0_u8 => Ipv6ExtensionType::Routing as u8,
+                1 => Ipv6ExtensionType::Fragment as u8,
+                2.. => Ipv6ExtensionType::DestinationOptions as u8,
             }
         } else {
-            rng.gen_range(Ipv6Extension::DestinationOptions as u8 + 1..u8::MAX)
+            rng.gen_range(Ipv6ExtensionType::DestinationOptions as u8 + 1..u8::MAX)
         };
 
         data_buffer[idx] = next_header;
@@ -101,7 +102,7 @@ pub fn random_valid_ipv6_extensions<const MEM_TO_FILL: usize>() -> ([u8; MEM_TO_
 
     (
         data_buffer,
-        Ipv6Extension::try_from(first_extension).unwrap(),
+        Ipv6ExtensionType::try_from(first_extension).unwrap(),
     )
 }
 
@@ -109,7 +110,7 @@ pub fn random_valid_ipv6_extensions<const MEM_TO_FILL: usize>() -> ([u8; MEM_TO_
 #[inline(always)]
 fn mutnet_new<const MAX_EXTENSIONS: usize>(
     bytes: &mut [u8],
-    first_extension: Ipv6Extension,
+    first_extension: Ipv6ExtensionType,
 ) -> Result<
     (
         DataBuffer<&mut [u8], Ipv6Extensions<NoPreviousHeaderInformation, MAX_EXTENSIONS>>,
@@ -127,7 +128,7 @@ fn mutnet_new<const MAX_EXTENSIONS: usize>(
 #[inline(always)]
 fn etherparse_new(
     bytes: &[u8],
-    first_extension: Ipv6Extension,
+    first_extension: Ipv6ExtensionType,
 ) -> Result<(Ipv6ExtensionsSlice<'_>, u8, &[u8]), ReadError> {
     Ipv6ExtensionsSlice::from_slice(first_extension as u8, bytes)
 }

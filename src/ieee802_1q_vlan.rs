@@ -2,6 +2,10 @@
 
 mod error;
 mod method_traits;
+
+pub use error::*;
+pub use method_traits::*;
+
 #[cfg(all(feature = "remove_checksum", feature = "verify_vlan", kani))]
 mod verification;
 
@@ -16,8 +20,6 @@ use crate::error::UnexpectedBufferEndError;
 use crate::internal_utils::{check_and_calculate_data_length, header_start_offset_from_phi};
 use crate::no_previous_header::NoPreviousHeaderInformation;
 use crate::vlan::Vlan;
-pub use error::*;
-pub use method_traits::*;
 
 /// IEEE 802.1Q metadata.
 ///
@@ -266,13 +268,13 @@ mod tests {
     use crate::data_buffer::traits::HeaderInformation;
     use crate::data_buffer::{DataBuffer, Payload, PayloadMut};
     use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError};
-    use crate::ether_type::EtherType;
     use crate::ethernet::{Eth, EthernetMethods};
     use crate::ieee802_1q_vlan::{
         Ieee802_1QMethods, Ieee802_1QMethodsMut, Ieee802_1QVlan, NotDoubleTaggedError,
         ParseIeee802_1QError, STagWithoutCTagError, LAYER,
     };
     use crate::no_previous_header::NoPreviousHeaderInformation;
+    use crate::packet_data_enums::EtherType;
     use crate::test_utils::copy_into_slice;
     use crate::vlan::Vlan;
 

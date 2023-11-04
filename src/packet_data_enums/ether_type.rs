@@ -90,24 +90,24 @@ impl core::fmt::Display for EtherType {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub struct NoRecognizedEtherTypeError {
+pub struct UnrecognizedEtherTypeError {
     pub ether_type: u16,
 }
 
-impl core::fmt::Display for NoRecognizedEtherTypeError {
+impl core::fmt::Display for UnrecognizedEtherTypeError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "Not a valid header value , was: {:?}", self.ether_type)
+        write!(f, "Unrecognized ether type, was: {:?}", self.ether_type)
     }
 }
 
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
-impl core::error::Error for NoRecognizedEtherTypeError {}
+impl core::error::Error for UnrecognizedEtherTypeError {}
 
 #[cfg(feature = "std")]
-impl std::error::Error for NoRecognizedEtherTypeError {}
+impl std::error::Error for UnrecognizedEtherTypeError {}
 
 impl TryFrom<u16> for EtherType {
-    type Error = NoRecognizedEtherTypeError;
+    type Error = UnrecognizedEtherTypeError;
     #[inline]
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         match value {
@@ -161,7 +161,7 @@ impl TryFrom<u16> for EtherType {
             0x9000 => Ok(EtherType::EthernetConfigurationTestingProtocol),
             0xF1C1 => Ok(EtherType::RTag),
 
-            _ => Err(NoRecognizedEtherTypeError { ether_type: value }),
+            _ => Err(UnrecognizedEtherTypeError { ether_type: value }),
         }
     }
 }
@@ -180,7 +180,7 @@ mod ether_type_verification {
             }
             Err(err) => {
                 assert_eq!(
-                    NoRecognizedEtherTypeError {
+                    UnrecognizedEtherTypeError {
                         ether_type: try_value
                     },
                     err

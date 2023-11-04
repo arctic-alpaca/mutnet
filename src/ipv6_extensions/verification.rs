@@ -71,10 +71,10 @@ fn set_ipv6_ext_next_header() {
                     )
                 {
                     let next_header = kani::any();
-                    kani::assume(next_header as u8 != Ipv6Extension::HopByHop as u8);
-                    kani::assume(next_header as u8 != Ipv6Extension::DestinationOptions as u8);
-                    kani::assume(next_header as u8 != Ipv6Extension::Fragment as u8);
-                    kani::assume(next_header as u8 != Ipv6Extension::Routing as u8);
+                    kani::assume(next_header as u8 != Ipv6ExtensionType::HopByHop as u8);
+                    kani::assume(next_header as u8 != Ipv6ExtensionType::DestinationOptions as u8);
+                    kani::assume(next_header as u8 != Ipv6ExtensionType::Fragment as u8);
+                    kani::assume(next_header as u8 != Ipv6ExtensionType::Routing as u8);
                     let _ = to_test.set_ipv6_ext_next_header(next_header);
 
                     let to_test = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(

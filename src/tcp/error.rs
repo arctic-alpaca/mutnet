@@ -1,10 +1,7 @@
-use crate::error::{UnexpectedBufferEndError, WrongChecksumError};
-
-use core::fmt::{Debug, Display, Formatter};
-
+use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError, WrongChecksumError};
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
-
+use core::fmt::{Debug, Display, Formatter};
 #[cfg(feature = "std")]
 use std::error;
 
@@ -50,3 +47,35 @@ impl Display for ParseTcpError {
 
 #[cfg(feature = "error_trait")]
 impl error::Error for ParseTcpError {}
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub enum SetDataOffsetError {
+    InvalidDataOffset { data_offset: usize },
+    NotEnoughHeadroom(NotEnoughHeadroomError),
+}
+
+impl Display for SetDataOffsetError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::InvalidDataOffset { data_offset } => {
+                write!(
+                    f,
+                    "Data offset header value invalid, expected to be between 5 and 20 (inclusive): {data_offset}"
+                )
+            }
+            Self::NotEnoughHeadroom(err) => {
+                write!(f, "{err}")
+            }
+        }
+    }
+}
+
+impl From<NotEnoughHeadroomError> for SetDataOffsetError {
+    #[inline]
+    fn from(value: NotEnoughHeadroomError) -> Self {
+        Self::NotEnoughHeadroom(value)
+    }
+}
+
+#[cfg(feature = "error_trait")]
+impl error::Error for SetDataOffsetError {}

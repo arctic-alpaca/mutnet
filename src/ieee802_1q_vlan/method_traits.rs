@@ -2,8 +2,8 @@ use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderInformation, HeaderManipulation, Layer,
 };
 use crate::error::NotEnoughHeadroomError;
-use crate::ether_type::{EtherType, NoRecognizedEtherTypeError};
 use crate::ieee802_1q_vlan::NotDoubleTaggedError;
+use crate::packet_data_enums::{EtherType, UnrecognizedEtherTypeError};
 use crate::vlan::Vlan;
 use core::ops::Range;
 
@@ -135,7 +135,7 @@ pub trait Ieee802_1QMethods: HeaderInformation + BufferAccess {
     }
 
     #[inline]
-    fn ieee802_1q_typed_ether_type(&self) -> Result<EtherType, NoRecognizedEtherTypeError> {
+    fn ieee802_1q_typed_ether_type(&self) -> Result<EtherType, UnrecognizedEtherTypeError> {
         self.ieee802_1q_ether_type().try_into()
     }
 }

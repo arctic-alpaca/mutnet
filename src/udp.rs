@@ -3,10 +3,12 @@
 mod error;
 mod method_traits;
 
+pub use error::*;
+pub use method_traits::*;
+
 #[cfg(all(feature = "remove_checksum", feature = "verify_udp", kani))]
 mod verification;
 
-use crate::constants::UDP;
 use crate::data_buffer::traits::HeaderInformationExtraction;
 use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderInformation, HeaderInformationMut, Layer,
@@ -25,9 +27,8 @@ use crate::ipv6::{Ipv6, UpdateIpv6Length};
 use crate::ipv6_extensions::{Ipv6ExtMetaData, Ipv6ExtMetaDataMut, Ipv6Extensions};
 use crate::ipv6_extensions::{Ipv6ExtensionIndexOutOfBoundsError, Ipv6ExtensionMetadata};
 use crate::no_previous_header::NoPreviousHeaderInformation;
+use crate::packet_data_enums::constants;
 use crate::utility_traits::{TcpUdpChecksum, UpdateIpLength};
-pub use error::*;
-pub use method_traits::*;
 
 /// UDP metadata.
 ///
@@ -220,7 +221,7 @@ where
 {
     #[inline]
     fn pseudoheader_checksum(&self) -> u64 {
-        pseudoheader_checksum_ipv4_internal(self, UDP)
+        pseudoheader_checksum_ipv4_internal(self, constants::UDP)
     }
 }
 
@@ -231,7 +232,7 @@ where
 {
     #[inline]
     fn pseudoheader_checksum(&self) -> u64 {
-        pseudoheader_checksum_ipv6_internal(self, UDP)
+        pseudoheader_checksum_ipv6_internal(self, constants::UDP)
     }
 }
 
@@ -243,7 +244,7 @@ where
 {
     #[inline]
     fn pseudoheader_checksum(&self) -> u64 {
-        pseudoheader_checksum_ipv6_internal(self, UDP)
+        pseudoheader_checksum_ipv6_internal(self, constants::UDP)
     }
 }
 
@@ -419,11 +420,12 @@ mod tests {
     use crate::data_buffer::{DataBuffer, HeaderInformation, Layer, Payload, PayloadMut};
     use crate::error::{UnexpectedBufferEndError, WrongChecksumError};
     use crate::ethernet::Eth;
-    use crate::internet_protocol::InternetProtocolNumber;
     use crate::ipv4::{Ipv4, Ipv4MethodsMut};
     use crate::ipv6::{Ipv6, Ipv6Methods, Ipv6MethodsMut};
-    use crate::ipv6_extensions::{Ipv6Extension, Ipv6Extensions, RoutingType};
+    use crate::ipv6_extensions::Ipv6Extensions;
     use crate::no_previous_header::NoPreviousHeaderInformation;
+    use crate::packet_data_enums::RoutingType;
+    use crate::packet_data_enums::{InternetProtocolNumber, Ipv6ExtensionType};
     use crate::test_utils::copy_into_slice;
     use crate::udp::{ParseUdpError, SetLengthError, Udp, UdpMethods, UdpMethodsMut};
 
@@ -451,7 +453,7 @@ mod tests {
         0x00,
         0x26,
         // Next header
-        Ipv6Extension::HopByHop as u8,
+        Ipv6ExtensionType::HopByHop as u8,
         // Hop limit
         0xFF,
         // Source
@@ -489,7 +491,7 @@ mod tests {
         0xFF,
         0xDD,
         // Payload
-        Ipv6Extension::Routing as u8,
+        Ipv6ExtensionType::Routing as u8,
         0, // Length
         0xAA,
         0xAA,
@@ -497,7 +499,7 @@ mod tests {
         0xAA,
         0xAA,
         0xAA,
-        Ipv6Extension::DestinationOptions as u8,
+        Ipv6ExtensionType::DestinationOptions as u8,
         0,                              // Length
         RoutingType::SourceRoute as u8, // Routing type
         5,                              // Segments left
@@ -626,7 +628,7 @@ mod tests {
                         DataBuffer::<_, Eth>::new(ETH_IPV6_EXT_UDP, 0).unwrap(),
                     )
                     .unwrap(),
-                    Ipv6Extension::Routing,
+                    Ipv6ExtensionType::Routing,
                 )
                 .unwrap()
                 .0,
@@ -649,7 +651,7 @@ mod tests {
                         DataBuffer::<_, Eth>::new(ETH_IPV6_EXT_UDP, 0).unwrap(),
                     )
                     .unwrap(),
-                    Ipv6Extension::Routing,
+                    Ipv6ExtensionType::Routing,
                 )
                 .unwrap()
                 .0,
@@ -677,7 +679,7 @@ mod tests {
                 DataBuffer::<_, Eth>::new(ETH_IPV6_EXT_UDP, 0).unwrap(),
             )
             .unwrap(),
-            Ipv6Extension::Routing,
+            Ipv6ExtensionType::Routing,
         )
         .unwrap()
         .0;
@@ -744,7 +746,7 @@ mod tests {
                 DataBuffer::<_, Eth>::new(ETH_IPV6_EXT_UDP, 0).unwrap(),
             )
             .unwrap(),
-            Ipv6Extension::Routing,
+            Ipv6ExtensionType::Routing,
         )
         .unwrap()
         .0;
@@ -859,7 +861,7 @@ mod tests {
                     DataBuffer::<_, Eth>::new(ETH_IPV6_EXT_UDP, 0).unwrap(),
                 )
                 .unwrap(),
-                Ipv6Extension::Routing,
+                Ipv6ExtensionType::Routing,
             )
             .unwrap()
             .0,

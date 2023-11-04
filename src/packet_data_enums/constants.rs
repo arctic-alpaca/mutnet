@@ -1,8 +1,4 @@
-//! Constants used to match ether type, internet protocol and IPv6 extensions
-
-use crate::ether_type::EtherType;
-use crate::internet_protocol::InternetProtocolNumber;
-use crate::ipv6_extensions::Ipv6Extension;
+use crate::packet_data_enums::{EtherType, InternetProtocolNumber, Ipv6ExtensionType};
 
 // EtherType
 /// Internet Protocol v4
@@ -21,7 +17,7 @@ pub(crate) const TCP: u8 = InternetProtocolNumber::Tcp as u8;
 pub(crate) const UDP: u8 = InternetProtocolNumber::Udp as u8;
 
 // IPv6 extensions
-pub(crate) const FRAGMENT_EXT: u8 = Ipv6Extension::Fragment as u8;
-pub(crate) const DESTINATION_OPTIONS_EXT: u8 = Ipv6Extension::DestinationOptions as u8;
-pub(crate) const HOP_BY_HOP_EXT: u8 = Ipv6Extension::HopByHop as u8;
-pub(crate) const ROUTING_EXT: u8 = Ipv6Extension::Routing as u8;
+pub(crate) const FRAGMENT_EXT: u8 = Ipv6ExtensionType::Fragment as u8;
+pub(crate) const DESTINATION_OPTIONS_EXT: u8 = Ipv6ExtensionType::DestinationOptions as u8;
+pub(crate) const HOP_BY_HOP_EXT: u8 = Ipv6ExtensionType::HopByHop as u8;
+pub(crate) const ROUTING_EXT: u8 = Ipv6ExtensionType::Routing as u8;

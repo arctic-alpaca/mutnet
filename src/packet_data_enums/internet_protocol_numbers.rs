@@ -307,10 +307,10 @@ impl core::fmt::Display for InternetProtocolNumber {
     }
 }
 impl TryFrom<u8> for InternetProtocolNumber {
-    type Error = NoRecognizedInternetProtocolNumberError;
+    type Error = UnrecognizedInternetProtocolNumberError;
 
     #[inline]
-    fn try_from(value: u8) -> Result<Self, NoRecognizedInternetProtocolNumberError> {
+    fn try_from(value: u8) -> Result<Self, UnrecognizedInternetProtocolNumberError> {
         match value {
             0 => Ok(InternetProtocolNumber::HopByHopOpt),
             1 => Ok(InternetProtocolNumber::Icmp),
@@ -460,7 +460,7 @@ impl TryFrom<u8> for InternetProtocolNumber {
             253 => Ok(InternetProtocolNumber::ExperimentationTesting1),
             254 => Ok(InternetProtocolNumber::ExperimentationTesting2),
             255 => Ok(InternetProtocolNumber::Reserved),
-            _ => Err(NoRecognizedInternetProtocolNumberError {
+            _ => Err(UnrecognizedInternetProtocolNumberError {
                 internet_protocol_number: value,
             }),
         }
@@ -468,24 +468,24 @@ impl TryFrom<u8> for InternetProtocolNumber {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub struct NoRecognizedInternetProtocolNumberError {
+pub struct UnrecognizedInternetProtocolNumberError {
     pub internet_protocol_number: u8,
 }
 
-impl core::fmt::Display for NoRecognizedInternetProtocolNumberError {
+impl core::fmt::Display for UnrecognizedInternetProtocolNumberError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_fmt(format_args!(
-            "Not a valid header value , was: {:?}",
+            "Unrecognized internet protocol number, was: {:?}",
             self.internet_protocol_number
         ))
     }
 }
 
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
-impl core::error::Error for NoRecognizedInternetProtocolNumberError {}
+impl core::error::Error for UnrecognizedInternetProtocolNumberError {}
 
 #[cfg(feature = "std")]
-impl std::error::Error for NoRecognizedInternetProtocolNumberError {}
+impl std::error::Error for UnrecognizedInternetProtocolNumberError {}
 
 #[cfg(kani)]
 mod internetprotocolnumber_verification {
@@ -500,7 +500,7 @@ mod internetprotocolnumber_verification {
             }
             Err(err) => {
                 assert_eq!(
-                    NoRecognizedInternetProtocolNumberError {
+                    UnrecognizedInternetProtocolNumberError {
                         internet_protocol_number: try_value
                     },
                     err

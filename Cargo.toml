@@ -84,14 +84,6 @@ harness = false
 name = "udp"
 harness = false
 
-[[bench]]
-name = "combined"
-harness = false
-
-[[bench]]
-name = "eth_ipv4_tcp"
-harness = false
-
 
 # Profiles
 [profile.bench]
