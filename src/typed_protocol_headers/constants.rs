@@ -1,4 +1,4 @@
-use crate::packet_data_enums::{EtherType, InternetProtocolNumber, Ipv6ExtensionType};
+use crate::typed_protocol_headers::{EtherType, InternetProtocolNumber, Ipv6ExtensionType};
 
 // EtherType
 /// Internet Protocol v4

@@ -1,5 +1,5 @@
 use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError, WrongChecksumError};
-use crate::packet_data_enums::UnrecognizedInternetProtocolNumberError;
+use crate::typed_protocol_headers::UnrecognizedInternetProtocolNumberError;
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
 use core::fmt::{Debug, Display, Formatter};

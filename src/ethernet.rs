@@ -14,7 +14,7 @@ use crate::data_buffer::{DataBuffer, EthernetMarker, Payload, PayloadMut};
 use crate::error::UnexpectedBufferEndError;
 use crate::ieee802_1q_vlan::UpdateEtherTypeBelowIeee802_1q;
 use crate::internal_utils::check_and_calculate_data_length;
-use crate::packet_data_enums::EtherType;
+use crate::typed_protocol_headers::EtherType;
 
 /// Ethernet II metadata.
 ///
@@ -194,8 +194,8 @@ mod tests {
     use crate::data_buffer::{DataBuffer, Payload, PayloadMut};
     use crate::error::UnexpectedBufferEndError;
     use crate::ethernet::{Eth, EthernetMethods, EthernetMethodsMut};
-    use crate::packet_data_enums::EtherType;
     use crate::test_utils::copy_into_slice;
+    use crate::typed_protocol_headers::EtherType;
 
     const ETHERNET_FRAME: [u8; 64] = [
         0x00, 0x80, 0x41, 0xAE, 0xFD, 0x7E, // Dst

@@ -27,7 +27,7 @@ use crate::ipv6::{Ipv6, UpdateIpv6Length};
 use crate::ipv6_extensions::{Ipv6ExtMetaData, Ipv6ExtMetaDataMut, Ipv6Extensions};
 use crate::ipv6_extensions::{Ipv6ExtensionIndexOutOfBoundsError, Ipv6ExtensionMetadata};
 use crate::no_previous_header::NoPreviousHeaderInformation;
-use crate::packet_data_enums::constants;
+use crate::typed_protocol_headers::constants;
 use crate::utility_traits::{TcpUdpChecksum, UpdateIpLength};
 
 /// UDP metadata.
@@ -424,9 +424,9 @@ mod tests {
     use crate::ipv6::{Ipv6, Ipv6Methods, Ipv6MethodsMut};
     use crate::ipv6_extensions::Ipv6Extensions;
     use crate::no_previous_header::NoPreviousHeaderInformation;
-    use crate::packet_data_enums::RoutingType;
-    use crate::packet_data_enums::{InternetProtocolNumber, Ipv6ExtensionType};
     use crate::test_utils::copy_into_slice;
+    use crate::typed_protocol_headers::RoutingType;
+    use crate::typed_protocol_headers::{InternetProtocolNumber, Ipv6ExtensionType};
     use crate::udp::{ParseUdpError, SetLengthError, Udp, UdpMethods, UdpMethodsMut};
 
     const ETH_IPV6_EXT_UDP: [u8; 92] = [

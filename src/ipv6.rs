@@ -273,10 +273,10 @@ mod tests {
     use crate::ipv6::{Ipv6, Ipv6Methods, Ipv6MethodsMut, ParseIpv6Error, SetPayloadLengthError};
     use crate::ipv6_extensions::Ipv6Extensions;
     use crate::no_previous_header::NoPreviousHeaderInformation;
-    use crate::packet_data_enums::InternetProtocolNumber;
-    use crate::packet_data_enums::Ipv6ExtensionType;
-    use crate::packet_data_enums::RoutingType;
     use crate::tcp::Tcp;
+    use crate::typed_protocol_headers::InternetProtocolNumber;
+    use crate::typed_protocol_headers::Ipv6ExtensionType;
+    use crate::typed_protocol_headers::RoutingType;
 
     const ETH_IPV6_EXT_TCP: [u8; 104] = [
         0x00,

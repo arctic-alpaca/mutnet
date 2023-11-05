@@ -9,9 +9,9 @@ use crate::ipv6_extensions::{Ipv6ExtMethods, Ipv6Extensions};
 use crate::multi_step_parser::EthernetMultiStepParserResult::{
     FragmentIpv4Eth, FragmentIpv4VlanEth,
 };
-use crate::packet_data_enums::constants;
-use crate::packet_data_enums::Ipv6ExtensionType;
 use crate::tcp::Tcp;
+use crate::typed_protocol_headers::constants;
+use crate::typed_protocol_headers::Ipv6ExtensionType;
 use crate::udp::Udp;
 use crate::vlan::Vlan;
 

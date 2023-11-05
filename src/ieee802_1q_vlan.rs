@@ -274,8 +274,8 @@ mod tests {
         ParseIeee802_1QError, STagWithoutCTagError, LAYER,
     };
     use crate::no_previous_header::NoPreviousHeaderInformation;
-    use crate::packet_data_enums::EtherType;
     use crate::test_utils::copy_into_slice;
+    use crate::typed_protocol_headers::EtherType;
     use crate::vlan::Vlan;
 
     const ETHERNET_SINGLE_TAGGED: [u8; 20] = [

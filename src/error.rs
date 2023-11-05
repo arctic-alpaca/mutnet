@@ -3,9 +3,9 @@ use crate::ieee802_1q_vlan::ParseIeee802_1QError;
 use crate::ipv4::ParseIpv4Error;
 use crate::ipv6::ParseIpv6Error;
 use crate::ipv6_extensions::ParseIpv6ExtensionsError;
-use crate::packet_data_enums::UnrecognizedEtherTypeError;
-use crate::packet_data_enums::UnrecognizedInternetProtocolNumberError;
 use crate::tcp::ParseTcpError;
+use crate::typed_protocol_headers::UnrecognizedEtherTypeError;
+use crate::typed_protocol_headers::UnrecognizedInternetProtocolNumberError;
 use crate::udp::ParseUdpError;
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;

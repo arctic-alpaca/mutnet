@@ -1,8 +1,8 @@
 use crate::addresses::ipv4::Ipv4Address;
 use crate::addresses::mac::MacAddress;
 use crate::data_buffer::traits::{BufferAccess, BufferAccessMut, HeaderManipulation, Layer};
-use crate::packet_data_enums::{EtherType, UnrecognizedEtherTypeError};
-use crate::packet_data_enums::{OperationCode, UnrecognizedOperationCodeError};
+use crate::typed_protocol_headers::{EtherType, UnrecognizedEtherTypeError};
+use crate::typed_protocol_headers::{OperationCode, UnrecognizedOperationCodeError};
 use core::ops::Range;
 
 pub(crate) const HARDWARE_TYPE: Range<usize> = 0..2;

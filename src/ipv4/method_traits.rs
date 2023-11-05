@@ -5,8 +5,10 @@ use crate::data_buffer::traits::{
 };
 use crate::internal_utils::grow_or_shrink_header_at_end;
 use crate::ipv4::{SetIhlError, SetTotalLengthError};
-use crate::packet_data_enums::{Dscp, Ecn, UnrecognizedDscpError, UnrecognizedEcnError};
-use crate::packet_data_enums::{InternetProtocolNumber, UnrecognizedInternetProtocolNumberError};
+use crate::typed_protocol_headers::{Dscp, Ecn, UnrecognizedDscpError, UnrecognizedEcnError};
+use crate::typed_protocol_headers::{
+    InternetProtocolNumber, UnrecognizedInternetProtocolNumberError,
+};
 use core::ops::Range;
 use core::ops::RangeInclusive;
 

@@ -3,7 +3,7 @@ use etherparse::{Ipv4HeaderSlice, ReadError};
 use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
 use mutnet::ipv4::{Ipv4, Ipv4Methods, Ipv4MethodsMut, ParseIpv4Error};
 use mutnet::no_previous_header::NoPreviousHeaderInformation;
-use mutnet::packet_data_enums::{Dscp, Ecn};
+use mutnet::typed_protocol_headers::{Dscp, Ecn};
 use rand::{thread_rng, Rng};
 
 #[allow(clippy::unusual_byte_groupings)]

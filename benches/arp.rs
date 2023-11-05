@@ -4,7 +4,7 @@ use mutnet::addresses::mac::MacAddress;
 use mutnet::arp::{Arp, ArpMethods, ArpMethodsMut, ParseArpError};
 use mutnet::data_buffer::{BufferIntoInner, DataBuffer};
 use mutnet::no_previous_header::NoPreviousHeaderInformation;
-use mutnet::packet_data_enums::OperationCode;
+use mutnet::typed_protocol_headers::OperationCode;
 use rand::{thread_rng, Rng};
 
 // ARP for IPv4

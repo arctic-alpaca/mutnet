@@ -3,7 +3,9 @@ use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderInformation, HeaderManipulation, Layer,
 };
 use crate::ipv6::SetPayloadLengthError;
-use crate::packet_data_enums::{InternetProtocolNumber, UnrecognizedInternetProtocolNumberError};
+use crate::typed_protocol_headers::{
+    InternetProtocolNumber, UnrecognizedInternetProtocolNumberError,
+};
 use core::ops::Range;
 
 pub(crate) const VERSION_BYTE: usize = 0;

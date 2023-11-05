@@ -7,8 +7,8 @@ use crate::ipv6_extensions::{
     Ipv6ExtFieldError, Ipv6ExtSetFieldError, Ipv6ExtTypedHeaderError,
     Ipv6ExtensionIndexOutOfBoundsError, Ipv6ExtensionType,
 };
-use crate::packet_data_enums::InternetProtocolNumber;
-use crate::packet_data_enums::RoutingType;
+use crate::typed_protocol_headers::InternetProtocolNumber;
+use crate::typed_protocol_headers::RoutingType;
 use core::cmp::Ordering;
 
 pub(crate) static NEXT_HEADER: usize = 0;

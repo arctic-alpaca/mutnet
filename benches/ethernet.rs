@@ -2,7 +2,7 @@ use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughpu
 use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
 use mutnet::error::UnexpectedBufferEndError;
 use mutnet::ethernet::{Eth, EthernetMethods, EthernetMethodsMut};
-use mutnet::packet_data_enums::EtherType;
+use mutnet::typed_protocol_headers::EtherType;
 
 #[rustfmt::skip]
 const ETHERNET: [u8; 64] = [

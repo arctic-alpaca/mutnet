@@ -219,8 +219,8 @@ mod tests {
     use crate::data_buffer::DataBuffer;
     use crate::error::UnexpectedBufferEndError;
     use crate::no_previous_header::NoPreviousHeaderInformation;
-    use crate::packet_data_enums::{EtherType, OperationCode};
     use crate::test_utils::copy_into_slice;
+    use crate::typed_protocol_headers::{EtherType, OperationCode};
 
     // ARP for IPv4
     const ARP_IPV4_REQUEST: [u8; 28] = [

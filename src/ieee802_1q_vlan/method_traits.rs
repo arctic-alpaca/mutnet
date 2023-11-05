@@ -3,7 +3,7 @@ use crate::data_buffer::traits::{
 };
 use crate::error::NotEnoughHeadroomError;
 use crate::ieee802_1q_vlan::NotDoubleTaggedError;
-use crate::packet_data_enums::{EtherType, UnrecognizedEtherTypeError};
+use crate::typed_protocol_headers::{EtherType, UnrecognizedEtherTypeError};
 use crate::vlan::Vlan;
 use core::ops::Range;
 

@@ -5,10 +5,10 @@ use mutnet::ethernet::EthernetMethods;
 use mutnet::ipv4::Ipv4Methods;
 use mutnet::ipv6::Ipv6Methods;
 use mutnet::multi_step_parser::{parse_network_data, EthernetMultiStepParserResult};
-use mutnet::packet_data_enums::EtherType;
-use mutnet::packet_data_enums::InternetProtocolNumber;
-use mutnet::packet_data_enums::OperationCode;
 use mutnet::tcp::TcpMethods;
+use mutnet::typed_protocol_headers::EtherType;
+use mutnet::typed_protocol_headers::InternetProtocolNumber;
+use mutnet::typed_protocol_headers::OperationCode;
 use mutnet::udp::UdpMethods;
 use std::io::{stdout, Write};
 

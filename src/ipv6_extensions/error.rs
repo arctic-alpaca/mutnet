@@ -1,6 +1,6 @@
 use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError};
-use crate::packet_data_enums::UnrecognizedInternetProtocolNumberError;
-use crate::packet_data_enums::UnrecognizedIpv6ExtensionError;
+use crate::typed_protocol_headers::UnrecognizedInternetProtocolNumberError;
+use crate::typed_protocol_headers::UnrecognizedIpv6ExtensionError;
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
 use core::fmt::{Debug, Display, Formatter};

@@ -2,7 +2,7 @@ use crate::addresses::mac::MacAddress;
 use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderInformation, HeaderManipulation, Layer,
 };
-use crate::packet_data_enums::{EtherType, UnrecognizedEtherTypeError};
+use crate::typed_protocol_headers::{EtherType, UnrecognizedEtherTypeError};
 use core::ops::Range;
 
 pub(crate) const DESTINATION_MAC: Range<usize> = 0..6;

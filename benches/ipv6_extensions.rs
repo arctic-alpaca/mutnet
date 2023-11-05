@@ -3,7 +3,7 @@ use etherparse::{Ipv6ExtensionsSlice, ReadError};
 use mutnet::data_buffer::DataBuffer;
 use mutnet::ipv6_extensions::{Ipv6Extensions, ParseIpv6ExtensionsError};
 use mutnet::no_previous_header::NoPreviousHeaderInformation;
-use mutnet::packet_data_enums::Ipv6ExtensionType;
+use mutnet::typed_protocol_headers::Ipv6ExtensionType;
 use rand::{thread_rng, Rng};
 
 const MEM_TO_FILL: usize = 64;

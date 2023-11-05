@@ -23,8 +23,8 @@ use crate::error::UnexpectedBufferEndError;
 use crate::internal_utils::header_start_offset_from_phi;
 use crate::ipv6::UpdateIpv6Length;
 use crate::no_previous_header::NoPreviousHeaderInformation;
-use crate::packet_data_enums::constants;
-use crate::packet_data_enums::Ipv6ExtensionType;
+use crate::typed_protocol_headers::constants;
+use crate::typed_protocol_headers::Ipv6ExtensionType;
 
 /// Information about a single extension header.
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
@@ -592,9 +592,9 @@ mod tests {
         Ipv6ExtensionType, Ipv6Extensions,
     };
     use crate::no_previous_header::NoPreviousHeaderInformation;
-    use crate::packet_data_enums::InternetProtocolNumber;
-    use crate::packet_data_enums::RoutingType;
     use crate::test_utils::copy_into_slice;
+    use crate::typed_protocol_headers::InternetProtocolNumber;
+    use crate::typed_protocol_headers::RoutingType;
 
     static IPV6_EXTENSIONS: [u8; 79] = [
         // Version, traffic class and flow label

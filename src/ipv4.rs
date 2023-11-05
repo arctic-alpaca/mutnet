@@ -308,10 +308,10 @@ mod tests {
         Ipv4, Ipv4Methods, Ipv4MethodsMut, ParseIpv4Error, SetIhlError, SetTotalLengthError,
     };
     use crate::no_previous_header::NoPreviousHeaderInformation;
-    use crate::packet_data_enums::InternetProtocolNumber;
-    use crate::packet_data_enums::{Dscp, Ecn};
     use crate::tcp::Tcp;
     use crate::test_utils::copy_into_slice;
+    use crate::typed_protocol_headers::InternetProtocolNumber;
+    use crate::typed_protocol_headers::{Dscp, Ecn};
 
     const ETH_IPV4_TCP: [u8; 64] = [
         0x00,
