@@ -1,3 +1,6 @@
+// Formatting and printing data to the default output may lead to dropped packets as this can be slow.
+// This example should not be used to judge performance but rather to see how mutnet can be used.
+
 use mutnet::addresses::ipv4::Ipv4Address;
 use mutnet::addresses::ipv6::Ipv6Addr;
 use mutnet::arp::ArpMethods;
@@ -10,25 +13,82 @@ use mutnet::typed_protocol_headers::EtherType;
 use mutnet::typed_protocol_headers::InternetProtocolNumber;
 use mutnet::typed_protocol_headers::OperationCode;
 use mutnet::udp::UdpMethods;
+use std::error::Error;
+use std::fmt;
+use std::fmt::Display;
 use std::io::{stdout, Write};
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Debug, Default)]
 struct Data {
     dropped_packets: u32,
+    eth_ether_type: Option<EtherType>,
     arp_op_code: Option<OperationCode>,
     arp_sender_prot_addr: Option<Ipv4Address>,
     ipv4_prot: Option<InternetProtocolNumber>,
-    ipv4_ihl: Option<u8>,
     ipv4_src: Option<Ipv4Address>,
     ipv4_dst: Option<Ipv4Address>,
     ipv6_next_hdr: Option<InternetProtocolNumber>,
     ipv6_src: Option<Ipv6Addr>,
+    ipv6_dst: Option<Ipv6Addr>,
     fragment: Option<bool>,
-    eth_ether_type: Option<EtherType>,
     tcp_source_port: Option<u16>,
     tcp_destination_port: Option<u16>,
     udp_source_port: Option<u16>,
     udp_destination_port: Option<u16>,
+    err: Option<Box<dyn Error + Send>>,
+}
+
+impl Display for Data {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(eth_ether_type) = self.eth_ether_type {
+            writeln!(f, "Ethernet ether type: {eth_ether_type}")?;
+        }
+        if let Some(arp_op_code) = self.arp_op_code {
+            writeln!(f, "ARP operation code: {arp_op_code}")?;
+        }
+        if let Some(arp_sender_prot_addr) = self.arp_sender_prot_addr {
+            writeln!(f, "ARP sender protocol address: {arp_sender_prot_addr:?}")?;
+        }
+        if let Some(ipv4_prot) = self.ipv4_prot {
+            writeln!(f, "IPv4 protocol: {ipv4_prot:?}")?;
+        }
+        if let Some(ipv4_src) = self.ipv4_src {
+            writeln!(f, "IPv4 source: {ipv4_src:?}")?;
+        }
+        if let Some(ipv4_dst) = self.ipv4_dst {
+            writeln!(f, "IPv4 destination: {ipv4_dst:?}")?;
+        }
+        if let Some(ipv6_next_hdr) = self.ipv6_next_hdr {
+            writeln!(f, "IPv6 next header: {ipv6_next_hdr:?}")?;
+        }
+        if let Some(ipv6_src) = self.ipv6_src {
+            writeln!(f, "IPv6 source: {ipv6_src:?}")?;
+        }
+        if let Some(ipv6_dst) = self.ipv6_dst {
+            writeln!(f, "IPv6 destination: {ipv6_dst:?}")?;
+        }
+        if let Some(fragment) = self.fragment {
+            writeln!(f, "Fragment: {fragment}")?;
+        }
+        if let Some(tcp_source_port) = self.tcp_source_port {
+            writeln!(f, "TCP source port: {tcp_source_port}")?;
+        }
+        if let Some(tcp_destination_port) = self.tcp_destination_port {
+            writeln!(f, "TCP destination port: {tcp_destination_port}")?;
+        }
+        if let Some(udp_source_port) = self.udp_source_port {
+            writeln!(f, "UDP source port: {udp_source_port}")?;
+        }
+        if let Some(udp_destination_port) = self.udp_destination_port {
+            writeln!(f, "UDP destination port: {udp_destination_port}")?;
+        }
+        if let Some(err) = &self.err {
+            writeln!(f, "ERROR: {err:?}")?;
+        }
+
+        writeln!(f, "Dropped packets {}", self.dropped_packets)?;
+        writeln!(f, "------------------")
+    }
 }
 
 fn main() {
@@ -49,7 +109,10 @@ fn main() {
 
         match cap.next_packet() {
             Ok(packet) => {
-                match parse_network_data::<_, 10>(packet.data, 0, true, true, true) {
+                // Skip checksum validation to allow capturing outgoing data even when checksum offloading
+                // is active. Checksum offloading offloads the checksum calculation to the hardware
+                // results in invalid checksums on the software level for outgoing data.
+                match parse_network_data::<_, 10>(packet.data, 0, false, false, false) {
                     Ok(EthernetMultiStepParserResult::Ethernet(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                     }
@@ -170,7 +233,9 @@ fn main() {
                     }
                     // Checksum errors are normal for outgoing packets if your system is using
                     // hardware offload.
-                    Err(err) => eprintln!("{err}"),
+                    Err(err) => {
+                        eprintln!("{err}");
+                    }
                 }
             }
             Err(err) => {
@@ -178,60 +243,7 @@ fn main() {
                 return;
             }
         }
-        if let Some(arp_op_code) = output.arp_op_code {
-            writeln!(lock, "Arp opcode: {arp_op_code:?}").unwrap();
-        }
-        if let Some(arp_sender_prot_addr) = output.arp_sender_prot_addr {
-            writeln!(lock, "Arp sender prot addr: {arp_sender_prot_addr:?}").unwrap();
-        }
-        if let Some(eth_ether_type) = output.eth_ether_type {
-            writeln!(lock, "Ethertype {eth_ether_type:?}").unwrap();
-        }
-        if let Some(ipv4_prot) = output.ipv4_prot {
-            writeln!(lock, "IPv4 prototocol: {ipv4_prot:?}").unwrap();
-        }
-        if let Some(ipv4_ihl) = output.ipv4_ihl {
-            writeln!(lock, "IPv4 IHL: {ipv4_ihl:?}").unwrap();
-        }
-        if let Some(ipv4_src) = output.ipv4_src {
-            writeln!(
-                lock,
-                "IPv4 SRC: {}.{}.{}.{}",
-                ipv4_src[0], ipv4_src[1], ipv4_src[2], ipv4_src[3],
-            )
-            .unwrap();
-        }
-        if let Some(ipv4_dst) = output.ipv4_dst {
-            writeln!(
-                lock,
-                "IPv4 DST: {}.{}.{}.{}",
-                ipv4_dst[0], ipv4_dst[1], ipv4_dst[2], ipv4_dst[3],
-            )
-            .unwrap();
-        }
-        if let Some(ipv6_next_hdr) = output.ipv6_next_hdr {
-            writeln!(lock, "IPv6 next header: {ipv6_next_hdr:?}").unwrap();
-        }
-        if let Some(ipv6_src) = output.ipv6_src {
-            writeln!(lock, "IPv6 SRC {ipv6_src:X?}").unwrap();
-        }
-        if let Some(is_fragment) = output.fragment {
-            writeln!(lock, "Is fragment: {is_fragment:?}").unwrap();
-        }
-        if let Some(tcp_source_port) = output.tcp_source_port {
-            writeln!(lock, "TCP src port: {tcp_source_port:?}").unwrap();
-        }
-        if let Some(tcp_destination_port) = output.tcp_destination_port {
-            writeln!(lock, "TCP dst port: {tcp_destination_port:?}").unwrap();
-        }
-        if let Some(udp_source_port) = output.udp_source_port {
-            writeln!(lock, "UDP src port: {udp_source_port:?}").unwrap();
-        }
-        if let Some(udp_destination_port) = output.udp_destination_port {
-            writeln!(lock, "UDP dst port: {udp_destination_port:?}").unwrap();
-        }
-        writeln!(lock, "Dropped packets {}", output.dropped_packets).unwrap();
-        writeln!(lock, "------------------").unwrap();
+        writeln!(lock, "{output}").unwrap();
     }
 }
 
@@ -246,7 +258,6 @@ fn log_arp(packet: &impl ArpMethods, data: &mut Data) {
 
 fn log_ipv4(packet: &impl Ipv4Methods, data: &mut Data) {
     data.ipv4_prot = Some(packet.ipv4_typed_protocol().unwrap());
-    data.ipv4_ihl = Some(packet.ipv4_ihl());
     data.ipv4_src = Some(packet.ipv4_source());
     data.ipv4_dst = Some(packet.ipv4_destination());
 }
@@ -258,6 +269,7 @@ fn log_fragment(data: &mut Data) {
 fn log_ipv6(packet: &impl Ipv6Methods, data: &mut Data) {
     data.ipv6_next_hdr = Some(packet.ipv6_typed_next_header().unwrap());
     data.ipv6_src = Some(packet.ipv6_source());
+    data.ipv6_dst = Some(packet.ipv6_destination());
 }
 
 fn log_tcp(packet: &impl TcpMethods, data: &mut Data) {
