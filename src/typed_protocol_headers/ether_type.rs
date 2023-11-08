@@ -10,6 +10,7 @@ pub enum EtherType {
     Ipv4 = 0x0800,
     /// Address Resolution Protocol
     Arp = 0x0806,
+    /// Wake on lan
     WakeOnLan = 0x0842,
     /// Audio Video Transport Protocol
     Avtp = 0x22F0,
@@ -17,6 +18,7 @@ pub enum EtherType {
     Srp = 0x22EA,
     /// Reverse Address Resolution Protocol
     Rarp = 0x8035,
+    /// Apple talk
     AppleTalk = 0x809B,
     /// AppleTalk Address Resolution Protocol
     Aarp = 0x80F3,
@@ -28,24 +30,39 @@ pub enum EtherType {
     Vlacp = 0x8103,
     /// Internetwork Packet Exchange
     Ipx = 0x8137,
+    /// QNX Qnet
     QnxQnet = 0x8204,
     /// Internet Protocol v6
     Ipv6 = 0x86DD,
+    /// Ethernet flow control
     EthernetFlowControl = 0x8808,
+    /// Ethernet slow protocols
     EthernetSlowProtocols = 0x8809,
+    /// CobraNet
     CobraNet = 0x8819,
+    /// MPLS unicast
     MplsUnicast = 0x8847,
+    /// MPLS multicast
     MplsMulticast = 0x8848,
+    /// PPPOE discovery stage
     PppoeDiscoveryStage = 0x8863,
+    /// PPPOE session stage
     PppoeSessionStage = 0x8864,
+    /// HomePlug 1.0 MME
     HomePlug1_0Mme = 0x887B,
+    /// EAP over LAN
     EapOverLan = 0x888E,
+    /// PROFINET
     Profinet = 0x8892,
+    ///HyperSCSI
     HyperScsi = 0x889A,
+    /// ATA over ethernet
     AtaOverEthernet = 0x88A2,
+    /// EtherCAT
     EtherCat = 0x88A4,
     /// IEEE Std 802.1Q - Service VLAN tag identifier (S-Tag)
     ServiceTag = 0x88A8,
+    /// Ethernet powerlink
     EthernetPowerlink = 0x88AB,
     /// Generic Object Oriented Substation Event
     Goose = 0x88B8,
@@ -55,9 +72,13 @@ pub enum EtherType {
     Sv = 0x88BA,
     /// Link Layer Discovery Protocol
     Lldp = 0x88CC,
+    /// SERCOS III
     Sercos3 = 0x88CD,
+    /// HomePlug green PHY
     HomePlugGreenPhy = 0x88E1,
+    /// Media redundancy protocol
     MediaRedundancyProtocol = 0x88E3,
+    /// MACsec
     MacSec = 0x88E5,
     /// Provider Backbone Bridges
     Pbb = 0x88E7,
@@ -69,6 +90,7 @@ pub enum EtherType {
     Prp = 0x88FB,
     /// Fibre Channel Over Ethernet
     Fcoe = 0x8906,
+    /// Mediaxtream
     Mediaxtream = 0x8912,
     /// Fibre Channel Over Ethernet Initialization Protocol
     FcoeInitializationProtocol = 0x8914,
@@ -78,6 +100,7 @@ pub enum EtherType {
     Tte = 0x891D,
     /// High-Availability Seamless Redundancy
     Hsr = 0x892F,
+    /// Ethernet configuration testing protocol
     EthernetConfigurationTestingProtocol = 0x9000,
     /// Redundancy Tag (IEEE 802.1CB)
     RTag = 0xF1C1,
@@ -85,12 +108,14 @@ pub enum EtherType {
 
 impl core::fmt::Display for EtherType {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
+/// Error returned by [`EtherType::try_from()`].
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct UnrecognizedEtherTypeError {
+    /// The unrecognized ether type.
     pub ether_type: u16,
 }
 

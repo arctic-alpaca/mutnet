@@ -1,6 +1,8 @@
+//! IPv6 access and manipulation methods.
+
 use crate::addresses::ipv6::Ipv6Addr;
 use crate::data_buffer::traits::{
-    BufferAccess, BufferAccessMut, HeaderInformation, HeaderManipulation, Layer,
+    BufferAccess, BufferAccessMut, HeaderManipulation, HeaderMetadata, Layer,
 };
 use crate::ipv6::SetPayloadLengthError;
 use crate::typed_protocol_headers::{
@@ -29,12 +31,16 @@ pub(crate) const LAYER: Layer = Layer::Ipv6;
 // Length manipulating methods:
 // - set_ipv6_payload_length (has proof)
 
-pub trait Ipv6Methods: HeaderInformation + BufferAccess {
+/// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
+/// [`Ipv6`](crate::ipv6::Ipv6) header.
+pub trait Ipv6Methods: HeaderMetadata + BufferAccess {
+    /// Returns the IPv6 version.
     #[inline]
     fn ipv6_version(&self) -> u8 {
         self.read_value(LAYER, VERSION_BYTE) >> VERSION_SHIFT
     }
 
+    /// Returns the IPv6 traffic class.
     #[inline]
     fn ipv6_traffic_class(&self) -> u8 {
         let traffic_class_with_surrounding_data =
@@ -42,6 +48,7 @@ pub trait Ipv6Methods: HeaderInformation + BufferAccess {
         (traffic_class_with_surrounding_data >> 4) as u8
     }
 
+    /// Returns the IPv6 flow label.
     #[inline]
     fn ipv6_flow_label(&self) -> u32 {
         let flow_label_with_prepended_data =
@@ -49,16 +56,22 @@ pub trait Ipv6Methods: HeaderInformation + BufferAccess {
         flow_label_with_prepended_data & FLOW_LABEL_MASK
     }
 
+    /// Returns the IPv6 payload length.
     #[inline]
     fn ipv6_payload_length(&self) -> u16 {
         u16::from_be_bytes(self.read_array(LAYER, PAYLOAD_LENGTH))
     }
 
+    /// Returns the IPv6 next header.
     #[inline]
     fn ipv6_next_header(&self) -> u8 {
         self.read_value(LAYER, NEXT_HEADER)
     }
 
+    /// Returns the IPv6 next header as [`InternetProtocolNumber`].
+    ///
+    /// # Errors
+    /// Returns an error if the internet protocol number is not recognized.
     #[inline]
     fn ipv6_typed_next_header(
         &self,
@@ -66,29 +79,35 @@ pub trait Ipv6Methods: HeaderInformation + BufferAccess {
         self.ipv6_next_header().try_into()
     }
 
+    /// Returns the IPv6 hop limit.
     #[inline]
     fn ipv6_hop_limit(&self) -> u8 {
         self.read_value(LAYER, HOP_LIMIT)
     }
 
+    /// Returns the IPv6 source.
     #[inline]
     fn ipv6_source(&self) -> Ipv6Addr {
         self.read_array(LAYER, SOURCE)
     }
 
+    /// Returns the IPv6 destination.
     #[inline]
     fn ipv6_destination(&self) -> Ipv6Addr {
         self.read_array(LAYER, DESTINATION)
     }
 }
 
+/// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
+/// [`Ipv6`](crate::ipv6::Ipv6) header and wrapping a mutable data buffer.
 pub trait Ipv6MethodsMut: HeaderManipulation + BufferAccessMut + Ipv6Methods + Sized {
+    /// Sets the IPv6 traffic class.
     #[inline]
     fn set_ipv6_traffic_class(&mut self, traffic_class: u8) {
         let mut new_traffic_class_with_surrounding_data =
             u16::from_be_bytes(self.read_array(LAYER, TRAFFIC_CLASS));
         new_traffic_class_with_surrounding_data &= !TRAFFIC_CLASS_MASK_WITHOUT_SURROUNDING_DATA;
-        new_traffic_class_with_surrounding_data |= (traffic_class as u16) << TRAFFIC_CLASS_SHIFT;
+        new_traffic_class_with_surrounding_data |= u16::from(traffic_class) << TRAFFIC_CLASS_SHIFT;
         self.write_slice(
             LAYER,
             TRAFFIC_CLASS,
@@ -96,6 +115,9 @@ pub trait Ipv6MethodsMut: HeaderManipulation + BufferAccessMut + Ipv6Methods + S
         );
     }
 
+    /// Sets the IPv6 flow label.
+    ///
+    /// Ignores the 12 most significant bits of `flow_label` because the field is only 20 bits long.  
     #[inline]
     fn set_ipv6_flow_label(&mut self, mut flow_label: u32) {
         flow_label &= FLOW_LABEL_MASK;
@@ -111,6 +133,13 @@ pub trait Ipv6MethodsMut: HeaderManipulation + BufferAccessMut + Ipv6Methods + S
         );
     }
 
+    /// Sets the IPv6 payload length.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - `payload_length` exceeds the available space.
+    /// - the length of `payload_length` would cause already parsed upper layers to be cut of.
     #[inline]
     fn set_ipv6_payload_length(
         &mut self,
@@ -137,27 +166,32 @@ pub trait Ipv6MethodsMut: HeaderManipulation + BufferAccessMut + Ipv6Methods + S
         Ok(())
     }
 
+    /// Sets the IPv6 next header.
     #[inline]
     fn set_ipv6_next_header(&mut self, next_header: u8) {
         self.write_value(LAYER, NEXT_HEADER, next_header);
     }
 
+    /// Sets the IPv6 hop limit.
     #[inline]
     fn set_ipv6_hop_limit(&mut self, hop_limit: u8) {
         self.write_value(LAYER, HOP_LIMIT, hop_limit);
     }
 
+    /// Sets the IPv6 source.
     #[inline]
     fn set_ipv6_source(&mut self, source: Ipv6Addr) {
         self.write_slice(LAYER, SOURCE, &source);
     }
 
+    /// Sets the IPv6 destination.
     #[inline]
     fn set_ipv6_destination(&mut self, destination: Ipv6Addr) {
         self.write_slice(LAYER, DESTINATION, &destination);
     }
 }
 
+/// Allows updating the IPv6 length from other layers.
 pub(crate) trait UpdateIpv6Length:
     HeaderManipulation + BufferAccessMut + Ipv6Methods + Sized
 {

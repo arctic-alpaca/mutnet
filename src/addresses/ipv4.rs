@@ -3,7 +3,9 @@
 /// IPv4 Address in four octets.
 pub type Ipv4Address = [u8; 4];
 
-/// Checks whether an [`Ipv4Address`] is a multicast address.
+/// Returns `true` if an [`Ipv4Address`] is a multicast address.
+///
+/// A multicast address starts with a most-significant bit pattern of `1110`.
 ///
 /// # Examples
 ///
@@ -18,7 +20,7 @@ pub fn is_multicast(ip_addr: &Ipv4Address) -> bool {
     ip_addr[0] & 0b1111_0000 == 0b1110_0000
 }
 
-/// Checks whether an [`Ipv4Address`] is the limited broadcast address.
+/// Returns `true` if an [`Ipv4Address`] is the limited broadcast address.
 ///
 /// # Examples
 ///
@@ -33,7 +35,7 @@ pub fn is_limited_broadcast(ip_addr: &Ipv4Address) -> bool {
     ip_addr[..] == [255; 4]
 }
 
-/// Checks whether an [`Ipv4Address`] is the a loopback address.
+/// Returns `true` if an [`Ipv4Address`] is the a loopback address.
 ///
 /// # Examples
 ///

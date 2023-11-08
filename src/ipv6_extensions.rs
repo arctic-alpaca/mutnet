@@ -1,4 +1,4 @@
-//! IPv6 extensions type and method traits.
+//! IPv6 extensions implementation and IPv6 extensions specific errors.
 
 #[cfg(all(feature = "remove_checksum", feature = "verify_ipv6_extensions", kani))]
 mod verification;
@@ -11,22 +11,22 @@ pub use error::*;
 pub(crate) use metadata_trait::{Ipv6ExtMetaData, Ipv6ExtMetaDataMut};
 pub use method_traits::*;
 
-use crate::data_buffer::traits::HeaderInformationExtraction;
+use crate::data_buffer::traits::HeaderMetadataExtraction;
 use crate::data_buffer::traits::{
-    BufferAccess, BufferAccessMut, HeaderInformation, HeaderInformationMut, Layer,
+    BufferAccess, BufferAccessMut, HeaderMetadata, HeaderMetadataMut, Layer,
 };
 use crate::data_buffer::{
     BufferIntoInner, DataBuffer, EthernetMarker, Ieee802_1QVlanMarker, Ipv6ExtMarker, Ipv6Marker,
     Payload, PayloadMut,
 };
-use crate::error::UnexpectedBufferEndError;
+use crate::error::{LengthExceedsAvailableSpaceError, UnexpectedBufferEndError};
 use crate::internal_utils::header_start_offset_from_phi;
 use crate::ipv6::UpdateIpv6Length;
-use crate::no_previous_header::NoPreviousHeaderInformation;
+use crate::no_previous_header::NoPreviousHeader;
 use crate::typed_protocol_headers::constants;
 use crate::typed_protocol_headers::Ipv6ExtensionType;
 
-/// Information about a single extension header.
+/// Metadata of a single extension header.
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub struct Ipv6ExtensionMetadata {
     /// Offset from the start of the layer.
@@ -56,47 +56,49 @@ impl Ipv6ExtensionMetadata {
 ///
 /// Contains meta data about the IPv6 extensions headers in the parsed data buffer.
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
-pub struct Ipv6Extensions<PHI, const MAX_EXTENSIONS: usize>
+pub struct Ipv6Extensions<PHM, const MAX_EXTENSIONS: usize>
 where
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
+    /// Offset from the start of the non-headroom part of the data buffer.
     header_start_offset: usize,
-    /// Header and extensions
+    /// Header length.
     header_length: usize,
-    /// Offset of the next header field of the last extension from the header_min_size
-    previous_header_information: PHI,
-    /// Offsets of the extensions from the header start
+    /// Metadata of the previous header(s).
+    previous_header_metadata: PHM,
+    /// Extensions metadata.
     extensions: [Ipv6ExtensionMetadata; MAX_EXTENSIONS],
+    /// Amount of extensions.
     extensions_amount: usize,
 }
 
-impl<PHI, const MAX_EXTENSIONS: usize> Ipv6ExtMarker<MAX_EXTENSIONS>
-    for Ipv6Extensions<PHI, MAX_EXTENSIONS>
+impl<PHM, const MAX_EXTENSIONS: usize> Ipv6ExtMarker<MAX_EXTENSIONS>
+    for Ipv6Extensions<PHM, MAX_EXTENSIONS>
 where
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
 }
-impl<PHI, const MAX_EXTENSIONS: usize> EthernetMarker for Ipv6Extensions<PHI, MAX_EXTENSIONS> where
-    PHI: HeaderInformation + HeaderInformationMut + EthernetMarker
-{
-}
-
-impl<PHI, const MAX_EXTENSIONS: usize> Ieee802_1QVlanMarker for Ipv6Extensions<PHI, MAX_EXTENSIONS> where
-    PHI: HeaderInformation + HeaderInformationMut + Ieee802_1QVlanMarker
+impl<PHM, const MAX_EXTENSIONS: usize> EthernetMarker for Ipv6Extensions<PHM, MAX_EXTENSIONS> where
+    PHM: HeaderMetadata + HeaderMetadataMut + EthernetMarker
 {
 }
 
-impl<PHI, const MAX_EXTENSIONS: usize> Ipv6Marker for Ipv6Extensions<PHI, MAX_EXTENSIONS> where
-    PHI: HeaderInformation + HeaderInformationMut + Ipv6Marker
+impl<PHM, const MAX_EXTENSIONS: usize> Ieee802_1QVlanMarker for Ipv6Extensions<PHM, MAX_EXTENSIONS> where
+    PHM: HeaderMetadata + HeaderMetadataMut + Ieee802_1QVlanMarker
 {
 }
 
-impl<B, PHI, const MAX_EXTENSIONS: usize> DataBuffer<B, Ipv6Extensions<PHI, MAX_EXTENSIONS>>
+impl<PHM, const MAX_EXTENSIONS: usize> Ipv6Marker for Ipv6Extensions<PHM, MAX_EXTENSIONS> where
+    PHM: HeaderMetadata + HeaderMetadataMut + Ipv6Marker
+{
+}
+
+impl<B, PHM, const MAX_EXTENSIONS: usize> DataBuffer<B, Ipv6Extensions<PHM, MAX_EXTENSIONS>>
 where
     B: AsRef<[u8]>,
-    PHI: HeaderInformation + HeaderInformationMut + Copy,
+    PHM: HeaderMetadata + HeaderMetadataMut + Copy,
 {
-    /// Parses `buf` and creates a new [DataBuffer] for an IPv6 extensions layer with no previous layers.
+    /// Parses `buf` and creates a new [`DataBuffer`] for an IPv6 extensions layer with no previous layers.
     ///
     /// `headroom` indicates the amount of headroom in the provided `buf`.
     ///
@@ -105,7 +107,7 @@ where
     /// Returns an error if:
     /// - the provided data buffer is shorter than expected.
     /// - more extensions than `MAX_EXTENSIONS` are present.
-    /// - an unrecognized extension type is passed to the constructor of [Ipv6Extensions] (this
+    /// - an unrecognized extension type is passed to the constructor of [`Ipv6Extensions`] (this
     /// constitutes a bug).
     #[inline]
     pub fn new(
@@ -114,21 +116,20 @@ where
         next_header_byte: Ipv6ExtensionType,
     ) -> Result<
         (
-            DataBuffer<B, Ipv6Extensions<NoPreviousHeaderInformation, MAX_EXTENSIONS>>,
+            DataBuffer<B, Ipv6Extensions<NoPreviousHeader, MAX_EXTENSIONS>>,
             bool,
         ),
         ParseIpv6ExtensionsError,
     > {
-        let lower_layer_data_buffer =
-            DataBuffer::<B, NoPreviousHeaderInformation>::new(buf, headroom)?;
+        let lower_layer_data_buffer = DataBuffer::<B, NoPreviousHeader>::new(buf, headroom)?;
 
-        DataBuffer::<B, Ipv6Extensions<NoPreviousHeaderInformation, MAX_EXTENSIONS>>::new_from_lower(
+        DataBuffer::<B, Ipv6Extensions<NoPreviousHeader, MAX_EXTENSIONS>>::new_from_lower(
             lower_layer_data_buffer,
             next_header_byte,
         )
     }
 
-    /// Consumes the `lower_layer_data_buffer` and creates a new [DataBuffer] with an additional
+    /// Consumes the `lower_layer_data_buffer` and creates a new [`DataBuffer`] with an additional
     /// IPv6 extensions layer.
     ///
     /// # Errors
@@ -136,18 +137,18 @@ where
     /// Returns an error if:
     /// - the provided data buffer is shorter than expected.
     /// - more extensions than `MAX_EXTENSIONS` are present.
-    /// - an unrecognized extension type is passed to the constructor of [Ipv6Extensions] (this
+    /// - an unrecognized extension type is passed to the constructor of [`Ipv6Extensions`] (this
     /// constitutes a bug).
     #[inline]
     pub fn new_from_lower(
-        lower_layer_data_buffer: impl HeaderInformation
+        lower_layer_data_buffer: impl HeaderMetadata
             + Payload
             + BufferIntoInner<B>
-            + HeaderInformationExtraction<PHI>,
+            + HeaderMetadataExtraction<PHM>,
         first_extension: Ipv6ExtensionType,
-    ) -> Result<(DataBuffer<B, Ipv6Extensions<PHI, MAX_EXTENSIONS>>, bool), ParseIpv6ExtensionsError>
+    ) -> Result<(DataBuffer<B, Ipv6Extensions<PHM, MAX_EXTENSIONS>>, bool), ParseIpv6ExtensionsError>
     {
-        let previous_header_information = lower_layer_data_buffer.extract_header_information();
+        let previous_header_metadata = lower_layer_data_buffer.extract_header_metadata();
 
         // No additional length check is required as `ipv6_parse_extensions` does check all lengths
 
@@ -160,10 +161,10 @@ where
 
         Ok((
             DataBuffer {
-                header_information: Ipv6Extensions {
-                    header_start_offset: header_start_offset_from_phi(previous_header_information),
+                header_metadata: Ipv6Extensions {
+                    header_start_offset: header_start_offset_from_phi(previous_header_metadata),
                     header_length: all_extensions_length,
-                    previous_header_information: *previous_header_information,
+                    previous_header_metadata: *previous_header_metadata,
                     extensions: extension_array,
                     extensions_amount,
                 },
@@ -371,13 +372,13 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
     }
 }
 
-impl<PHI, const MAX_EXTENSIONS: usize> HeaderInformation for Ipv6Extensions<PHI, MAX_EXTENSIONS>
+impl<PHM, const MAX_EXTENSIONS: usize> HeaderMetadata for Ipv6Extensions<PHM, MAX_EXTENSIONS>
 where
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn headroom_internal(&self) -> usize {
-        self.previous_header_information.headroom_internal()
+        self.previous_header_metadata.headroom_internal()
     }
 
     #[inline]
@@ -385,7 +386,7 @@ where
         if layer == LAYER {
             self.header_start_offset
         } else {
-            self.previous_header_information.header_start_offset(layer)
+            self.previous_header_metadata.header_start_offset(layer)
         }
     }
 
@@ -394,7 +395,7 @@ where
         if layer == LAYER {
             self.header_length
         } else {
-            self.previous_header_information.header_length(layer)
+            self.previous_header_metadata.header_length(layer)
         }
     }
 
@@ -405,24 +406,24 @@ where
 
     #[inline]
     fn data_length(&self) -> usize {
-        self.previous_header_information.data_length()
+        self.previous_header_metadata.data_length()
     }
 }
 
-impl<PHI, const MAX_EXTENSIONS: usize> HeaderInformationMut for Ipv6Extensions<PHI, MAX_EXTENSIONS>
+impl<PHM, const MAX_EXTENSIONS: usize> HeaderMetadataMut for Ipv6Extensions<PHM, MAX_EXTENSIONS>
 where
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn headroom_internal_mut(&mut self) -> &mut usize {
-        self.previous_header_information.headroom_internal_mut()
+        self.previous_header_metadata.headroom_internal_mut()
     }
 
     #[inline]
     fn increase_header_start_offset(&mut self, increase_by: usize, layer: Layer) {
         if layer != LAYER {
             self.header_start_offset += increase_by;
-            self.previous_header_information
+            self.previous_header_metadata
                 .increase_header_start_offset(increase_by, layer);
         }
     }
@@ -431,7 +432,7 @@ where
     fn decrease_header_start_offset(&mut self, decrease_by: usize, layer: Layer) {
         if layer != LAYER {
             self.header_start_offset -= decrease_by;
-            self.previous_header_information
+            self.previous_header_metadata
                 .decrease_header_start_offset(decrease_by, layer);
         }
     }
@@ -441,7 +442,7 @@ where
         if layer == LAYER {
             &mut self.header_length
         } else {
-            self.previous_header_information.header_length_mut(layer)
+            self.previous_header_metadata.header_length_mut(layer)
         }
     }
 
@@ -450,17 +451,17 @@ where
         &mut self,
         data_length: usize,
         buffer_length: usize,
-    ) -> Result<(), UnexpectedBufferEndError> {
-        self.previous_header_information
+    ) -> Result<(), LengthExceedsAvailableSpaceError> {
+        self.previous_header_metadata
             .set_data_length(data_length, buffer_length)
     }
 }
 
-impl<B, PHI, const MAX_EXTENSIONS: usize> Payload
-    for DataBuffer<B, Ipv6Extensions<PHI, MAX_EXTENSIONS>>
+impl<B, PHM, const MAX_EXTENSIONS: usize> Payload
+    for DataBuffer<B, Ipv6Extensions<PHM, MAX_EXTENSIONS>>
 where
     B: AsRef<[u8]>,
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn payload(&self) -> &[u8] {
@@ -474,11 +475,11 @@ where
     }
 }
 
-impl<B, PHI, const MAX_EXTENSIONS: usize> PayloadMut
-    for DataBuffer<B, Ipv6Extensions<PHI, MAX_EXTENSIONS>>
+impl<B, PHM, const MAX_EXTENSIONS: usize> PayloadMut
+    for DataBuffer<B, Ipv6Extensions<PHM, MAX_EXTENSIONS>>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn payload_mut(&mut self) -> &mut [u8] {
@@ -487,10 +488,10 @@ where
     }
 }
 
-impl<PHI, const MAX_EXTENSIONS: usize> Ipv6ExtMetaData<MAX_EXTENSIONS>
-    for Ipv6Extensions<PHI, MAX_EXTENSIONS>
+impl<PHM, const MAX_EXTENSIONS: usize> Ipv6ExtMetaData<MAX_EXTENSIONS>
+    for Ipv6Extensions<PHM, MAX_EXTENSIONS>
 where
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn extensions_array(&self) -> &[Ipv6ExtensionMetadata; MAX_EXTENSIONS] {
@@ -518,10 +519,10 @@ where
     }
 }
 
-impl<PHI, const MAX_EXTENSIONS: usize> Ipv6ExtMetaDataMut<MAX_EXTENSIONS>
-    for Ipv6Extensions<PHI, MAX_EXTENSIONS>
+impl<PHM, const MAX_EXTENSIONS: usize> Ipv6ExtMetaDataMut<MAX_EXTENSIONS>
+    for Ipv6Extensions<PHM, MAX_EXTENSIONS>
 where
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn extensions_array_mut(&mut self) -> &mut [Ipv6ExtensionMetadata; MAX_EXTENSIONS] {
@@ -529,29 +530,29 @@ where
     }
 }
 
-impl<B, H, const MAX_EXTENSIONS: usize> Ipv6ExtMethods<MAX_EXTENSIONS> for DataBuffer<B, H>
+impl<B, HM, const MAX_EXTENSIONS: usize> Ipv6ExtMethods<MAX_EXTENSIONS> for DataBuffer<B, HM>
 where
     B: AsRef<[u8]>,
-    H: HeaderInformation + HeaderInformationMut + Ipv6ExtMarker<MAX_EXTENSIONS>,
+    HM: HeaderMetadata + HeaderMetadataMut + Ipv6ExtMarker<MAX_EXTENSIONS>,
 {
 }
 
-impl<B, H, const MAX_EXTENSIONS: usize> Ipv6ExtMethodsMut<MAX_EXTENSIONS> for DataBuffer<B, H>
+impl<B, HM, const MAX_EXTENSIONS: usize> Ipv6ExtMethodsMut<MAX_EXTENSIONS> for DataBuffer<B, HM>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
-    H: HeaderInformation + HeaderInformationMut + Ipv6ExtMarker<MAX_EXTENSIONS>,
-    DataBuffer<B, H>: UpdateIpv6Length,
+    HM: HeaderMetadata + HeaderMetadataMut + Ipv6ExtMarker<MAX_EXTENSIONS>,
+    DataBuffer<B, HM>: UpdateIpv6Length,
 {
 }
 
-impl<B, H, const MAX_EXTENSIONS: usize> Ipv6ExtMetaData<MAX_EXTENSIONS> for DataBuffer<B, H>
+impl<B, HM, const MAX_EXTENSIONS: usize> Ipv6ExtMetaData<MAX_EXTENSIONS> for DataBuffer<B, HM>
 where
     B: AsRef<[u8]>,
-    H: HeaderInformation + HeaderInformationMut + Ipv6ExtMarker<MAX_EXTENSIONS>,
+    HM: HeaderMetadata + HeaderMetadataMut + Ipv6ExtMarker<MAX_EXTENSIONS>,
 {
     #[inline]
     fn extensions_array(&self) -> &[Ipv6ExtensionMetadata; MAX_EXTENSIONS] {
-        self.header_information.extensions_array()
+        self.header_metadata.extensions_array()
     }
 
     #[inline]
@@ -559,23 +560,23 @@ where
         &self,
         idx: usize,
     ) -> Result<Ipv6ExtensionMetadata, Ipv6ExtensionIndexOutOfBoundsError> {
-        self.header_information.extension(idx)
+        self.header_metadata.extension(idx)
     }
 
     #[inline]
     fn extensions_amount(&self) -> usize {
-        self.header_information.extensions_amount()
+        self.header_metadata.extensions_amount()
     }
 }
 
-impl<B, H, const MAX_EXTENSIONS: usize> Ipv6ExtMetaDataMut<MAX_EXTENSIONS> for DataBuffer<B, H>
+impl<B, HM, const MAX_EXTENSIONS: usize> Ipv6ExtMetaDataMut<MAX_EXTENSIONS> for DataBuffer<B, HM>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
-    H: HeaderInformation + HeaderInformationMut + Ipv6ExtMarker<MAX_EXTENSIONS>,
+    HM: HeaderMetadata + HeaderMetadataMut + Ipv6ExtMarker<MAX_EXTENSIONS>,
 {
     #[inline]
     fn extensions_array_mut(&mut self) -> &mut [Ipv6ExtensionMetadata; MAX_EXTENSIONS] {
-        self.header_information.extensions_array_mut()
+        self.header_metadata.extensions_array_mut()
     }
 }
 
@@ -591,7 +592,7 @@ mod tests {
         Ipv6ExtTypedHeaderError, Ipv6ExtensionIndexOutOfBoundsError, Ipv6ExtensionMetadata,
         Ipv6ExtensionType, Ipv6Extensions,
     };
-    use crate::no_previous_header::NoPreviousHeaderInformation;
+    use crate::no_previous_header::NoPreviousHeader;
     use crate::test_utils::copy_into_slice;
     use crate::typed_protocol_headers::InternetProtocolNumber;
     use crate::typed_protocol_headers::RoutingType;
@@ -1012,31 +1013,27 @@ mod tests {
 
     #[test]
     fn new() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let _ =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>>::new_from_lower(
-                ipv6,
-                next_header,
-            )
-            .unwrap();
+        let _ = DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+            ipv6,
+            next_header,
+        )
+        .unwrap();
 
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXT_NO_HOP, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXT_NO_HOP, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let _ =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>>::new_from_lower(
-                ipv6,
-                next_header,
-            )
-            .unwrap();
+        let _ = DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+            ipv6,
+            next_header,
+        )
+        .unwrap();
 
-        let _ = DataBuffer::<_, Ipv6Extensions<NoPreviousHeaderInformation, 10>>::new(
+        let _ = DataBuffer::<_, Ipv6Extensions<NoPreviousHeader, 10>>::new(
             &IPV6_EXTENSIONS[40..],
             0,
             Ipv6ExtensionType::HopByHop,
@@ -1048,7 +1045,7 @@ mod tests {
     fn new_data_buffer_too_short() {
         let mut data = IPV6_EXTENSIONS;
         data[5] = 7;
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(&data[..47], 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(&data[..47], 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
@@ -1059,7 +1056,7 @@ mod tests {
                     actual_length: 7
                 }
             )),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
                 ipv6,
                 next_header,
             )
@@ -1072,7 +1069,7 @@ mod tests {
                     actual_length: 7,
                 }
             )),
-            DataBuffer::<_, Ipv6Extensions<NoPreviousHeaderInformation, 10>>::new(
+            DataBuffer::<_, Ipv6Extensions<NoPreviousHeader, 10>>::new(
                 &IPV6_EXTENSIONS[40..47],
                 0,
                 Ipv6ExtensionType::HopByHop
@@ -1083,9 +1080,8 @@ mod tests {
     #[test]
     fn new_fragment() {
         let (_exts, has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>>::new_from_lower(
-                DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(&IPV6_EXTENSIONS, 0)
-                    .unwrap(),
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+                DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(&IPV6_EXTENSIONS, 0).unwrap(),
                 Ipv6ExtensionType::HopByHop,
             )
             .unwrap();
@@ -1093,9 +1089,8 @@ mod tests {
         assert!(has_fragment);
 
         let (_exts, has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>>::new_from_lower(
-                DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(&IPV6_NO_FRAGMENT, 0)
-                    .unwrap(),
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+                DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(&IPV6_NO_FRAGMENT, 0).unwrap(),
                 Ipv6ExtensionType::HopByHop,
             )
             .unwrap();
@@ -1112,7 +1107,7 @@ mod tests {
                     actual_length: 39,
                 }
             )),
-            DataBuffer::<_, Ipv6Extensions<NoPreviousHeaderInformation, 10>>::new(
+            DataBuffer::<_, Ipv6Extensions<NoPreviousHeader, 10>>::new(
                 &IPV6_EXTENSIONS[40..],
                 290,
                 Ipv6ExtensionType::HopByHop
@@ -1122,51 +1117,49 @@ mod tests {
 
     #[test]
     fn new_extension_limit_reached() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         assert_eq!(
             Err(ParseIpv6ExtensionsError::ExtensionLimitReached),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 0>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 0>>::new_from_lower(
                 ipv6.clone(),
                 next_header,
             )
         );
         assert_eq!(
             Err(ParseIpv6ExtensionsError::ExtensionLimitReached),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 1>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 1>>::new_from_lower(
                 ipv6.clone(),
                 next_header,
             )
         );
         assert_eq!(
             Err(ParseIpv6ExtensionsError::ExtensionLimitReached),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 2>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 2>>::new_from_lower(
                 ipv6.clone(),
                 next_header,
             )
         );
         assert_eq!(
             Err(ParseIpv6ExtensionsError::ExtensionLimitReached),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 3>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 3>>::new_from_lower(
                 ipv6.clone(),
                 next_header,
             )
         );
-        let _ =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 4>>::new_from_lower(
-                ipv6.clone(),
-                next_header,
-            )
-            .unwrap();
+        let _ = DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 4>>::new_from_lower(
+            ipv6.clone(),
+            next_header,
+        )
+        .unwrap();
     }
 
     #[test]
     fn new_extension_length_to_large() {
         let mut data = IPV6_EXTENSIONS;
         data[41] = 10;
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(data, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(data, 0).unwrap();
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         assert_eq!(
@@ -1176,7 +1169,7 @@ mod tests {
                     actual_length: 39,
                 }
             )),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
                 ipv6.clone(),
                 next_header,
             )
@@ -1184,7 +1177,7 @@ mod tests {
 
         let mut data = IPV6_EXTENSIONS;
         data[49] = 10;
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(data, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(data, 0).unwrap();
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         assert_eq!(
@@ -1194,14 +1187,14 @@ mod tests {
                     actual_length: 39,
                 }
             )),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
                 ipv6.clone(),
                 next_header,
             )
         );
         let mut data = IPV6_EXTENSIONS;
         data[57] = 10;
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(data, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(data, 0).unwrap();
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         assert_eq!(
@@ -1211,7 +1204,7 @@ mod tests {
                     actual_length: 39,
                 }
             )),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
                 ipv6,
                 next_header,
             )
@@ -1220,8 +1213,7 @@ mod tests {
 
     #[test]
     fn new_extension_too_short() {
-        let mut ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let mut ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
         ipv6.payload_mut()[1] = 1;
         ipv6.set_ipv6_payload_length(9).unwrap();
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
@@ -1233,14 +1225,13 @@ mod tests {
                     actual_length: 9,
                 }
             )),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
                 ipv6,
                 next_header,
             )
         );
 
-        let mut ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let mut ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
         ipv6.set_ipv6_payload_length(15).unwrap();
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
@@ -1251,14 +1242,13 @@ mod tests {
                     actual_length: 15,
                 }
             )),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
                 ipv6,
                 next_header,
             )
         );
 
-        let mut ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let mut ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
         ipv6.set_ipv6_payload_length(30).unwrap();
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
@@ -1269,7 +1259,7 @@ mod tests {
                     actual_length: 30,
                 }
             )),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
                 ipv6,
                 next_header,
             )
@@ -1280,11 +1270,11 @@ mod tests {
     fn new_hop_by_hop_not_first() {
         let mut data = IPV6_EXT_NO_HOP;
         data[40] = Ipv6ExtensionType::HopByHop as u8;
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(data, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(data, 0).unwrap();
 
         assert_eq!(
             Err(ParseIpv6ExtensionsError::InvalidHopByHopPosition),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
                 ipv6,
                 Ipv6ExtensionType::Routing,
             )
@@ -1293,16 +1283,15 @@ mod tests {
 
     #[test]
     fn new_atomic_and_regular_fragment() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(
-            IPV6_EXT_ATOMIC_AND_REGULAR_FRAGMENT,
-            0,
-        )
-        .unwrap();
-        let (ipv6_ext, is_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>,
-        >::new_from_lower(ipv6, Ipv6ExtensionType::Fragment)
-        .unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXT_ATOMIC_AND_REGULAR_FRAGMENT, 0)
+                .unwrap();
+        let (ipv6_ext, is_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+                ipv6,
+                Ipv6ExtensionType::Fragment,
+            )
+            .unwrap();
         assert!(is_fragment);
         assert_eq!(
             Ok(Ipv6ExtensionMetadata {
@@ -1336,16 +1325,14 @@ mod tests {
 
     #[test]
     fn new_only_atomic_fragment() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(
-            IPV6_EXT_ONLY_ATOMIC_FRAGMENT,
-            0,
-        )
-        .unwrap();
-        let (ipv6_ext, is_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>,
-        >::new_from_lower(ipv6, Ipv6ExtensionType::Fragment)
-        .unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXT_ONLY_ATOMIC_FRAGMENT, 0).unwrap();
+        let (ipv6_ext, is_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+                ipv6,
+                Ipv6ExtensionType::Fragment,
+            )
+            .unwrap();
         assert!(!is_fragment);
         assert_eq!(
             Ok(Ipv6ExtensionMetadata {
@@ -1365,30 +1352,30 @@ mod tests {
 
     #[test]
     fn ipv6_ext_amount() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 10>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
         assert_eq!(4, exts.ipv6_ext_amount());
     }
 
     #[test]
     fn ipv6_extensions() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
         assert_eq!(
             [
                 Some(Ipv6ExtensionType::HopByHop),
@@ -1403,16 +1390,16 @@ mod tests {
 
     #[test]
     fn ipv6_ext_next_header() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(
             Ok(InternetProtocolNumber::Tcp as u8),
@@ -1422,16 +1409,16 @@ mod tests {
 
     #[test]
     fn ipv6_ext_typed_next_header() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(
             Ok(InternetProtocolNumber::Tcp),
@@ -1441,16 +1428,16 @@ mod tests {
 
     #[test]
     fn ipv6_ext_per_extension_next_header() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(
             Ok(Ipv6ExtensionType::Routing as u8),
@@ -1472,16 +1459,16 @@ mod tests {
 
     #[test]
     fn ipv6_ext_per_extension_typed_next_header() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(
             Ok(InternetProtocolNumber::Ipv6Routing),
@@ -1505,22 +1492,22 @@ mod tests {
 
     #[test]
     fn ipv6_ext_length() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(Ok(0), exts.ipv6_ext_length(0));
         assert_eq!(Ok(0), exts.ipv6_ext_length(1));
         assert_eq!(Ok(0), exts.ipv6_ext_length(2));
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.ipv6_ext_length(3)
         );
 
@@ -1535,16 +1522,16 @@ mod tests {
 
     #[test]
     fn ipv6_ext_length_in_bytes() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(Ok(8), exts.ipv6_ext_length_in_bytes(0));
         assert_eq!(Ok(8), exts.ipv6_ext_length_in_bytes(1));
@@ -1562,22 +1549,22 @@ mod tests {
 
     #[test]
     fn ipv6_ext_data() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(Ok([0xAA; 6].as_slice()), exts.ipv6_ext_data(0));
         assert_eq!(Ok([0xBB; 4].as_slice()), exts.ipv6_ext_data(1));
         assert_eq!(Ok([0xCC; 6].as_slice()), exts.ipv6_ext_data(2));
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.ipv6_ext_data(3)
         );
 
@@ -1594,19 +1581,19 @@ mod tests {
 
     #[test]
     fn ipv6_ext_routing_type() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.ipv6_ext_routing_type(0)
         );
         assert_eq!(
@@ -1614,11 +1601,11 @@ mod tests {
             exts.ipv6_ext_routing_type(1)
         );
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.ipv6_ext_routing_type(2)
         );
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.ipv6_ext_routing_type(3)
         );
 
@@ -1635,28 +1622,28 @@ mod tests {
 
     #[test]
     fn ipv6_ext_segments_left() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.ipv6_ext_segments_left(0)
         );
         assert_eq!(Ok(5), exts.ipv6_ext_segments_left(1));
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.ipv6_ext_segments_left(2)
         );
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.ipv6_ext_segments_left(3)
         );
 
@@ -1673,27 +1660,27 @@ mod tests {
 
     #[test]
     fn ipv6_ext_fragment_offset() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.ipv6_ext_fragment_offset(0)
         );
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.ipv6_ext_fragment_offset(1)
         );
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.ipv6_ext_fragment_offset(2)
         );
         assert_eq!(Ok(0xABF1 >> 3), exts.ipv6_ext_fragment_offset(3));
@@ -1711,27 +1698,27 @@ mod tests {
 
     #[test]
     fn ipv6_ext_more_fragments() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.ipv6_ext_more_fragments(0)
         );
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.ipv6_ext_more_fragments(1)
         );
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.ipv6_ext_more_fragments(2)
         );
         assert_eq!(Ok(true), exts.ipv6_ext_more_fragments(3));
@@ -1749,30 +1736,30 @@ mod tests {
 
     #[test]
     fn ipv6_ext_fragment_identification() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.ipv6_ext_fragment_identification(0)
         );
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.ipv6_ext_fragment_identification(1)
         );
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.ipv6_ext_fragment_identification(2)
         );
-        assert_eq!(Ok(0xFFFFFFFF), exts.ipv6_ext_fragment_identification(3));
+        assert_eq!(Ok(0xFF_FF_FF_FF), exts.ipv6_ext_fragment_identification(3));
 
         assert_eq!(
             Err(Ipv6ExtFieldError::Ipv6ExtensionIndexOutOfBounds(
@@ -1787,64 +1774,64 @@ mod tests {
 
     #[test]
     fn payload() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(&[0xFF; 7], exts.payload());
     }
 
     #[test]
     fn payload_mut() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (mut exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (mut exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(&[0xFF; 7], exts.payload_mut());
     }
 
     #[test]
     fn payload_length() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(7, exts.payload_length());
     }
 
     #[test]
     fn set_ipv6_ext_next_header() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (mut exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (mut exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
         assert_eq!(
             Ok(InternetProtocolNumber::Tcp as u8),
             exts.ipv6_ext_next_header()
@@ -1863,15 +1850,16 @@ mod tests {
     fn set_ipv6_ext_length() {
         let mut data = [0; 87];
         copy_into_slice(&mut data, &IPV6_EXTENSIONS, 8);
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(data, 8).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(data, 8).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (mut exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (mut exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(Ok(0), exts.ipv6_ext_length(0));
         assert_eq!(Ok(8), exts.ipv6_ext_length_in_bytes(0));
@@ -2035,29 +2023,29 @@ mod tests {
         assert_eq!(Ok(8), exts.ipv6_ext_length_in_bytes(0));
 
         assert_eq!(
-            Err(Ipv6ExtSetFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtSetFieldError::HeaderFieldDoesNotExist),
             exts.set_ipv6_ext_length(0, 3)
         );
     }
 
     #[test]
     fn ipv6_ext_data_mut() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (mut exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (mut exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(Ok([0xAA; 6].as_mut_slice()), exts.ipv6_ext_data_mut(0));
         assert_eq!(Ok([0xBB; 4].as_mut_slice()), exts.ipv6_ext_data_mut(1));
         assert_eq!(Ok([0xCC; 6].as_mut_slice()), exts.ipv6_ext_data_mut(2));
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.ipv6_ext_data_mut(3)
         );
 
@@ -2073,19 +2061,19 @@ mod tests {
     }
     #[test]
     fn set_ipv6_ext_routing_type() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (mut exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (mut exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.set_ipv6_ext_routing_type(RoutingType::Nimrod, 0)
         );
         assert_eq!(
@@ -2098,11 +2086,11 @@ mod tests {
         );
         assert_eq!(Ok(RoutingType::Nimrod as u8), exts.ipv6_ext_routing_type(1));
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.set_ipv6_ext_routing_type(RoutingType::Nimrod, 2)
         );
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.set_ipv6_ext_routing_type(RoutingType::Nimrod, 3)
         );
 
@@ -2119,30 +2107,30 @@ mod tests {
 
     #[test]
     fn set_ipv6_ext_segments_left() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (mut exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (mut exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.set_ipv6_ext_segments_left(1, 0)
         );
         assert_eq!(Ok(5), exts.ipv6_ext_segments_left(1));
         assert_eq!(Ok(()), exts.set_ipv6_ext_segments_left(1, 1));
         assert_eq!(Ok(1), exts.ipv6_ext_segments_left(1));
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.set_ipv6_ext_segments_left(1, 2)
         );
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.set_ipv6_ext_segments_left(1, 3)
         );
 
@@ -2159,27 +2147,27 @@ mod tests {
 
     #[test]
     fn set_ipv6_ext_fragment_offset() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (mut exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (mut exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.set_ipv6_ext_fragment_offset(0xFEDC, 0)
         );
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.set_ipv6_ext_fragment_offset(0xFEDC, 1)
         );
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.set_ipv6_ext_fragment_offset(0xFEDC, 2)
         );
         assert_eq!(Ok(0xABF1 >> 3), exts.ipv6_ext_fragment_offset(3));
@@ -2199,27 +2187,27 @@ mod tests {
 
     #[test]
     fn set_ipv6_ext_more_fragments() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (mut exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (mut exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.set_ipv6_ext_more_fragments(false, 0)
         );
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.set_ipv6_ext_more_fragments(false, 1)
         );
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             exts.set_ipv6_ext_more_fragments(false, 2)
         );
         assert_eq!(Ok(true), exts.ipv6_ext_more_fragments(3));
@@ -2239,35 +2227,35 @@ mod tests {
 
     #[test]
     fn set_ipv6_ext_fragment_identification() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let (mut exts, _has_fragment) = DataBuffer::<
-            _,
-            Ipv6Extensions<Ipv6<NoPreviousHeaderInformation>, 5>,
-        >::new_from_lower(ipv6, next_header)
-        .unwrap();
+        let (mut exts, _has_fragment) =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+                ipv6,
+                next_header,
+            )
+            .unwrap();
 
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
-            exts.set_ipv6_ext_fragment_identification(0xAAAAAAAA, 0)
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
+            exts.set_ipv6_ext_fragment_identification(0xAA_AA_AA_AA, 0)
         );
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
-            exts.set_ipv6_ext_fragment_identification(0xAAAAAAAA, 1)
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
+            exts.set_ipv6_ext_fragment_identification(0xAA_AA_AA_AA, 1)
         );
         assert_eq!(
-            Err(Ipv6ExtFieldError::FieldDoesNotExist),
-            exts.set_ipv6_ext_fragment_identification(0xAAAAAAAA, 2)
+            Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
+            exts.set_ipv6_ext_fragment_identification(0xAA_AA_AA_AA, 2)
         );
-        assert_eq!(Ok(0xFFFFFFFF), exts.ipv6_ext_fragment_identification(3));
+        assert_eq!(Ok(0xFF_FF_FF_FF), exts.ipv6_ext_fragment_identification(3));
         assert_eq!(
             Ok(()),
-            exts.set_ipv6_ext_fragment_identification(0xAAAAAAAA, 3)
+            exts.set_ipv6_ext_fragment_identification(0xAA_AA_AA_AA, 3)
         );
-        assert_eq!(Ok(0xAAAAAAAA,), exts.ipv6_ext_fragment_identification(3));
+        assert_eq!(Ok(0xAA_AA_AA_AA,), exts.ipv6_ext_fragment_identification(3));
 
         assert_eq!(
             Err(Ipv6ExtFieldError::Ipv6ExtensionIndexOutOfBounds(

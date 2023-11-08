@@ -1,4 +1,9 @@
-use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError, WrongChecksumError};
+//! IPv4 specific errors.
+
+use crate::error::{
+    InvalidChecksumError, LengthExceedsAvailableSpaceError, NotEnoughHeadroomError,
+    UnexpectedBufferEndError,
+};
 use crate::typed_protocol_headers::UnrecognizedInternetProtocolNumberError;
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
@@ -6,27 +11,43 @@ use core::fmt::{Debug, Display, Formatter};
 #[cfg(feature = "std")]
 use std::error;
 
+/// Error returned when parsing an IPv4 header.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum ParseIpv4Error {
+    /// The data buffer ended unexpectedly.
     UnexpectedBufferEnd(UnexpectedBufferEndError),
+    /// Version header value is not four.
     VersionHeaderValueNotFour,
+    /// IHL header value is smaller than 5.
     IhlHeaderValueTooSmall {
+        /// Invalid IHL value.
         ihl: usize,
     },
+    /// The packet is shorter than the total length header specifies.
     PacketShorterThanTotalLengthHeaderValue {
+        /// Total length header value.
         total_length_header: usize,
+        /// Actual length of the packet.
         actual_packet_length: usize,
     },
+    /// The total length header value is smaller than the packet length specified by the IHL header.
     TotalLengthHeaderValueSmallerThanIhlHeaderValue {
+        /// Total length header value.
         total_length_header: usize,
+        /// Length specified by the IHL header in bytes (IHL header specifies amount of 32 bit words).
         ihl_header_in_bytes: usize,
     },
+    /// The packet is shorter than the length specified by the IHL header.
     PacketShorterThanIhlHeaderValue {
+        /// Length specified by the IHL header in bytes (IHL header specifies amount of 32 bit words).
         ihl_header_in_bytes: usize,
+        /// Actual length of the packet.
         actual_packet_length: usize,
     },
+    /// Internet protocol number is recognized.
     UnrecognizedInternetProtocolNumber(UnrecognizedInternetProtocolNumberError),
-    WrongChecksum(WrongChecksumError),
+    /// Invalid checksum.
+    InvalidChecksum(InvalidChecksumError),
 }
 
 impl From<UnrecognizedInternetProtocolNumberError> for ParseIpv4Error {
@@ -43,10 +64,20 @@ impl From<UnexpectedBufferEndError> for ParseIpv4Error {
     }
 }
 
-impl From<WrongChecksumError> for ParseIpv4Error {
+impl From<LengthExceedsAvailableSpaceError> for ParseIpv4Error {
     #[inline]
-    fn from(value: WrongChecksumError) -> Self {
-        Self::WrongChecksum(value)
+    fn from(value: LengthExceedsAvailableSpaceError) -> Self {
+        Self::UnexpectedBufferEnd(UnexpectedBufferEndError {
+            expected_length: value.required_space,
+            actual_length: value.available_space,
+        })
+    }
+}
+
+impl From<InvalidChecksumError> for ParseIpv4Error {
+    #[inline]
+    fn from(value: InvalidChecksumError) -> Self {
+        Self::InvalidChecksum(value)
     }
 }
 
@@ -54,12 +85,12 @@ impl Display for ParseIpv4Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::VersionHeaderValueNotFour => {
-                write!(f, "Version is not 4")
+                write!(f, "Version header is not 4")
             }
             Self::IhlHeaderValueTooSmall { ihl } => {
                 write!(
                     f,
-                    "IHL header value invalid, expected to be between 5 and 20 (inclusive): {ihl}"
+                    "IHL header value invalid, expected to be between 5 and 15 (inclusive): {ihl}"
                 )
             }
             Self::PacketShorterThanTotalLengthHeaderValue {
@@ -68,7 +99,7 @@ impl Display for ParseIpv4Error {
             } => {
                 write!(
                     f,
-                    "Total length does not match actual length, total: {total_length} - actual: {actual_length}"
+                    "Total length does not match actual length, total length: {total_length} bytes - actual length: {actual_length} bytes"
                 )
             }
             Self::TotalLengthHeaderValueSmallerThanIhlHeaderValue {
@@ -77,7 +108,7 @@ impl Display for ParseIpv4Error {
             } => {
                 write!(
                     f,
-                    "Total length expected to be larger than header length, total was: {total_length_header} header was: {ihl_header_in_bytes}"
+                    "Total length expected to be the same or larger than header length (IHL), total was: {total_length_header} bytes header was: {ihl_header_in_bytes} bytes"
                 )
             }
             Self::UnrecognizedInternetProtocolNumber(err) => {
@@ -86,7 +117,7 @@ impl Display for ParseIpv4Error {
             Self::UnexpectedBufferEnd(err) => {
                 write!(f, "{err}")
             }
-            Self::WrongChecksum(err) => {
+            Self::InvalidChecksum(err) => {
                 write!(f, "{err}")
             }
             Self::PacketShorterThanIhlHeaderValue {
@@ -95,7 +126,7 @@ impl Display for ParseIpv4Error {
             } => {
                 write!(
                     f,
-                    "Packet length expected to be larger than ihl header length in bytes, packet length was: {actual_packet_length} ihl header in bytes was: {ihl_header_in_bytes}"
+                    "Packet length expected to be larger than IHL header length, packet length was: {actual_packet_length} bytes, IHL header was: {ihl_header_in_bytes} bytes"
                 )
             }
         }
@@ -105,90 +136,14 @@ impl Display for ParseIpv4Error {
 #[cfg(feature = "error_trait")]
 impl error::Error for ParseIpv4Error {}
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub enum ChecksumError {
-    IhlHeaderValueTooSmall {
-        ihl: usize,
-    },
-    PacketShorterThanIhlHeaderValue {
-        ihl_header_in_bytes: usize,
-        actual_packet_length: usize,
-    },
-}
-
-impl Display for ChecksumError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::IhlHeaderValueTooSmall { ihl } => {
-                write!(
-                    f,
-                    "IHL header value invalid, expected to be between 5 and 20 (inclusive): {ihl}"
-                )
-            }
-            Self::PacketShorterThanIhlHeaderValue {
-                ihl_header_in_bytes,
-                actual_packet_length,
-            } => {
-                write!(
-                    f,
-                    "Packet length expected to be larger than ihl header length in bytes, packet length was: {actual_packet_length} ihl header in bytes was: {ihl_header_in_bytes}"
-                )
-            }
-        }
-    }
-}
-
-#[cfg(feature = "error_trait")]
-impl error::Error for ChecksumError {}
-
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub enum SetOptionsError {
-    NotMultipleOf4Bytes,
-    OptionsTooLong { options_len: usize },
-    NotEnoughHeadroom(NotEnoughHeadroomError),
-    UnexpectedBufferEnd(UnexpectedBufferEndError),
-}
-
-impl Display for SetOptionsError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::NotMultipleOf4Bytes => {
-                write!(f, "Options were not multiple of 4 bytes (32 bits)")
-            }
-            Self::OptionsTooLong { options_len } => {
-                write!(f, "Options longer than 60 bytes: {:?}", options_len)
-            }
-            Self::NotEnoughHeadroom(err) => {
-                write!(f, "{err}")
-            }
-            Self::UnexpectedBufferEnd(err) => {
-                write!(f, "{err}")
-            }
-        }
-    }
-}
-
-impl From<NotEnoughHeadroomError> for SetOptionsError {
-    #[inline]
-    fn from(value: NotEnoughHeadroomError) -> Self {
-        Self::NotEnoughHeadroom(value)
-    }
-}
-
-impl From<UnexpectedBufferEndError> for SetOptionsError {
-    #[inline]
-    fn from(value: UnexpectedBufferEndError) -> Self {
-        Self::UnexpectedBufferEnd(value)
-    }
-}
-
-#[cfg(feature = "error_trait")]
-impl error::Error for SetOptionsError {}
-
+/// Error returned by methods manipulating the total length header.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum SetTotalLengthError {
+    /// Total length cannot be set to less than the header length specified by the IHL header.
     SmallerThanIhl,
-    UnexpectedBufferEnd(UnexpectedBufferEndError),
+    /// The supplied length exceeds the available space.
+    LengthExceedsAvailableSpace(LengthExceedsAvailableSpaceError),
+    /// The operation would cut parts of an already parsed upper layer.
     CannotCutUpperLayerHeader,
 }
 
@@ -204,26 +159,32 @@ impl Display for SetTotalLengthError {
                     "Provided length would cut off already parsed upper layer"
                 )
             }
-            Self::UnexpectedBufferEnd(err) => {
+            Self::LengthExceedsAvailableSpace(err) => {
                 write!(f, "{err}")
             }
         }
     }
 }
 
-impl From<UnexpectedBufferEndError> for SetTotalLengthError {
+impl From<LengthExceedsAvailableSpaceError> for SetTotalLengthError {
     #[inline]
-    fn from(value: UnexpectedBufferEndError) -> Self {
-        Self::UnexpectedBufferEnd(value)
+    fn from(value: LengthExceedsAvailableSpaceError) -> Self {
+        Self::LengthExceedsAvailableSpace(value)
     }
 }
 
 #[cfg(feature = "error_trait")]
 impl error::Error for SetTotalLengthError {}
 
+/// Error returned by methods manipulating the IHL header.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum SetIhlError {
-    InvalidIhl { ihl: usize },
+    /// Invalid IHL supplied.
+    InvalidIhl {
+        /// The supplied invalid IHL.
+        ihl: usize,
+    },
+    /// Not enough headroom available.
     NotEnoughHeadroom(NotEnoughHeadroomError),
 }
 

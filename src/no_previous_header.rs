@@ -1,19 +1,21 @@
 //! Helper layer to parse non-Ethernet headers without underlying headers.
 
-use crate::data_buffer::traits::{BufferAccess, HeaderInformation, HeaderInformationMut, Layer};
+use crate::data_buffer::traits::{BufferAccess, HeaderMetadata, HeaderMetadataMut, Layer};
 use crate::data_buffer::{DataBuffer, Payload};
-use crate::error::UnexpectedBufferEndError;
+use crate::error::{LengthExceedsAvailableSpaceError, UnexpectedBufferEndError};
 
 /// Contains meta data about the headroom and data length.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Hash, Copy, Clone, Debug)]
-pub struct NoPreviousHeaderInformation {
+pub struct NoPreviousHeader {
+    /// Amount of headroom.
     headroom: usize,
+    /// Length of the network data.
     data_length: usize,
 }
 
-impl NoPreviousHeaderInformation {
+impl NoPreviousHeader {
     #[inline]
-    pub fn new(headroom: usize, buffer_length: usize) -> Self {
+    fn new(headroom: usize, buffer_length: usize) -> Self {
         Self {
             headroom,
             data_length: buffer_length - headroom,
@@ -21,11 +23,11 @@ impl NoPreviousHeaderInformation {
     }
 }
 
-impl<B> DataBuffer<B, NoPreviousHeaderInformation>
+impl<B> DataBuffer<B, NoPreviousHeader>
 where
     B: AsRef<[u8]>,
 {
-    /// Parses `buf` and creates a new [DataBuffer].
+    /// Parses `buf` and creates a new [`DataBuffer`].
     ///
     /// `headroom` indicates the amount of headroom in the provided `buf`.
     ///
@@ -37,7 +39,7 @@ where
     pub(crate) fn new(
         buf: B,
         headroom: usize,
-    ) -> Result<DataBuffer<B, NoPreviousHeaderInformation>, UnexpectedBufferEndError> {
+    ) -> Result<DataBuffer<B, NoPreviousHeader>, UnexpectedBufferEndError> {
         if buf.as_ref().len() < headroom {
             return Err(UnexpectedBufferEndError {
                 expected_length: headroom,
@@ -45,13 +47,13 @@ where
             });
         }
         Ok(DataBuffer {
-            header_information: NoPreviousHeaderInformation::new(headroom, buf.as_ref().len()),
+            header_metadata: NoPreviousHeader::new(headroom, buf.as_ref().len()),
             buffer: buf,
         })
     }
 }
 
-impl HeaderInformation for NoPreviousHeaderInformation {
+impl HeaderMetadata for NoPreviousHeader {
     #[inline]
     fn headroom_internal(&self) -> usize {
         self.headroom
@@ -78,7 +80,7 @@ impl HeaderInformation for NoPreviousHeaderInformation {
     }
 }
 
-impl HeaderInformationMut for NoPreviousHeaderInformation {
+impl HeaderMetadataMut for NoPreviousHeader {
     #[inline]
     fn headroom_internal_mut(&mut self) -> &mut usize {
         &mut self.headroom
@@ -104,11 +106,11 @@ impl HeaderInformationMut for NoPreviousHeaderInformation {
         &mut self,
         data_length: usize,
         buffer_length: usize,
-    ) -> Result<(), UnexpectedBufferEndError> {
+    ) -> Result<(), LengthExceedsAvailableSpaceError> {
         if data_length + self.headroom > buffer_length {
-            Err(UnexpectedBufferEndError {
-                expected_length: data_length,
-                actual_length: buffer_length - self.headroom,
+            Err(LengthExceedsAvailableSpaceError {
+                required_space: data_length,
+                available_space: buffer_length - self.headroom,
             })
         } else {
             self.data_length = data_length;
@@ -117,7 +119,7 @@ impl HeaderInformationMut for NoPreviousHeaderInformation {
     }
 }
 
-impl<B> Payload for DataBuffer<B, NoPreviousHeaderInformation>
+impl<B> Payload for DataBuffer<B, NoPreviousHeader>
 where
     B: AsRef<[u8]>,
 {

@@ -1,14 +1,17 @@
+/// ARP packet operation code
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 #[cfg_attr(kani, derive(kani::Arbitrary))]
 #[repr(u16)]
 pub enum OperationCode {
+    /// Indicates request (1)
     Request = 1,
+    /// Indicates reply (2)
     Reply = 2,
 }
 
 impl core::fmt::Display for OperationCode {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_fmt(format_args!("{:?}", self))
+        f.write_fmt(format_args!("{self:?}"))
     }
 }
 
@@ -27,8 +30,10 @@ impl TryFrom<u16> for OperationCode {
     }
 }
 
+/// Error returned by [`OperationCode::try_from()`].
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct UnrecognizedOperationCodeError {
+    /// The unrecognized operation code.
     pub operation_code: u16,
 }
 

@@ -1,5 +1,7 @@
+//! IPv6 extensions access and manipulation methods.
+
 use crate::data_buffer::traits::{
-    BufferAccess, BufferAccessMut, HeaderInformation, HeaderManipulation, Layer,
+    BufferAccess, BufferAccessMut, HeaderManipulation, HeaderMetadata, Layer,
 };
 use crate::ipv6::UpdateIpv6Length;
 use crate::ipv6_extensions::metadata_trait::{Ipv6ExtMetaData, Ipv6ExtMetaDataMut};
@@ -43,14 +45,23 @@ pub(crate) static LAYER: Layer = Layer::Ipv6Ext;
 // Length manipulating methods:
 // - set_ipv6_ext_length (has proof)
 
+/// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
+/// [`Ipv6Extensions`](crate::ipv6_extensions::Ipv6Extensions) header.
+///
+/// `MAX_EXTENSIONS` defines the maximum amount of extensions that will be parsed.
 pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
-    HeaderInformation + BufferAccess + Ipv6ExtMetaData<MAX_EXTENSIONS>
+    HeaderMetadata + BufferAccess + Ipv6ExtMetaData<MAX_EXTENSIONS>
 {
+    /// Returns the amount of IPv6 extensions.
     #[inline]
     fn ipv6_ext_amount(&self) -> usize {
         self.extensions_amount()
     }
 
+    /// Returns an array containing all IPv6 extensions.
+    ///
+    /// `None` signals less than the `MAX_EXTENSIONS` amount of IPv6 extensions were present.
+    /// The length of the array is defined by the maximum amount of parsed extensions.
     #[inline]
     fn ipv6_extensions(&self) -> [Option<Ipv6ExtensionType>; MAX_EXTENSIONS] {
         let mut result = [None; MAX_EXTENSIONS];
@@ -61,12 +72,22 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
         result
     }
 
+    /// Returns the last extension's next header.
+    ///
+    /// # Error
+    /// Returns an error if no extension was parsed.
     #[inline]
     fn ipv6_ext_next_header(&self) -> Result<u8, Ipv6ExtensionIndexOutOfBoundsError> {
-        let extension_metadata = self.extension(self.extensions_amount() - 1)?;
+        let extension_metadata = self.extension(self.extensions_amount().saturating_sub(1))?;
         Ok(self.read_value(LAYER, extension_metadata.offset + NEXT_HEADER))
     }
 
+    /// Returns the last extension's next header as [`InternetProtocolNumber`].
+    ///
+    /// # Error
+    /// Returns an error if:
+    /// - no extension was parsed.
+    /// - the next header is not recognized.
     #[inline]
     fn ipv6_ext_typed_next_header(
         &self,
@@ -74,6 +95,14 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
         Ok(self.ipv6_ext_next_header()?.try_into()?)
     }
 
+    /// Returns the next header of the extension at `extension_index`.
+    ///
+    /// Indexing starts at zero.
+    ///
+    /// Method available for all extensions.
+    ///
+    /// # Error
+    /// Returns an error if `extension_index` does not map to a parsed extension (out of bounds).
     #[inline]
     fn ipv6_ext_per_extension_next_header(
         &self,
@@ -83,6 +112,16 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
         Ok(self.read_value(LAYER, extension_metadata.offset + NEXT_HEADER))
     }
 
+    /// Returns the next header of the extension at `extension_index` as [`InternetProtocolNumber`].
+    ///
+    /// Indexing starts at zero.
+    ///
+    /// Method available for all extensions.
+    ///
+    /// # Error
+    /// Returns an error if:
+    /// - `extension_index` does not map to a parsed extension (out of bounds).
+    /// - the next header is not recognized.
     #[inline]
     fn ipv6_ext_per_extension_typed_next_header(
         &self,
@@ -93,12 +132,21 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
             .try_into()?)
     }
 
-    /// Routing, destination options, hop by hop
+    /// Returns the length field of the extension at `extension_index`.
+    ///
+    /// Indexing starts at zero.
+    ///
+    /// Method available for routing, destination options, hop by hop extensions.
+    ///
+    /// # Error
+    /// Returns an error if:
+    /// - `extension_index` does not map to a parsed extension (out of bounds).
+    /// - the extension does not have the requested field.
     #[inline]
     fn ipv6_ext_length(&self, extension_index: usize) -> Result<u8, Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
         match extension_metadata.ext_type {
-            Ipv6ExtensionType::Fragment => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Ipv6ExtensionType::Fragment => Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             Ipv6ExtensionType::DestinationOptions
             | Ipv6ExtensionType::HopByHop
             | Ipv6ExtensionType::Routing => Ok(self.read_value(
@@ -108,6 +156,14 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
         }
     }
 
+    /// Returns the length of the extension at `extension_index` in bytes.
+    ///
+    /// Indexing starts at zero.
+    ///
+    /// Method available for all extensions.
+    ///
+    /// # Error
+    /// Returns an error if `extension_index` does not map to a parsed extension (out of bounds).
     #[inline]
     fn ipv6_ext_length_in_bytes(
         &self,
@@ -126,12 +182,21 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
         }
     }
 
-    /// Routing, destination options, hop by hop
+    /// Returns a slice containing the data of the extension at `extension_index`.
+    ///
+    /// Indexing starts at zero.
+    ///
+    /// Method available for routing, destination options, hop by hop extensions.
+    ///
+    /// # Error
+    /// Returns an error if:
+    /// - `extension_index` does not map to a parsed extension (out of bounds).
+    /// - the extension does not have the requested field.
     #[inline]
     fn ipv6_ext_data(&self, extension_index: usize) -> Result<&[u8], Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
         let data_range = match extension_metadata.ext_type {
-            Ipv6ExtensionType::Fragment => return Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Ipv6ExtensionType::Fragment => return Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             Ipv6ExtensionType::Routing => {
                 let data_end = self.ipv6_ext_length_in_bytes(extension_index)?;
                 extension_metadata.offset + routing::DATA_START
@@ -146,7 +211,16 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
         Ok(self.read_slice(LAYER, data_range))
     }
 
-    /// Routing
+    /// Returns the routing type of the extension at `extension_index`.
+    ///
+    /// Indexing starts at zero.
+    ///
+    /// Method available for routing extensions.
+    ///
+    /// # Error
+    /// Returns an error if:
+    /// - `extension_index` does not map to a parsed extension (out of bounds).
+    /// - the extension does not have the requested field.
     #[inline]
     fn ipv6_ext_routing_type(&self, extension_index: usize) -> Result<u8, Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
@@ -156,11 +230,20 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
             }
             Ipv6ExtensionType::DestinationOptions
             | Ipv6ExtensionType::HopByHop
-            | Ipv6ExtensionType::Fragment => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            | Ipv6ExtensionType::Fragment => Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
         }
     }
 
-    /// Routing
+    /// Returns the segments left of the extension at `extension_index`.
+    ///
+    /// Indexing starts at zero.
+    ///
+    /// Method available for routing extensions.
+    ///
+    /// # Error
+    /// Returns an error if:
+    /// - `extension_index` does not map to a parsed extension (out of bounds).
+    /// - the extension does not have the requested field.
     #[inline]
     fn ipv6_ext_segments_left(&self, extension_index: usize) -> Result<u8, Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
@@ -170,11 +253,20 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
             }
             Ipv6ExtensionType::DestinationOptions
             | Ipv6ExtensionType::HopByHop
-            | Ipv6ExtensionType::Fragment => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            | Ipv6ExtensionType::Fragment => Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
         }
     }
 
-    /// Fragment
+    /// Returns the fragment offset of the extension at `extension_index`.
+    ///
+    /// Indexing starts at zero.
+    ///
+    /// Method available for fragment extensions.
+    ///
+    /// # Error
+    /// Returns an error if:
+    /// - `extension_index` does not map to a parsed extension (out of bounds).
+    /// - the extension does not have the requested field.
     #[inline]
     fn ipv6_ext_fragment_offset(&self, extension_index: usize) -> Result<u16, Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
@@ -186,11 +278,20 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
             )) >> fragment::FRAGMENT_OFFSET_SHIFT),
             Ipv6ExtensionType::DestinationOptions
             | Ipv6ExtensionType::HopByHop
-            | Ipv6ExtensionType::Routing => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            | Ipv6ExtensionType::Routing => Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
         }
     }
 
-    /// Fragment
+    /// Returns the more fragments flag of the extension at `extension_index`.
+    ///
+    /// Indexing starts at zero.
+    ///
+    /// Method available for fragment extensions.
+    ///
+    /// # Error
+    /// Returns an error if:
+    /// - `extension_index` does not map to a parsed extension (out of bounds).
+    /// - the extension does not have the requested field.
     #[inline]
     fn ipv6_ext_more_fragments(&self, extension_index: usize) -> Result<bool, Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
@@ -202,11 +303,20 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
                 != 0),
             Ipv6ExtensionType::DestinationOptions
             | Ipv6ExtensionType::HopByHop
-            | Ipv6ExtensionType::Routing => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            | Ipv6ExtensionType::Routing => Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
         }
     }
 
-    /// Fragment
+    /// Returns the fragment identification of the extension at `extension_index`.
+    ///
+    /// Indexing starts at zero.
+    ///
+    /// Method available for fragment extensions.
+    ///
+    /// # Error
+    /// Returns an error if:
+    /// - `extension_index` does not map to a parsed extension (out of bounds).
+    /// - the extension does not have the requested field.
     #[inline]
     fn ipv6_ext_fragment_identification(
         &self,
@@ -221,13 +331,15 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
             ))),
             Ipv6ExtensionType::DestinationOptions
             | Ipv6ExtensionType::HopByHop
-            | Ipv6ExtensionType::Routing => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            | Ipv6ExtensionType::Routing => Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
         }
     }
 }
 
+/// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
+/// [`Ipv6Extensions`](crate::ipv6_extensions::Ipv6Extensions) header and wrapping a mutable data buffer.
 pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
-    HeaderInformation
+    HeaderMetadata
     + HeaderManipulation
     + BufferAccessMut
     + Ipv6ExtMethods<MAX_EXTENSIONS>
@@ -236,12 +348,16 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
     + UpdateIpv6Length
     + Sized
 {
+    /// Sets the last extension's next header.
+    ///
+    /// # Error
+    /// Returns an error if no extension was parsed.
     #[inline]
     fn set_ipv6_ext_next_header(
         &mut self,
         next_header: InternetProtocolNumber,
     ) -> Result<(), Ipv6ExtensionIndexOutOfBoundsError> {
-        let extension_metadata = self.extension(self.extensions_amount() - 1)?;
+        let extension_metadata = self.extension(self.extensions_amount().saturating_sub(1))?;
         self.write_value(
             LAYER,
             extension_metadata.offset + NEXT_HEADER,
@@ -250,7 +366,21 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
         Ok(())
     }
 
-    /// Routing, destination options, hop by hop
+    /// Sets the extension's length of the extension at `extension_index`.
+    ///
+    /// Indexing starts at zero.
+    ///
+    /// Method available for routing, destination options, hop by hop extensions.
+    ///
+    /// This takes lower layers into account.
+    /// If there is an [`IPv4`](crate::ipv4::Ipv4) or [`IPv6`](crate::ipv6::Ipv6) layer present,
+    /// the length of that header will be updated accordingly.
+    ///
+    /// # Error
+    /// Returns an error if:
+    /// - `extension_index` does not map to a parsed extension (out of bounds).
+    /// - the extension does not have the requested field.
+    /// - there is not enough headroom available to accommodate the size change.
     #[inline]
     fn set_ipv6_ext_length(
         &mut self,
@@ -260,7 +390,7 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
         let extension_metadata = self.extension(extension_index)?;
 
         match extension_metadata.ext_type {
-            Ipv6ExtensionType::Fragment => Err(Ipv6ExtSetFieldError::FieldDoesNotExist),
+            Ipv6ExtensionType::Fragment => Err(Ipv6ExtSetFieldError::HeaderFieldDoesNotExist),
             Ipv6ExtensionType::DestinationOptions
             | Ipv6ExtensionType::HopByHop
             | Ipv6ExtensionType::Routing => {
@@ -310,7 +440,16 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
         }
     }
 
-    /// Routing, destination options, hop by hop
+    /// Returns a mutable slice containing the data of the extension at `extension_index`.
+    ///
+    /// Indexing starts at zero.
+    ///
+    /// Method available for routing, destination options, hop by hop extensions.
+    ///
+    /// # Error
+    /// Returns an error if:
+    /// - `extension_index` does not map to a parsed extension (out of bounds).
+    /// - the extension does not have the requested field.
     #[inline]
     fn ipv6_ext_data_mut(
         &mut self,
@@ -318,7 +457,7 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
     ) -> Result<&mut [u8], Ipv6ExtFieldError> {
         let extension_metadata = self.extension(extension_index)?;
         let data_range = match extension_metadata.ext_type {
-            Ipv6ExtensionType::Fragment => return Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            Ipv6ExtensionType::Fragment => return Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
             Ipv6ExtensionType::Routing => {
                 let data_end = self.ipv6_ext_length_in_bytes(extension_index)?;
                 extension_metadata.offset + routing::DATA_START
@@ -333,7 +472,16 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
         Ok(self.get_slice_mut(LAYER, data_range))
     }
 
-    /// Routing
+    /// Sets the routing type of the extension at `extension_index`.
+    ///
+    /// Indexing starts at zero.
+    ///
+    /// Method available for routing extensions.
+    ///
+    /// # Error
+    /// Returns an error if:
+    /// - `extension_index` does not map to a parsed extension (out of bounds).
+    /// - the extension does not have the requested field.
     #[inline]
     fn set_ipv6_ext_routing_type(
         &mut self,
@@ -352,11 +500,20 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
             }
             Ipv6ExtensionType::DestinationOptions
             | Ipv6ExtensionType::HopByHop
-            | Ipv6ExtensionType::Fragment => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            | Ipv6ExtensionType::Fragment => Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
         }
     }
 
-    /// Routing
+    /// Sets the segments left of the extension at `extension_index`.
+    ///
+    /// Indexing starts at zero.
+    ///
+    /// Method available for routing extensions.
+    ///
+    /// # Error
+    /// Returns an error if:
+    /// - `extension_index` does not map to a parsed extension (out of bounds).
+    /// - the extension does not have the requested field.
     #[inline]
     fn set_ipv6_ext_segments_left(
         &mut self,
@@ -375,11 +532,20 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
             }
             Ipv6ExtensionType::DestinationOptions
             | Ipv6ExtensionType::HopByHop
-            | Ipv6ExtensionType::Fragment => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            | Ipv6ExtensionType::Fragment => Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
         }
     }
 
-    /// Fragment
+    /// Sets the fragment offset of the extension at `extension_index`.
+    ///
+    /// Indexing starts at zero.
+    ///
+    /// Method available for fragment extensions.
+    ///
+    /// # Error
+    /// Returns an error if:
+    /// - `extension_index` does not map to a parsed extension (out of bounds).
+    /// - the extension does not have the requested field.
     #[inline]
     fn set_ipv6_ext_fragment_offset(
         &mut self,
@@ -390,8 +556,10 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
         match extension_metadata.ext_type {
             Ipv6ExtensionType::Fragment => {
                 fragment_offset <<= fragment::FRAGMENT_OFFSET_SHIFT;
-                fragment_offset |= (self.read_value(LAYER, fragment::MORE_FRAGMENTS_BYTE)
-                    & fragment::MORE_FRAGMENTS_MASK) as u16;
+                fragment_offset |= u16::from(
+                    self.read_value(LAYER, fragment::MORE_FRAGMENTS_BYTE)
+                        & fragment::MORE_FRAGMENTS_MASK,
+                );
 
                 self.write_slice(
                     LAYER,
@@ -404,11 +572,20 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
             }
             Ipv6ExtensionType::DestinationOptions
             | Ipv6ExtensionType::HopByHop
-            | Ipv6ExtensionType::Routing => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            | Ipv6ExtensionType::Routing => Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
         }
     }
 
-    /// Fragment
+    /// Sets the more fragments flag of the extension at `extension_index`.
+    ///
+    /// Indexing starts at zero.
+    ///
+    /// Method available for fragment extensions.
+    ///
+    /// # Error
+    /// Returns an error if:
+    /// - `extension_index` does not map to a parsed extension (out of bounds).
+    /// - the extension does not have the requested field.
     #[inline]
     fn set_ipv6_ext_more_fragments(
         &mut self,
@@ -431,11 +608,20 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
             }
             Ipv6ExtensionType::DestinationOptions
             | Ipv6ExtensionType::HopByHop
-            | Ipv6ExtensionType::Routing => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            | Ipv6ExtensionType::Routing => Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
         }
     }
 
-    /// Fragment
+    /// Sets the fragment identification of the extension at `extension_index`.
+    ///
+    /// Indexing starts at zero.
+    ///
+    /// Method available for fragment extensions.
+    ///
+    /// # Error
+    /// Returns an error if:
+    /// - `extension_index` does not map to a parsed extension (out of bounds).
+    /// - the extension does not have the requested field.
     #[inline]
     fn set_ipv6_ext_fragment_identification(
         &mut self,
@@ -455,7 +641,7 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
             }
             Ipv6ExtensionType::DestinationOptions
             | Ipv6ExtensionType::HopByHop
-            | Ipv6ExtensionType::Routing => Err(Ipv6ExtFieldError::FieldDoesNotExist),
+            | Ipv6ExtensionType::Routing => Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
         }
     }
 }

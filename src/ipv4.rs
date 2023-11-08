@@ -1,4 +1,4 @@
-//! IPv4 type and method traits.
+//! IPV4 implementation and IPV4 specific errors.
 
 mod error;
 mod method_traits;
@@ -9,47 +9,48 @@ pub use method_traits::*;
 #[cfg(all(feature = "remove_checksum", feature = "verify_ipv4", kani))]
 mod verification;
 
-use crate::data_buffer::traits::HeaderInformationExtraction;
+use crate::data_buffer::traits::HeaderMetadataExtraction;
 use crate::data_buffer::traits::{
-    BufferAccess, BufferAccessMut, HeaderInformation, HeaderInformationMut, Layer,
+    BufferAccess, BufferAccessMut, HeaderMetadata, HeaderMetadataMut, Layer,
 };
 use crate::data_buffer::{
     BufferIntoInner, DataBuffer, EthernetMarker, Ieee802_1QVlanMarker, Ipv4Marker, Payload,
     PayloadMut,
 };
-use crate::error::{UnexpectedBufferEndError, WrongChecksumError};
+use crate::error::{InvalidChecksumError, LengthExceedsAvailableSpaceError};
 use crate::internal_utils::{check_and_calculate_data_length, header_start_offset_from_phi};
-use crate::no_previous_header::NoPreviousHeaderInformation;
+use crate::no_previous_header::NoPreviousHeader;
 
 /// IPv4 metadata.
 ///
 /// Contains meta data about the IPv4 header in the parsed data buffer.
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
-pub struct Ipv4<PHI>
+pub struct Ipv4<PHM>
 where
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
+    /// Offset from the start of the non-headroom part of the data buffer.
     header_start_offset: usize,
+    /// Header length.
     header_length: usize,
-    previous_header_information: PHI,
+    /// Metadata of the previous header(s).
+    previous_header_metadata: PHM,
 }
 
-impl<PHI> Ipv4Marker for Ipv4<PHI> where PHI: HeaderInformation + HeaderInformationMut {}
-impl<PHI> EthernetMarker for Ipv4<PHI> where
-    PHI: HeaderInformation + HeaderInformationMut + EthernetMarker
-{
-}
-impl<PHI> Ieee802_1QVlanMarker for Ipv4<PHI> where
-    PHI: HeaderInformation + HeaderInformationMut + Ieee802_1QVlanMarker
+impl<PHM> Ipv4Marker for Ipv4<PHM> where PHM: HeaderMetadata + HeaderMetadataMut {}
+impl<PHM> EthernetMarker for Ipv4<PHM> where PHM: HeaderMetadata + HeaderMetadataMut + EthernetMarker
+{}
+impl<PHM> Ieee802_1QVlanMarker for Ipv4<PHM> where
+    PHM: HeaderMetadata + HeaderMetadataMut + Ieee802_1QVlanMarker
 {
 }
 
-impl<B, PHI> DataBuffer<B, Ipv4<PHI>>
+impl<B, PHM> DataBuffer<B, Ipv4<PHM>>
 where
     B: AsRef<[u8]>,
-    PHI: HeaderInformation + HeaderInformationMut + Copy,
+    PHM: HeaderMetadata + HeaderMetadataMut + Copy,
 {
-    /// Parses `buf` and creates a new [DataBuffer] for an IPv4 layer with no previous layers.
+    /// Parses `buf` and creates a new [`DataBuffer`] for an IPv4 layer with no previous layers.
     ///
     /// `headroom` indicates the amount of headroom in the provided `buf`.
     ///
@@ -65,16 +66,15 @@ where
         buf: B,
         headroom: usize,
         check_ipv4_checksum: bool,
-    ) -> Result<DataBuffer<B, Ipv4<NoPreviousHeaderInformation>>, ParseIpv4Error> {
-        let lower_layer_data_buffer =
-            DataBuffer::<B, NoPreviousHeaderInformation>::new(buf, headroom)?;
-        DataBuffer::<B, Ipv4<NoPreviousHeaderInformation>>::new_from_lower(
+    ) -> Result<DataBuffer<B, Ipv4<NoPreviousHeader>>, ParseIpv4Error> {
+        let lower_layer_data_buffer = DataBuffer::<B, NoPreviousHeader>::new(buf, headroom)?;
+        DataBuffer::<B, Ipv4<NoPreviousHeader>>::new_from_lower(
             lower_layer_data_buffer,
             check_ipv4_checksum,
         )
     }
 
-    /// Consumes the `lower_layer_data_buffer` and creates a new [DataBuffer] with an additional
+    /// Consumes the `lower_layer_data_buffer` and creates a new [`DataBuffer`] with an additional
     /// IPv4 layer.
     ///
     /// # Errors
@@ -86,13 +86,13 @@ where
     /// - if `check_ipv4_checksum` is true and the checksum is invalid.
     #[inline]
     pub fn new_from_lower(
-        lower_layer_data_buffer: impl HeaderInformation
+        lower_layer_data_buffer: impl HeaderMetadata
             + Payload
             + BufferIntoInner<B>
-            + HeaderInformationExtraction<PHI>,
+            + HeaderMetadataExtraction<PHM>,
         check_ipv4_checksum: bool,
-    ) -> Result<DataBuffer<B, Ipv4<PHI>>, ParseIpv4Error> {
-        let previous_header_information = lower_layer_data_buffer.extract_header_information();
+    ) -> Result<DataBuffer<B, Ipv4<PHM>>, ParseIpv4Error> {
+        let previous_header_metadata = lower_layer_data_buffer.extract_header_metadata();
 
         let header_and_payload_length = check_and_calculate_data_length::<ParseIpv4Error>(
             lower_layer_data_buffer.payload_length(),
@@ -138,13 +138,13 @@ where
             });
         }
 
-        let header_start_offset = header_start_offset_from_phi(previous_header_information);
+        let header_start_offset = header_start_offset_from_phi(previous_header_metadata);
 
         let mut result = DataBuffer {
-            header_information: Ipv4 {
+            header_metadata: Ipv4 {
                 header_start_offset,
                 header_length: ihl_header_in_bytes,
-                previous_header_information: *previous_header_information,
+                previous_header_metadata: *previous_header_metadata,
             },
             buffer: lower_layer_data_buffer.buffer_into_inner(),
         };
@@ -155,7 +155,7 @@ where
         if check_ipv4_checksum {
             let checksum = result.ipv4_calculate_checksum();
             if checksum != 0 {
-                return Err(ParseIpv4Error::WrongChecksum(WrongChecksumError {
+                return Err(ParseIpv4Error::InvalidChecksum(InvalidChecksumError {
                     calculated_checksum: checksum,
                 }));
             }
@@ -164,13 +164,13 @@ where
     }
 }
 
-impl<PHI> HeaderInformation for Ipv4<PHI>
+impl<PHM> HeaderMetadata for Ipv4<PHM>
 where
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn headroom_internal(&self) -> usize {
-        self.previous_header_information.headroom_internal()
+        self.previous_header_metadata.headroom_internal()
     }
 
     #[inline]
@@ -178,7 +178,7 @@ where
         if layer == LAYER {
             self.header_start_offset
         } else {
-            self.previous_header_information.header_start_offset(layer)
+            self.previous_header_metadata.header_start_offset(layer)
         }
     }
 
@@ -187,7 +187,7 @@ where
         if layer == LAYER {
             self.header_length
         } else {
-            self.previous_header_information.header_length(layer)
+            self.previous_header_metadata.header_length(layer)
         }
     }
 
@@ -198,24 +198,24 @@ where
 
     #[inline]
     fn data_length(&self) -> usize {
-        self.previous_header_information.data_length()
+        self.previous_header_metadata.data_length()
     }
 }
 
-impl<PHI> HeaderInformationMut for Ipv4<PHI>
+impl<PHM> HeaderMetadataMut for Ipv4<PHM>
 where
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn headroom_internal_mut(&mut self) -> &mut usize {
-        self.previous_header_information.headroom_internal_mut()
+        self.previous_header_metadata.headroom_internal_mut()
     }
 
     #[inline]
     fn increase_header_start_offset(&mut self, increase_by: usize, layer: Layer) {
         if layer != LAYER {
             self.header_start_offset += increase_by;
-            self.previous_header_information
+            self.previous_header_metadata
                 .increase_header_start_offset(increase_by, layer);
         }
     }
@@ -224,7 +224,7 @@ where
     fn decrease_header_start_offset(&mut self, decrease_by: usize, layer: Layer) {
         if layer != LAYER {
             self.header_start_offset -= decrease_by;
-            self.previous_header_information
+            self.previous_header_metadata
                 .decrease_header_start_offset(decrease_by, layer);
         }
     }
@@ -234,7 +234,7 @@ where
         if layer == LAYER {
             &mut self.header_length
         } else {
-            self.previous_header_information.header_length_mut(layer)
+            self.previous_header_metadata.header_length_mut(layer)
         }
     }
 
@@ -243,16 +243,16 @@ where
         &mut self,
         data_length: usize,
         buffer_length: usize,
-    ) -> Result<(), UnexpectedBufferEndError> {
-        self.previous_header_information
+    ) -> Result<(), LengthExceedsAvailableSpaceError> {
+        self.previous_header_metadata
             .set_data_length(data_length, buffer_length)
     }
 }
 
-impl<B, PHI> Payload for DataBuffer<B, Ipv4<PHI>>
+impl<B, PHM> Payload for DataBuffer<B, Ipv4<PHM>>
 where
     B: AsRef<[u8]>,
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn payload(&self) -> &[u8] {
@@ -266,10 +266,10 @@ where
     }
 }
 
-impl<B, PHI> PayloadMut for DataBuffer<B, Ipv4<PHI>>
+impl<B, PHM> PayloadMut for DataBuffer<B, Ipv4<PHM>>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn payload_mut(&mut self) -> &mut [u8] {
@@ -278,36 +278,39 @@ where
     }
 }
 
-impl<B, H> Ipv4Methods for DataBuffer<B, H>
+impl<B, HM> Ipv4Methods for DataBuffer<B, HM>
 where
     B: AsRef<[u8]>,
-    H: Ipv4Marker + HeaderInformation + HeaderInformationMut,
+    HM: Ipv4Marker + HeaderMetadata + HeaderMetadataMut,
 {
 }
 
-impl<B, H> Ipv4MethodsMut for DataBuffer<B, H>
+impl<B, HM> Ipv4MethodsMut for DataBuffer<B, HM>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
-    H: HeaderInformation + HeaderInformationMut + Ipv4Marker + Sized,
+    HM: HeaderMetadata + HeaderMetadataMut + Ipv4Marker + Sized,
 {
 }
 
-impl<B, H> UpdateIpv4Length for DataBuffer<B, H>
+impl<B, HM> UpdateIpv4Length for DataBuffer<B, HM>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
-    H: HeaderInformation + HeaderInformationMut + Ipv4Marker + Sized,
+    HM: HeaderMetadata + HeaderMetadataMut + Ipv4Marker + Sized,
 {
 }
 
 #[cfg(test)]
 mod tests {
     use crate::data_buffer::{DataBuffer, Payload, PayloadMut};
-    use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError, WrongChecksumError};
+    use crate::error::{
+        InvalidChecksumError, LengthExceedsAvailableSpaceError, NotEnoughHeadroomError,
+        UnexpectedBufferEndError,
+    };
     use crate::ethernet::Eth;
     use crate::ipv4::{
         Ipv4, Ipv4Methods, Ipv4MethodsMut, ParseIpv4Error, SetIhlError, SetTotalLengthError,
     };
-    use crate::no_previous_header::NoPreviousHeaderInformation;
+    use crate::no_previous_header::NoPreviousHeader;
     use crate::tcp::Tcp;
     use crate::test_utils::copy_into_slice;
     use crate::typed_protocol_headers::InternetProtocolNumber;
@@ -450,9 +453,7 @@ mod tests {
 
     #[test]
     fn new() {
-        assert!(
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).is_ok()
-        );
+        assert!(DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).is_ok());
     }
 
     #[test]
@@ -464,7 +465,7 @@ mod tests {
                     actual_length: 19
                 }
             )),
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(&IPV4_PACKET[..19], 0, true)
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(&IPV4_PACKET[..19], 0, true)
         );
     }
 
@@ -477,11 +478,7 @@ mod tests {
                     actual_length: IPV4_PACKET.len(),
                 }
             )),
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(
-                &IPV4_PACKET,
-                IPV4_PACKET.len() + 1,
-                true
-            )
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(&IPV4_PACKET, IPV4_PACKET.len() + 1, true)
         );
     }
 
@@ -491,7 +488,7 @@ mod tests {
         data[0] = 0x10;
         assert_eq!(
             Err(ParseIpv4Error::VersionHeaderValueNotFour),
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(&data, 0, true)
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(&data, 0, true)
         );
     }
 
@@ -501,7 +498,7 @@ mod tests {
         data[0] = 0x44;
         assert_eq!(
             Err(ParseIpv4Error::IhlHeaderValueTooSmall { ihl: 4 }),
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(&data, 0, true)
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(&data, 0, true)
         );
     }
 
@@ -516,7 +513,7 @@ mod tests {
                     ihl_header_in_bytes: 24
                 }
             ),
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(&data, 0, true)
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(&data, 0, true)
         );
     }
 
@@ -529,7 +526,7 @@ mod tests {
                 total_length_header: data.len() + 1,
                 actual_packet_length: data.len(),
             }),
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(&data, 0, true)
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(&data, 0, true)
         );
     }
 
@@ -538,60 +535,60 @@ mod tests {
         let mut data = IPV4_PACKET;
         data[4] = 0x0;
         assert_eq!(
-            Err(ParseIpv4Error::WrongChecksum(WrongChecksumError {
+            Err(ParseIpv4Error::InvalidChecksum(InvalidChecksumError {
                 calculated_checksum: 4608
             })),
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(&data, 0, true)
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(&data, 0, true)
         );
-        assert!(DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(&data, 0, false).is_ok());
+        assert!(DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(&data, 0, false).is_ok());
     }
 
     #[test]
     fn ipv4_version() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(4, ipv4_packet.ipv4_version());
     }
 
     #[test]
     fn ipv4_ihl() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(6, ipv4_packet.ipv4_ihl());
     }
 
     #[test]
     fn ipv4_dscp() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(0b0000_1010, ipv4_packet.ipv4_dscp());
     }
 
     #[test]
     fn ipv4_typed_dscp() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(Ok(Dscp::Af11), ipv4_packet.ipv4_typed_dscp());
     }
 
     #[test]
     fn ipv4_ecn() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(0, ipv4_packet.ipv4_ecn());
     }
 
     #[test]
     fn ipv4_typed_ecn() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(Ok(Ecn::NotEct), ipv4_packet.ipv4_typed_ecn());
     }
 
     #[test]
     fn ipv4_total_length() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(
             u16::from_be_bytes([0x00, 0x19,]),
             ipv4_packet.ipv4_total_length()
@@ -601,7 +598,7 @@ mod tests {
     #[test]
     fn ipv4_identification() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(
             u16::from_be_bytes([0x12, 0x34,]),
             ipv4_packet.ipv4_identification()
@@ -611,56 +608,56 @@ mod tests {
     #[test]
     fn ipv4_flags() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(0b000_0101, ipv4_packet.ipv4_flags());
     }
 
     #[test]
     fn ipv4_evil_flag() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert!(ipv4_packet.ipv4_evil_flag());
     }
 
     #[test]
     fn ipv4_dont_fragment_flag() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert!(!ipv4_packet.ipv4_dont_fragment_flag());
     }
 
     #[test]
     fn ipv4_more_fragments_flag() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert!(ipv4_packet.ipv4_more_fragments_flag());
     }
 
     #[test]
     fn ipv4_fragment_offset() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(3, ipv4_packet.ipv4_fragment_offset());
     }
 
     #[test]
     fn ipv4_time_to_live() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(1, ipv4_packet.ipv4_time_to_live());
     }
 
     #[test]
     fn ipv4_protocol() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(6, ipv4_packet.ipv4_protocol());
     }
 
     #[test]
     fn ipv4_typed_protocol() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(
             Ok(InternetProtocolNumber::Tcp),
             ipv4_packet.ipv4_typed_protocol()
@@ -670,7 +667,7 @@ mod tests {
     #[test]
     fn ipv4_header_checksum() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(
             u16::from_be_bytes([0x06, 0x7A,]),
             ipv4_packet.ipv4_header_checksum()
@@ -680,14 +677,14 @@ mod tests {
     #[test]
     fn ipv4_source() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!([0x7f, 0x00, 0x00, 0x1,], ipv4_packet.ipv4_source());
     }
 
     #[test]
     fn ipv4_destination() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!([0x7f, 0x00, 0x00, 0x1,], ipv4_packet.ipv4_destination());
     }
 
@@ -695,7 +692,7 @@ mod tests {
     fn ipv4_options() {
         // Options
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(&[0x02, 0x04, 0xFF, 0xFF], ipv4_packet.ipv4_options());
 
         // No options
@@ -704,43 +701,42 @@ mod tests {
         data[10] = 0x09;
         data[11] = 0x7E;
 
-        let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(data, 0, true).unwrap();
+        let ipv4_packet = DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(data, 0, true).unwrap();
         assert_eq!(&[0; 0], ipv4_packet.ipv4_options());
     }
 
     #[test]
     fn payload() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(&[0xFF], ipv4_packet.payload());
     }
 
     #[test]
     fn payload_mut() {
         let mut ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(&[0xFF], ipv4_packet.payload_mut());
     }
 
     #[test]
     fn ipv4_payload_length() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(1, ipv4_packet.ipv4_payload_length());
     }
 
     #[test]
     fn payload_length() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(1, ipv4_packet.payload_length());
     }
 
     #[test]
     fn ipv4_calculate_checksum() {
         let ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
         assert_eq!(0, ipv4_packet.ipv4_calculate_checksum());
     }
 
@@ -749,7 +745,7 @@ mod tests {
         let mut data = [0xFF_u8; 56];
         copy_into_slice(&mut data, &IPV4_PACKET, 4);
         let mut ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(&mut data, 4, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(&mut data, 4, true).unwrap();
         assert_eq!(Ok(()), ipv4_packet.set_ipv4_ihl(7));
         assert_eq!(
             Err(SetIhlError::NotEnoughHeadroom(NotEnoughHeadroomError {
@@ -772,7 +768,7 @@ mod tests {
     #[test]
     fn set_ipv4_dscp() {
         let mut ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
 
         assert_eq!(0b0000_1010, ipv4_packet.ipv4_dscp());
         ipv4_packet.set_ipv4_dscp(Dscp::Cs4);
@@ -782,7 +778,7 @@ mod tests {
     #[test]
     fn set_ipv4_ecn() {
         let mut ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
 
         assert_eq!(0, ipv4_packet.ipv4_ecn());
         ipv4_packet.set_ipv4_ecn(Ecn::Ect0);
@@ -793,7 +789,7 @@ mod tests {
     #[test]
     fn set_ipv4_total_length() {
         let mut ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
 
         assert_eq!(0x19, ipv4_packet.ipv4_total_length());
         ipv4_packet.set_ipv4_total_length(0x18).unwrap();
@@ -801,19 +797,19 @@ mod tests {
         ipv4_packet.set_ipv4_total_length(0x1E).unwrap();
         assert_eq!(0x1E, ipv4_packet.ipv4_total_length());
         assert_eq!(
-            Err(SetTotalLengthError::UnexpectedBufferEnd(
-                UnexpectedBufferEndError {
-                    expected_length: IPV4_PACKET.len() + 1,
-                    actual_length: IPV4_PACKET.len()
+            Err(SetTotalLengthError::LengthExceedsAvailableSpace(
+                LengthExceedsAvailableSpaceError {
+                    required_space: IPV4_PACKET.len() + 1,
+                    available_space: IPV4_PACKET.len()
                 }
             )),
             ipv4_packet.set_ipv4_total_length(IPV4_PACKET.len() as u16 + 1)
         );
         assert_eq!(
-            Err(SetTotalLengthError::UnexpectedBufferEnd(
-                UnexpectedBufferEndError {
-                    expected_length: 0x3000,
-                    actual_length: IPV4_PACKET.len()
+            Err(SetTotalLengthError::LengthExceedsAvailableSpace(
+                LengthExceedsAvailableSpaceError {
+                    required_space: 0x3000,
+                    available_space: IPV4_PACKET.len()
                 }
             )),
             ipv4_packet.set_ipv4_total_length(0x3000)
@@ -851,7 +847,7 @@ mod tests {
     #[test]
     fn set_ipv4_identification() {
         let mut ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
 
         assert_eq!(0x1234, ipv4_packet.ipv4_identification());
         ipv4_packet.set_ipv4_identification(0x1030);
@@ -861,7 +857,7 @@ mod tests {
     #[test]
     fn set_ipv4_flags() {
         let mut ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
 
         assert_eq!(0b000_0101, ipv4_packet.ipv4_flags());
         ipv4_packet.set_ipv4_flags(0b111_1010);
@@ -871,7 +867,7 @@ mod tests {
     #[test]
     fn set_ipv4_evil_flag() {
         let mut ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
 
         assert!(ipv4_packet.ipv4_evil_flag());
         ipv4_packet.set_ipv4_evil_flag(false);
@@ -881,7 +877,7 @@ mod tests {
     #[test]
     fn set_ipv4_dont_fragment_flag() {
         let mut ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
 
         assert!(!ipv4_packet.ipv4_dont_fragment_flag());
         ipv4_packet.set_ipv4_dont_fragment_flag(true);
@@ -891,7 +887,7 @@ mod tests {
     #[test]
     fn set_ipv4_more_fragments_flag() {
         let mut ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
 
         assert!(ipv4_packet.ipv4_more_fragments_flag());
         ipv4_packet.set_ipv4_more_fragments_flag(false);
@@ -901,7 +897,7 @@ mod tests {
     #[test]
     fn set_ipv4_fragment_offset() {
         let mut ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
 
         assert_eq!(3, ipv4_packet.ipv4_fragment_offset());
         ipv4_packet.set_ipv4_fragment_offset(0b0001_1111_1111_1111);
@@ -912,7 +908,7 @@ mod tests {
     #[test]
     fn set_ipv4_time_to_live() {
         let mut ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
 
         assert_eq!(0x1, ipv4_packet.ipv4_time_to_live());
         ipv4_packet.set_ipv4_time_to_live(0x3);
@@ -922,7 +918,7 @@ mod tests {
     #[test]
     fn set_ipv4_protocol() {
         let mut ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
 
         assert_eq!(0x6, ipv4_packet.ipv4_protocol());
         ipv4_packet.set_ipv4_protocol(InternetProtocolNumber::Adfl as u8);
@@ -932,7 +928,7 @@ mod tests {
     #[test]
     fn set_ipv4_source() {
         let mut ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
 
         assert_eq!([0x7f, 0x00, 0x00, 0x1], ipv4_packet.ipv4_source());
         ipv4_packet.set_ipv4_source([0x0f, 0x01, 0x01, 0x2]);
@@ -942,7 +938,7 @@ mod tests {
     #[test]
     fn set_ipv4_destination() {
         let mut ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
 
         assert_eq!([0x7f, 0x00, 0x00, 0x1], ipv4_packet.ipv4_destination());
         ipv4_packet.set_ipv4_destination([0x0f, 0x01, 0x01, 0x2]);
@@ -952,7 +948,7 @@ mod tests {
     #[test]
     fn update_ipv4_header_checksum() {
         let mut ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
 
         assert_eq!(0x067A, ipv4_packet.ipv4_header_checksum());
         ipv4_packet.set_ipv4_destination([0xFF; 4]);
@@ -963,7 +959,7 @@ mod tests {
     #[test]
     fn set_ipv4_header_checksum() {
         let mut ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4_PACKET, 0, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_PACKET, 0, true).unwrap();
 
         assert_eq!(0x067A, ipv4_packet.ipv4_header_checksum());
         ipv4_packet.set_ipv4_header_checksum(0xFFFF);
@@ -975,7 +971,7 @@ mod tests {
         let mut data = [0xFF_u8; 56];
         copy_into_slice(&mut data, &IPV4_PACKET, 4);
         let mut ipv4_packet =
-            DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(&mut data, 4, true).unwrap();
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(&mut data, 4, true).unwrap();
 
         ipv4_packet
             .ipv4_options_mut()

@@ -1,4 +1,4 @@
-//! UDP type and method traits.
+//! UDP implementation and UDP specific errors.
 
 mod error;
 mod method_traits;
@@ -9,15 +9,17 @@ pub use method_traits::*;
 #[cfg(all(feature = "remove_checksum", feature = "verify_udp", kani))]
 mod verification;
 
-use crate::data_buffer::traits::HeaderInformationExtraction;
+use crate::data_buffer::traits::HeaderMetadataExtraction;
 use crate::data_buffer::traits::{
-    BufferAccess, BufferAccessMut, HeaderInformation, HeaderInformationMut, Layer,
+    BufferAccess, BufferAccessMut, HeaderMetadata, HeaderMetadataMut, Layer,
 };
 use crate::data_buffer::{
     BufferIntoInner, DataBuffer, EthernetMarker, Ieee802_1QVlanMarker, Ipv4Marker, Ipv6ExtMarker,
     Ipv6Marker, Payload, PayloadMut, UdpMarker,
 };
-use crate::error::{UnexpectedBufferEndError, WrongChecksumError};
+use crate::error::{
+    InvalidChecksumError, LengthExceedsAvailableSpaceError, UnexpectedBufferEndError,
+};
 use crate::internal_utils::{
     check_and_calculate_data_length, header_start_offset_from_phi,
     pseudoheader_checksum_ipv4_internal, pseudoheader_checksum_ipv6_internal,
@@ -26,7 +28,7 @@ use crate::ipv4::{Ipv4, UpdateIpv4Length};
 use crate::ipv6::{Ipv6, UpdateIpv6Length};
 use crate::ipv6_extensions::{Ipv6ExtMetaData, Ipv6ExtMetaDataMut, Ipv6Extensions};
 use crate::ipv6_extensions::{Ipv6ExtensionIndexOutOfBoundsError, Ipv6ExtensionMetadata};
-use crate::no_previous_header::NoPreviousHeaderInformation;
+use crate::no_previous_header::NoPreviousHeader;
 use crate::typed_protocol_headers::constants;
 use crate::utility_traits::{TcpUdpChecksum, UpdateIpLength};
 
@@ -34,38 +36,35 @@ use crate::utility_traits::{TcpUdpChecksum, UpdateIpLength};
 ///
 /// Contains meta data about the UDP header in the parsed data buffer.
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
-pub struct Udp<PHI>
+pub struct Udp<PHM>
 where
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     header_start_offset: usize,
     header_length: usize,
-    previous_header_information: PHI,
+    previous_header_metadata: PHM,
 }
 
-impl<PHI> EthernetMarker for Udp<PHI> where
-    PHI: HeaderInformation + HeaderInformationMut + EthernetMarker
+impl<PHM> EthernetMarker for Udp<PHM> where PHM: HeaderMetadata + HeaderMetadataMut + EthernetMarker {}
+impl<PHM> Ieee802_1QVlanMarker for Udp<PHM> where
+    PHM: HeaderMetadata + HeaderMetadataMut + Ieee802_1QVlanMarker
 {
 }
-impl<PHI> Ieee802_1QVlanMarker for Udp<PHI> where
-    PHI: HeaderInformation + HeaderInformationMut + Ieee802_1QVlanMarker
+impl<PHM> Ipv4Marker for Udp<PHM> where PHM: HeaderMetadata + HeaderMetadataMut + Ipv4Marker {}
+impl<PHM> Ipv6Marker for Udp<PHM> where PHM: HeaderMetadata + HeaderMetadataMut + Ipv6Marker {}
+impl<PHM, const MAX_EXTENSIONS: usize> Ipv6ExtMarker<MAX_EXTENSIONS> for Udp<PHM> where
+    PHM: HeaderMetadata + HeaderMetadataMut + Ipv6ExtMarker<MAX_EXTENSIONS>
 {
 }
-impl<PHI> Ipv4Marker for Udp<PHI> where PHI: HeaderInformation + HeaderInformationMut + Ipv4Marker {}
-impl<PHI> Ipv6Marker for Udp<PHI> where PHI: HeaderInformation + HeaderInformationMut + Ipv6Marker {}
-impl<PHI, const MAX_EXTENSIONS: usize> Ipv6ExtMarker<MAX_EXTENSIONS> for Udp<PHI> where
-    PHI: HeaderInformation + HeaderInformationMut + Ipv6ExtMarker<MAX_EXTENSIONS>
-{
-}
-impl<PHI> UdpMarker for Udp<PHI> where PHI: HeaderInformation + HeaderInformationMut {}
+impl<PHM> UdpMarker for Udp<PHM> where PHM: HeaderMetadata + HeaderMetadataMut {}
 
-impl<B, PHI> DataBuffer<B, Udp<PHI>>
+impl<B, PHM> DataBuffer<B, Udp<PHM>>
 where
     B: AsRef<[u8]>,
-    PHI: HeaderInformation + HeaderInformationMut + Copy,
-    DataBuffer<B, Udp<PHI>>: TcpUdpChecksum,
+    PHM: HeaderMetadata + HeaderMetadataMut + Copy,
+    DataBuffer<B, Udp<PHM>>: TcpUdpChecksum,
 {
-    /// Parses `buf` and creates a new [DataBuffer] for an UDP layer with no previous layers.
+    /// Parses `buf` and creates a new [`DataBuffer`] for an UDP layer with no previous layers.
     ///
     /// `headroom` indicates the amount of headroom in the provided `buf`.
     /// No checksum can be calculated without underlying header for the pseudo header.
@@ -79,17 +78,13 @@ where
     pub fn new_without_checksum(
         buf: B,
         headroom: usize,
-    ) -> Result<DataBuffer<B, Udp<NoPreviousHeaderInformation>>, ParseUdpError> {
-        let lower_layer_data_buffer =
-            DataBuffer::<B, NoPreviousHeaderInformation>::new(buf, headroom)?;
+    ) -> Result<DataBuffer<B, Udp<NoPreviousHeader>>, ParseUdpError> {
+        let lower_layer_data_buffer = DataBuffer::<B, NoPreviousHeader>::new(buf, headroom)?;
 
-        DataBuffer::<B, Udp<NoPreviousHeaderInformation>>::new_from_lower(
-            lower_layer_data_buffer,
-            false,
-        )
+        DataBuffer::<B, Udp<NoPreviousHeader>>::new_from_lower(lower_layer_data_buffer, false)
     }
 
-    /// Consumes the `lower_layer_data_buffer` and creates a new [DataBuffer] with an additional
+    /// Consumes the `lower_layer_data_buffer` and creates a new [`DataBuffer`] with an additional
     /// UDP layer.
     ///
     /// # Note
@@ -97,8 +92,8 @@ where
     /// Inconsistencies between the IP payload length allocated for the UDP datagram and the UDP
     /// length are permissible as long as the indicated IP payload length is larger than the UDP
     /// length.
-    /// https://datatracker.ietf.org/doc/html/rfc768
-    /// https://datatracker.ietf.org/doc/html/draft-ietf-tsvwg-udp-options-01#section-9
+    /// <https://datatracker.ietf.org/doc/html/rfc768>
+    /// <https://datatracker.ietf.org/doc/html/draft-ietf-tsvwg-udp-options-01#section-9>
     ///
     ///
     /// # Errors
@@ -109,13 +104,13 @@ where
     /// - if `check_udp_checksum` is true and the checksum is invalid.
     #[inline]
     pub fn new_from_lower(
-        lower_layer_data_buffer: impl HeaderInformation
+        lower_layer_data_buffer: impl HeaderMetadata
             + Payload
             + BufferIntoInner<B>
-            + HeaderInformationExtraction<PHI>,
+            + HeaderMetadataExtraction<PHM>,
         check_udp_checksum: bool,
-    ) -> Result<DataBuffer<B, Udp<PHI>>, ParseUdpError> {
-        let previous_header_information = lower_layer_data_buffer.extract_header_information();
+    ) -> Result<DataBuffer<B, Udp<PHM>>, ParseUdpError> {
+        let previous_header_metadata = lower_layer_data_buffer.extract_header_metadata();
 
         let data_length = check_and_calculate_data_length::<ParseUdpError>(
             lower_layer_data_buffer.payload_length(),
@@ -134,17 +129,19 @@ where
         }
 
         if length_header > data_length {
-            return Err(ParseUdpError::LengthHeaderTooLarge {
-                data_length,
-                length_header,
-            });
+            return Err(ParseUdpError::UnexpectedBufferEnd(
+                UnexpectedBufferEndError {
+                    expected_length: length_header,
+                    actual_length: data_length,
+                },
+            ));
         }
 
         let result = DataBuffer {
-            header_information: Udp {
-                header_start_offset: header_start_offset_from_phi(previous_header_information),
+            header_metadata: Udp {
+                header_start_offset: header_start_offset_from_phi(previous_header_metadata),
                 header_length: HEADER_MIN_LEN,
-                previous_header_information: *previous_header_information,
+                previous_header_metadata: *previous_header_metadata,
             },
             buffer: lower_layer_data_buffer.buffer_into_inner(),
         };
@@ -152,7 +149,7 @@ where
         if check_udp_checksum {
             let checksum = result.udp_calculate_checksum();
             if checksum != 0 {
-                return Err(ParseUdpError::WrongChecksum(WrongChecksumError {
+                return Err(ParseUdpError::InvalidChecksum(InvalidChecksumError {
                     calculated_checksum: checksum,
                 }));
             }
@@ -162,7 +159,7 @@ where
     }
 }
 
-impl<B> TcpUdpChecksum for DataBuffer<B, Udp<NoPreviousHeaderInformation>>
+impl<B> TcpUdpChecksum for DataBuffer<B, Udp<NoPreviousHeader>>
 where
     B: AsRef<[u8]>,
 {
@@ -172,7 +169,7 @@ where
     }
 }
 
-impl<B> UpdateIpLength for DataBuffer<B, Udp<NoPreviousHeaderInformation>>
+impl<B> UpdateIpLength for DataBuffer<B, Udp<NoPreviousHeader>>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
 {
@@ -180,44 +177,44 @@ where
     fn update_ip_length(&mut self) {}
 }
 
-impl<B, PHI> UpdateIpLength for DataBuffer<B, Udp<Ipv4<PHI>>>
+impl<B, PHM> UpdateIpLength for DataBuffer<B, Udp<Ipv4<PHM>>>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn update_ip_length(&mut self) {
-        self.update_ipv4_length()
+        self.update_ipv4_length();
     }
 }
 
-impl<B, PHI> UpdateIpLength for DataBuffer<B, Udp<Ipv6<PHI>>>
+impl<B, PHM> UpdateIpLength for DataBuffer<B, Udp<Ipv6<PHM>>>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn update_ip_length(&mut self) {
-        self.update_ipv6_length()
+        self.update_ipv6_length();
     }
 }
 
-impl<B, PHI, const MAX_EXTENSIONS: usize> UpdateIpLength
-    for DataBuffer<B, Udp<Ipv6Extensions<PHI, MAX_EXTENSIONS>>>
+impl<B, PHM, const MAX_EXTENSIONS: usize> UpdateIpLength
+    for DataBuffer<B, Udp<Ipv6Extensions<PHM, MAX_EXTENSIONS>>>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
-    PHI: HeaderInformation + HeaderInformationMut + Ipv6Marker,
+    PHM: HeaderMetadata + HeaderMetadataMut + Ipv6Marker,
 {
     #[inline]
     fn update_ip_length(&mut self) {
-        self.update_ipv6_length()
+        self.update_ipv6_length();
     }
 }
 
-impl<B, PHI> TcpUdpChecksum for DataBuffer<B, Udp<Ipv4<PHI>>>
+impl<B, PHM> TcpUdpChecksum for DataBuffer<B, Udp<Ipv4<PHM>>>
 where
     B: AsRef<[u8]>,
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn pseudoheader_checksum(&self) -> u64 {
@@ -225,10 +222,10 @@ where
     }
 }
 
-impl<B, PHI> TcpUdpChecksum for DataBuffer<B, Udp<Ipv6<PHI>>>
+impl<B, PHM> TcpUdpChecksum for DataBuffer<B, Udp<Ipv6<PHM>>>
 where
     B: AsRef<[u8]>,
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn pseudoheader_checksum(&self) -> u64 {
@@ -236,11 +233,11 @@ where
     }
 }
 
-impl<B, PHI, const MAX_EXTENSIONS: usize> TcpUdpChecksum
-    for DataBuffer<B, Udp<Ipv6Extensions<PHI, MAX_EXTENSIONS>>>
+impl<B, PHM, const MAX_EXTENSIONS: usize> TcpUdpChecksum
+    for DataBuffer<B, Udp<Ipv6Extensions<PHM, MAX_EXTENSIONS>>>
 where
     B: AsRef<[u8]>,
-    PHI: HeaderInformation + HeaderInformationMut + Ipv6Marker,
+    PHM: HeaderMetadata + HeaderMetadataMut + Ipv6Marker,
 {
     #[inline]
     fn pseudoheader_checksum(&self) -> u64 {
@@ -248,13 +245,13 @@ where
     }
 }
 
-impl<PHI> HeaderInformation for Udp<PHI>
+impl<PHM> HeaderMetadata for Udp<PHM>
 where
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn headroom_internal(&self) -> usize {
-        self.previous_header_information.headroom_internal()
+        self.previous_header_metadata.headroom_internal()
     }
 
     #[inline]
@@ -262,7 +259,7 @@ where
         if layer == LAYER {
             self.header_start_offset
         } else {
-            self.previous_header_information.header_start_offset(layer)
+            self.previous_header_metadata.header_start_offset(layer)
         }
     }
 
@@ -271,7 +268,7 @@ where
         if layer == LAYER {
             self.header_length
         } else {
-            self.previous_header_information.header_length(layer)
+            self.previous_header_metadata.header_length(layer)
         }
     }
 
@@ -282,17 +279,17 @@ where
 
     #[inline]
     fn data_length(&self) -> usize {
-        self.previous_header_information.data_length()
+        self.previous_header_metadata.data_length()
     }
 }
 
-impl<PHI, const MAX_EXTENSIONS: usize> Ipv6ExtMetaData<MAX_EXTENSIONS> for Udp<PHI>
+impl<PHM, const MAX_EXTENSIONS: usize> Ipv6ExtMetaData<MAX_EXTENSIONS> for Udp<PHM>
 where
-    PHI: HeaderInformation + HeaderInformationMut + Ipv6ExtMarker<MAX_EXTENSIONS>,
+    PHM: HeaderMetadata + HeaderMetadataMut + Ipv6ExtMarker<MAX_EXTENSIONS>,
 {
     #[inline]
     fn extensions_array(&self) -> &[Ipv6ExtensionMetadata; MAX_EXTENSIONS] {
-        self.previous_header_information.extensions_array()
+        self.previous_header_metadata.extensions_array()
     }
 
     #[inline]
@@ -300,39 +297,39 @@ where
         &self,
         idx: usize,
     ) -> Result<Ipv6ExtensionMetadata, Ipv6ExtensionIndexOutOfBoundsError> {
-        self.previous_header_information.extension(idx)
+        self.previous_header_metadata.extension(idx)
     }
 
     #[inline]
     fn extensions_amount(&self) -> usize {
-        self.previous_header_information.extensions_amount()
+        self.previous_header_metadata.extensions_amount()
     }
 }
 
-impl<PHI, const MAX_EXTENSIONS: usize> Ipv6ExtMetaDataMut<MAX_EXTENSIONS> for Udp<PHI>
+impl<PHM, const MAX_EXTENSIONS: usize> Ipv6ExtMetaDataMut<MAX_EXTENSIONS> for Udp<PHM>
 where
-    PHI: HeaderInformation + HeaderInformationMut + Ipv6ExtMarker<MAX_EXTENSIONS>,
+    PHM: HeaderMetadata + HeaderMetadataMut + Ipv6ExtMarker<MAX_EXTENSIONS>,
 {
     #[inline]
     fn extensions_array_mut(&mut self) -> &mut [Ipv6ExtensionMetadata; MAX_EXTENSIONS] {
-        self.previous_header_information.extensions_array_mut()
+        self.previous_header_metadata.extensions_array_mut()
     }
 }
 
-impl<PHI> HeaderInformationMut for Udp<PHI>
+impl<PHM> HeaderMetadataMut for Udp<PHM>
 where
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn headroom_internal_mut(&mut self) -> &mut usize {
-        self.previous_header_information.headroom_internal_mut()
+        self.previous_header_metadata.headroom_internal_mut()
     }
 
     #[inline]
     fn increase_header_start_offset(&mut self, increase_by: usize, layer: Layer) {
         if layer != LAYER {
             self.header_start_offset += increase_by;
-            self.previous_header_information
+            self.previous_header_metadata
                 .increase_header_start_offset(increase_by, layer);
         }
     }
@@ -341,7 +338,7 @@ where
     fn decrease_header_start_offset(&mut self, decrease_by: usize, layer: Layer) {
         if layer != LAYER {
             self.header_start_offset -= decrease_by;
-            self.previous_header_information
+            self.previous_header_metadata
                 .decrease_header_start_offset(decrease_by, layer);
         }
     }
@@ -351,7 +348,7 @@ where
         if layer == LAYER {
             &mut self.header_length
         } else {
-            self.previous_header_information.header_length_mut(layer)
+            self.previous_header_metadata.header_length_mut(layer)
         }
     }
 
@@ -360,17 +357,17 @@ where
         &mut self,
         data_length: usize,
         buffer_length: usize,
-    ) -> Result<(), UnexpectedBufferEndError> {
-        self.previous_header_information
+    ) -> Result<(), LengthExceedsAvailableSpaceError> {
+        self.previous_header_metadata
             .set_data_length(data_length, buffer_length)
     }
 }
 
-impl<B, PHI> Payload for DataBuffer<B, Udp<PHI>>
+impl<B, PHM> Payload for DataBuffer<B, Udp<PHM>>
 where
     B: AsRef<[u8]>,
-    PHI: HeaderInformation + HeaderInformationMut,
-    DataBuffer<B, Udp<PHI>>: TcpUdpChecksum,
+    PHM: HeaderMetadata + HeaderMetadataMut,
+    DataBuffer<B, Udp<PHM>>: TcpUdpChecksum,
 {
     #[inline]
     fn payload(&self) -> &[u8] {
@@ -385,11 +382,11 @@ where
     }
 }
 
-impl<B, PHI> PayloadMut for DataBuffer<B, Udp<PHI>>
+impl<B, PHM> PayloadMut for DataBuffer<B, Udp<PHM>>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
-    PHI: HeaderInformation + HeaderInformationMut,
-    DataBuffer<B, Udp<PHI>>: TcpUdpChecksum,
+    PHM: HeaderMetadata + HeaderMetadataMut,
+    DataBuffer<B, Udp<PHM>>: TcpUdpChecksum,
 {
     #[inline]
     fn payload_mut(&mut self) -> &mut [u8] {
@@ -399,31 +396,31 @@ where
     }
 }
 
-impl<B, H> UdpMethods for DataBuffer<B, H>
+impl<B, HM> UdpMethods for DataBuffer<B, HM>
 where
     B: AsRef<[u8]>,
-    H: HeaderInformation + HeaderInformationMut + UdpMarker,
-    DataBuffer<B, H>: TcpUdpChecksum,
+    HM: HeaderMetadata + HeaderMetadataMut + UdpMarker,
+    DataBuffer<B, HM>: TcpUdpChecksum,
 {
 }
 
-impl<B, H> UdpMethodsMut for DataBuffer<B, H>
+impl<B, HM> UdpMethodsMut for DataBuffer<B, HM>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
-    H: HeaderInformation + HeaderInformationMut + UdpMarker,
-    DataBuffer<B, H>: TcpUdpChecksum + UpdateIpLength,
+    HM: HeaderMetadata + HeaderMetadataMut + UdpMarker,
+    DataBuffer<B, HM>: TcpUdpChecksum + UpdateIpLength,
 {
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::data_buffer::{DataBuffer, HeaderInformation, Layer, Payload, PayloadMut};
-    use crate::error::{UnexpectedBufferEndError, WrongChecksumError};
+    use crate::data_buffer::{DataBuffer, HeaderMetadata, Layer, Payload, PayloadMut};
+    use crate::error::{InvalidChecksumError, UnexpectedBufferEndError};
     use crate::ethernet::Eth;
     use crate::ipv4::{Ipv4, Ipv4MethodsMut};
     use crate::ipv6::{Ipv6, Ipv6Methods, Ipv6MethodsMut};
     use crate::ipv6_extensions::Ipv6Extensions;
-    use crate::no_previous_header::NoPreviousHeaderInformation;
+    use crate::no_previous_header::NoPreviousHeader;
     use crate::test_utils::copy_into_slice;
     use crate::typed_protocol_headers::RoutingType;
     use crate::typed_protocol_headers::{InternetProtocolNumber, Ipv6ExtensionType};
@@ -637,9 +634,7 @@ mod tests {
             .is_ok()
         );
 
-        assert!(
-            DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(UDP, 0).is_ok()
-        );
+        assert!(DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).is_ok());
     }
 
     #[test]
@@ -668,7 +663,7 @@ mod tests {
                     actual_length: 7,
                 }
             )),
-            DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(&UDP[..7], 0)
+            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(&UDP[..7], 0)
         );
     }
 
@@ -695,10 +690,12 @@ mod tests {
         );
         ipv6.set_ipv6_payload_length(32).unwrap();
         assert_eq!(
-            Err(ParseUdpError::LengthHeaderTooLarge {
-                data_length: 8,
-                length_header: 12,
-            }),
+            Err(ParseUdpError::UnexpectedBufferEnd(
+                UnexpectedBufferEndError {
+                    expected_length: 12,
+                    actual_length: 8,
+                }
+            )),
             DataBuffer::<_, Udp<_>>::new_from_lower(ipv6.clone(), false)
         );
     }
@@ -709,7 +706,7 @@ mod tests {
         data[5] = 7;
         assert_eq!(
             Err(ParseUdpError::LengthHeaderTooSmall { length_header: 7 }),
-            DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(data, 0,)
+            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(data, 0,)
         );
     }
 
@@ -722,7 +719,7 @@ mod tests {
                     actual_length: 14,
                 }
             )),
-            DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(UDP, 500,)
+            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 500,)
         );
     }
 
@@ -731,11 +728,13 @@ mod tests {
         let mut data = UDP;
         data[4] = 0xFF;
         assert_eq!(
-            Err(ParseUdpError::LengthHeaderTooLarge {
-                data_length: 14,
-                length_header: 65292
-            }),
-            DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(data, 0,)
+            Err(ParseUdpError::UnexpectedBufferEnd(
+                UnexpectedBufferEndError {
+                    expected_length: 65292,
+                    actual_length: 14,
+                }
+            )),
+            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(data, 0,)
         );
     }
 
@@ -752,7 +751,7 @@ mod tests {
         .0;
         ipv6.set_ipv6_destination([0; 16]);
         assert_eq!(
-            Err(ParseUdpError::WrongChecksum(WrongChecksumError {
+            Err(ParseUdpError::InvalidChecksum(InvalidChecksumError {
                 calculated_checksum: 65501
             })),
             DataBuffer::<_, Udp<_>>::new_from_lower(ipv6.clone(), true)
@@ -762,8 +761,7 @@ mod tests {
     #[test]
     fn udp_source_port() {
         let udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(UDP, 0)
-                .unwrap();
+            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
 
         assert_eq!(0x1234, udp_datagram.udp_source_port());
     }
@@ -771,8 +769,7 @@ mod tests {
     #[test]
     fn udp_destination_port() {
         let udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(UDP, 0)
-                .unwrap();
+            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
 
         assert_eq!(0x4567, udp_datagram.udp_destination_port());
     }
@@ -780,8 +777,7 @@ mod tests {
     #[test]
     fn udp_length() {
         let udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(UDP, 0)
-                .unwrap();
+            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
 
         assert_eq!(0xC, udp_datagram.udp_length());
     }
@@ -789,8 +785,7 @@ mod tests {
     #[test]
     fn udp_checksum() {
         let udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(UDP, 0)
-                .unwrap();
+            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
 
         assert_eq!(0xABCD, udp_datagram.udp_checksum());
     }
@@ -798,8 +793,7 @@ mod tests {
     #[test]
     fn udp_calculate_checksum() {
         let udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(UDP, 0)
-                .unwrap();
+            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
 
         assert_eq!(0xFC8A, udp_datagram.udp_calculate_checksum());
     }
@@ -807,8 +801,7 @@ mod tests {
     #[test]
     fn payload() {
         let udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(UDP, 0)
-                .unwrap();
+            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
 
         assert_eq!(&[0xFF; 4], udp_datagram.payload());
     }
@@ -816,8 +809,7 @@ mod tests {
     #[test]
     fn payload_mut() {
         let mut udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(UDP, 0)
-                .unwrap();
+            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
 
         assert_eq!(&[0xFF; 4], udp_datagram.payload_mut());
     }
@@ -825,8 +817,7 @@ mod tests {
     #[test]
     fn payload_length() {
         let udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(UDP, 0)
-                .unwrap();
+            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
 
         assert_eq!(4, udp_datagram.payload_length());
     }
@@ -834,8 +825,7 @@ mod tests {
     #[test]
     fn set_udp_source_port() {
         let mut udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(UDP, 0)
-                .unwrap();
+            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
 
         assert_eq!(0x1234, udp_datagram.udp_source_port());
         udp_datagram.set_udp_source_port(0xFFDD);
@@ -845,8 +835,7 @@ mod tests {
     #[test]
     fn set_udp_destination_port() {
         let mut udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(UDP, 0)
-                .unwrap();
+            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
 
         assert_eq!(0x4567, udp_datagram.udp_destination_port());
         udp_datagram.set_udp_destination_port(0xFFDD);
@@ -904,8 +893,7 @@ mod tests {
     #[test]
     fn set_udp_checksum() {
         let mut udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(UDP, 0)
-                .unwrap();
+            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
 
         assert_eq!(0xABCD, udp_datagram.udp_checksum());
         udp_datagram.set_udp_checksum(0xFFDD);
@@ -915,8 +903,7 @@ mod tests {
     #[test]
     fn update_udp_checksum() {
         let mut udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(UDP, 0)
-                .unwrap();
+            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
 
         assert_eq!(0xABCD, udp_datagram.udp_checksum());
         udp_datagram.update_udp_checksum();

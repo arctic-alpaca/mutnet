@@ -18,7 +18,7 @@ pub enum Ecn {
 
 impl core::fmt::Display for Ecn {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_fmt(format_args!("{:?}", self))
+        f.write_fmt(format_args!("{self:?}"))
     }
 }
 impl TryFrom<u8> for Ecn {
@@ -37,8 +37,10 @@ impl TryFrom<u8> for Ecn {
     }
 }
 
+/// Error returned by [`Ecn::try_from()`].
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct UnrecognizedEcnError {
+    /// The unrecognized ECN value.
     pub ecn: u8,
 }
 

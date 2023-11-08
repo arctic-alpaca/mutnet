@@ -1,15 +1,57 @@
+//! IPv6 extensions specific errors.
+
 use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError};
 use crate::typed_protocol_headers::UnrecognizedInternetProtocolNumberError;
-use crate::typed_protocol_headers::UnrecognizedIpv6ExtensionError;
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
 use core::fmt::{Debug, Display, Formatter};
 #[cfg(feature = "std")]
 use std::error;
 
+/// Error returned when parsing IPv6 extension headers.
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub enum ParseIpv6ExtensionsError {
+    /// The data buffer ended unexpectedly.
+    UnexpectedBufferEnd(UnexpectedBufferEndError),
+    /// The extension limit is reached.
+    ExtensionLimitReached,
+    /// A hop by hop extension header was found anywhere else but the first extension header.
+    InvalidHopByHopPosition,
+}
+
+impl From<UnexpectedBufferEndError> for ParseIpv6ExtensionsError {
+    fn from(value: UnexpectedBufferEndError) -> Self {
+        Self::UnexpectedBufferEnd(value)
+    }
+}
+
+impl Display for ParseIpv6ExtensionsError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::UnexpectedBufferEnd(err) => {
+                write!(f, "{err}")
+            }
+            Self::ExtensionLimitReached => {
+                write!(f, "More extensions than MAX_EXTENSION")
+            }
+            Self::InvalidHopByHopPosition => {
+                write!(f, "A hop by hop extension was not the first extension")
+            }
+        }
+    }
+}
+
+#[cfg(feature = "error_trait")]
+impl error::Error for ParseIpv6ExtensionsError {}
+
+/// Error returned by methods accessing the IPv6 extensions list with an index out of bounds.
+///
+/// This happens when requesting the third extension when only two extension where found when parsing.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Ipv6ExtensionIndexOutOfBoundsError {
+    /// Index requested.
     pub used_index: usize,
+    /// Amount of IPv6 extensions parsed.
     pub extension_amount: usize,
 }
 
@@ -26,10 +68,13 @@ impl Display for Ipv6ExtensionIndexOutOfBoundsError {
 #[cfg(feature = "error_trait")]
 impl error::Error for Ipv6ExtensionIndexOutOfBoundsError {}
 
+/// Error returned by methods accessing IPv6 extension header fields.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum Ipv6ExtFieldError {
+    /// The requested IPv6 extension does not exist.
     Ipv6ExtensionIndexOutOfBounds(Ipv6ExtensionIndexOutOfBoundsError),
-    FieldDoesNotExist,
+    /// The requested header field does not exist for this IPv6 extension type.
+    HeaderFieldDoesNotExist,
 }
 
 impl Display for Ipv6ExtFieldError {
@@ -38,10 +83,10 @@ impl Display for Ipv6ExtFieldError {
             Self::Ipv6ExtensionIndexOutOfBounds(err) => {
                 write!(f, "{err}")
             }
-            Self::FieldDoesNotExist => {
+            Self::HeaderFieldDoesNotExist => {
                 write!(
                     f,
-                    "This data field does not exist for the requested extension type"
+                    "This header field does not exist for the requested IPv6 extension type"
                 )
             }
         }
@@ -57,10 +102,14 @@ impl From<Ipv6ExtensionIndexOutOfBoundsError> for Ipv6ExtFieldError {
 #[cfg(feature = "error_trait")]
 impl error::Error for Ipv6ExtFieldError {}
 
+/// Error returned by methods manipulating the length header field of IPv6 extensions.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum Ipv6ExtSetFieldError {
+    /// The requested IPv6 extension does not exist.
     Ipv6ExtensionIndexOutOfBounds(Ipv6ExtensionIndexOutOfBoundsError),
-    FieldDoesNotExist,
+    /// The requested header field does not exist for this IPv6 extension type.
+    HeaderFieldDoesNotExist,
+    /// Not enough headroom available.
     NotEnoughHeadroom(NotEnoughHeadroomError),
 }
 
@@ -70,7 +119,7 @@ impl Display for Ipv6ExtSetFieldError {
             Self::Ipv6ExtensionIndexOutOfBounds(err) => {
                 write!(f, "{err}")
             }
-            Self::FieldDoesNotExist => {
+            Self::HeaderFieldDoesNotExist => {
                 write!(
                     f,
                     "This data field does not exist for the requested extension type"
@@ -98,51 +147,12 @@ impl From<NotEnoughHeadroomError> for Ipv6ExtSetFieldError {
 #[cfg(feature = "error_trait")]
 impl error::Error for Ipv6ExtSetFieldError {}
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub enum ParseIpv6ExtensionsError {
-    UnexpectedBufferEnd(UnexpectedBufferEndError),
-    UnrecognizedIpv6Extension(UnrecognizedIpv6ExtensionError),
-    ExtensionLimitReached,
-    InvalidHopByHopPosition,
-}
-
-impl From<UnexpectedBufferEndError> for ParseIpv6ExtensionsError {
-    fn from(value: UnexpectedBufferEndError) -> Self {
-        Self::UnexpectedBufferEnd(value)
-    }
-}
-
-impl From<UnrecognizedIpv6ExtensionError> for ParseIpv6ExtensionsError {
-    fn from(value: UnrecognizedIpv6ExtensionError) -> Self {
-        Self::UnrecognizedIpv6Extension(value)
-    }
-}
-
-impl Display for ParseIpv6ExtensionsError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::UnexpectedBufferEnd(err) => {
-                write!(f, "{err}")
-            }
-            Self::UnrecognizedIpv6Extension(err) => {
-                write!(f, "{err}")
-            }
-            Self::ExtensionLimitReached => {
-                write!(f, "More extensions than MAX_EXTENSION")
-            }
-            Self::InvalidHopByHopPosition => {
-                write!(f, "Hop by hop extension was not the first extension")
-            }
-        }
-    }
-}
-
-#[cfg(feature = "error_trait")]
-impl error::Error for ParseIpv6ExtensionsError {}
-
+/// Error returned by IPv6 extension methods returning a typed internet protocol number.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum Ipv6ExtTypedHeaderError {
+    /// The requested IPv6 extension does not exist.
     Ipv6ExtensionIndexOutOfBounds(Ipv6ExtensionIndexOutOfBoundsError),
+    /// Internet protocol number is not recognized.
     UnrecognizedInternetProtocolNumber(UnrecognizedInternetProtocolNumberError),
 }
 

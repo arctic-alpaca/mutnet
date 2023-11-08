@@ -4,19 +4,27 @@
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 #[cfg_attr(kani, derive(kani::Arbitrary))]
 pub enum RoutingType {
+    /// Source route (deprecated)
     SourceRoute = 0,
+    /// Nimrod (deprecated)
     Nimrod = 1,
+    /// Type 2 routing header
     Type2RoutingHeader = 2,
+    /// RPL source route header
     RplSourceRouteHeader = 3,
+    /// Segment routing header
     SegmentRoutingHeader = 4,
+    /// RFC3692-style experiment 1
     Rfc3692StyleExperiment1 = 253,
+    /// RFC3692-style experiment 2
     Rfc3692StyleExperiment2 = 254,
+    /// Reserverd
     Reserved = 255,
 }
 
 impl core::fmt::Display for RoutingType {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_fmt(format_args!("{:?}", self))
+        f.write_fmt(format_args!("{self:?}"))
     }
 }
 
@@ -41,8 +49,10 @@ impl TryFrom<u8> for RoutingType {
     }
 }
 
+/// Error returned by [`RoutingType::try_from()`].
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct UnrecognizedRoutingTypeError {
+    /// The unrecognized routing type value.
     pub routing_type: u8,
 }
 

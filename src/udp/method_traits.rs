@@ -1,6 +1,8 @@
+//! UDP access and manipulation methods.
+
 use crate::checksum::internet_checksum;
 use crate::data_buffer::{
-    BufferAccess, BufferAccessMut, HeaderInformation, HeaderManipulation, Layer,
+    BufferAccess, BufferAccessMut, HeaderManipulation, HeaderMetadata, Layer,
 };
 use crate::udp::SetLengthError;
 use crate::utility_traits::{TcpUdpChecksum, UpdateIpLength};
@@ -18,27 +20,40 @@ pub(crate) const LAYER: Layer = Layer::Udp;
 // Length manipulating methods:
 // - set_udp_length (has proof)
 
-pub trait UdpMethods: HeaderInformation + TcpUdpChecksum + BufferAccess {
+/// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
+/// [`Udp`](crate::udp::Udp) header.
+pub trait UdpMethods: HeaderMetadata + TcpUdpChecksum + BufferAccess {
+    /// Returns the UDP source port.
     #[inline]
     fn udp_source_port(&self) -> u16 {
         u16::from_be_bytes(self.read_array(LAYER, SOURCE_PORT))
     }
 
+    /// Returns the UDP destination port.
     #[inline]
     fn udp_destination_port(&self) -> u16 {
         u16::from_be_bytes(self.read_array(LAYER, DESTINATION_PORT))
     }
 
+    /// Returns the UDP length.
     #[inline]
     fn udp_length(&self) -> u16 {
         u16::from_be_bytes(self.read_array(LAYER, LENGTH))
     }
 
+    /// Returns the UDP checksum.
     #[inline]
     fn udp_checksum(&self) -> u16 {
         u16::from_be_bytes(self.read_array(LAYER, CHECKSUM))
     }
 
+    /// Calculates and returns the UDP checksum.
+    ///
+    /// This takes lower layers into account.
+    /// If there is an [`IPv4`](crate::ipv4::Ipv4) or [`IPv6`](crate::ipv6::Ipv6) layer present,
+    /// the pseudo header will be included.
+    /// If there is a [`NoPreviousHeader`](crate::no_previous_header::NoPreviousHeader) present,
+    /// the pseudo header is set to zero.
     #[inline]
     fn udp_calculate_checksum(&self) -> u16 {
         let pseudoheader_checksum = self.pseudoheader_checksum();
@@ -51,8 +66,10 @@ pub trait UdpMethods: HeaderInformation + TcpUdpChecksum + BufferAccess {
     }
 }
 
+/// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
+/// [`Udp`](crate::tcp::Udp) header and wrapping a mutable data buffer.
 pub trait UdpMethodsMut:
-    HeaderInformation
+    HeaderMetadata
     + HeaderManipulation
     + BufferAccessMut
     + UdpMethods
@@ -60,16 +77,28 @@ pub trait UdpMethodsMut:
     + UpdateIpLength
     + Sized
 {
+    /// Sets the UDP source port.
     #[inline]
     fn set_udp_source_port(&mut self, port: u16) {
         self.write_slice(LAYER, SOURCE_PORT, &port.to_be_bytes());
     }
 
+    /// Sets the UDP destination port.
     #[inline]
     fn set_udp_destination_port(&mut self, port: u16) {
         self.write_slice(LAYER, DESTINATION_PORT, &port.to_be_bytes());
     }
 
+    /// Sets the UDP length.
+    ///
+    /// This takes lower layers into account.
+    /// If there is an [`IPv4`](crate::ipv4::Ipv4) or [`IPv6`](crate::ipv6::Ipv6) layer present,
+    /// the length of that header will be updated accordingly.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - the provided `length` is smaller than eight.
+    /// - the `length` exceeds the available space.
     #[inline]
     fn set_udp_length(&mut self, length: u16) -> Result<(), SetLengthError> {
         let length_usize = usize::from(length);
@@ -88,11 +117,19 @@ pub trait UdpMethodsMut:
         Ok(())
     }
 
+    /// Sets the UDP checksum.
     #[inline]
     fn set_udp_checksum(&mut self, checksum: u16) {
-        self.write_slice(LAYER, CHECKSUM, &checksum.to_be_bytes())
+        self.write_slice(LAYER, CHECKSUM, &checksum.to_be_bytes());
     }
 
+    /// Calculates and updates the UDP checksum.
+    ///
+    /// This takes lower layers into account.
+    /// If there is an [`IPv4`](crate::ipv4::Ipv4) or [`IPv6`](crate::ipv6::Ipv6) layer present,
+    /// the pseudo header will be included.
+    /// If there is a [`NoPreviousHeader`](crate::no_previous_header::NoPreviousHeader) present,
+    /// the pseudo header is set to zero.
     #[inline]
     fn update_udp_checksum(&mut self) {
         self.write_slice(LAYER, CHECKSUM, &[0, 0]);

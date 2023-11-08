@@ -2,7 +2,7 @@ use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughpu
 use etherparse::{Ipv6ExtensionsSlice, ReadError};
 use mutnet::data_buffer::DataBuffer;
 use mutnet::ipv6_extensions::{Ipv6Extensions, ParseIpv6ExtensionsError};
-use mutnet::no_previous_header::NoPreviousHeaderInformation;
+use mutnet::no_previous_header::NoPreviousHeader;
 use mutnet::typed_protocol_headers::Ipv6ExtensionType;
 use rand::{thread_rng, Rng};
 
@@ -113,12 +113,12 @@ fn mutnet_new<const MAX_EXTENSIONS: usize>(
     first_extension: Ipv6ExtensionType,
 ) -> Result<
     (
-        DataBuffer<&mut [u8], Ipv6Extensions<NoPreviousHeaderInformation, MAX_EXTENSIONS>>,
+        DataBuffer<&mut [u8], Ipv6Extensions<NoPreviousHeader, MAX_EXTENSIONS>>,
         bool,
     ),
     ParseIpv6ExtensionsError,
 > {
-    DataBuffer::<_, Ipv6Extensions<NoPreviousHeaderInformation, MAX_EXTENSIONS>>::new(
+    DataBuffer::<_, Ipv6Extensions<NoPreviousHeader, MAX_EXTENSIONS>>::new(
         bytes,
         0,
         first_extension,

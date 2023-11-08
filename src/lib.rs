@@ -5,8 +5,9 @@
 )]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
-#![warn(unreachable_pub)]
+#![forbid(unreachable_pub)]
 #![allow(private_bounds)]
+#![warn(missing_docs)]
 
 mod internal_utils;
 mod test_utils;
@@ -27,4 +28,3 @@ pub mod no_previous_header;
 pub mod tcp;
 pub mod typed_protocol_headers;
 pub mod udp;
-pub mod vlan;

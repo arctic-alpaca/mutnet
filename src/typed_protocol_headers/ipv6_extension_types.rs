@@ -4,15 +4,19 @@
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 #[cfg_attr(kani, derive(kani::Arbitrary))]
 pub enum Ipv6ExtensionType {
+    /// Hop-by-hop
     HopByHop = 0,
+    /// Routing
     Routing = 43,
+    /// Fragment
     Fragment = 44,
+    /// Destination options
     DestinationOptions = 60,
 }
 
 impl core::fmt::Display for Ipv6ExtensionType {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_fmt(format_args!("{:?}", self))
+        f.write_fmt(format_args!("{self:?}"))
     }
 }
 impl TryFrom<u8> for Ipv6ExtensionType {
@@ -32,8 +36,10 @@ impl TryFrom<u8> for Ipv6ExtensionType {
     }
 }
 
+/// Error returned by [`Ipv6ExtensionType::try_from()`].
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct UnrecognizedIpv6ExtensionError {
+    /// The unrecognized IPv6 extension type value.
     pub ipv6_extension: u8,
 }
 

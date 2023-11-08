@@ -69,7 +69,7 @@ pub enum OptionType {
 
 impl core::fmt::Display for OptionType {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_fmt(format_args!("{:?}", self))
+        f.write_fmt(format_args!("{self:?}"))
     }
 }
 
@@ -114,8 +114,10 @@ impl TryFrom<u8> for OptionType {
     }
 }
 
+/// Error returned by [`OptionType::try_from()`].
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct UnrecognizedOptionTypeError {
+    /// The unrecognized option type value.
     pub option_type: u8,
 }
 

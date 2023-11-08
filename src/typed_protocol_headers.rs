@@ -1,3 +1,5 @@
+//! Typed versions of protocol header fields.
+
 mod arp_operation_code;
 pub(crate) mod constants;
 mod ether_type;

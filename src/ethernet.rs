@@ -1,4 +1,4 @@
-//! Ethernet II type and method traits.
+//! Ethernet II implementation and Ethernet II specific errors.
 
 mod method_traits;
 
@@ -8,10 +8,10 @@ pub use method_traits::*;
 mod verification;
 
 use crate::data_buffer::traits::{
-    BufferAccess, BufferAccessMut, HeaderInformation, HeaderInformationMut, Layer,
+    BufferAccess, BufferAccessMut, HeaderMetadata, HeaderMetadataMut, Layer,
 };
 use crate::data_buffer::{DataBuffer, EthernetMarker, Payload, PayloadMut};
-use crate::error::UnexpectedBufferEndError;
+use crate::error::{LengthExceedsAvailableSpaceError, UnexpectedBufferEndError};
 use crate::ieee802_1q_vlan::UpdateEtherTypeBelowIeee802_1q;
 use crate::internal_utils::check_and_calculate_data_length;
 use crate::typed_protocol_headers::EtherType;
@@ -21,10 +21,11 @@ use crate::typed_protocol_headers::EtherType;
 /// Contains meta data about the Ethernet II header in the parsed data buffer.
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub struct Eth {
+    /// Amount of headroom.
     headroom: usize,
-    header_start_offset: usize,
+    /// Header length.
     header_length: usize,
-    /// Length of the network data
+    /// Length of the network data.
     data_length: usize,
 }
 
@@ -35,7 +36,7 @@ impl<B> DataBuffer<B, Eth>
 where
     B: AsRef<[u8]>,
 {
-    /// Parses data and creates a new [DataBuffer] for an Ethernet layer.
+    /// Parses data and creates a new [`DataBuffer`] for an Ethernet layer.
     ///
     /// The provided `headroom` indicates the amount of headroom in the provided `buf`.
     ///
@@ -48,8 +49,7 @@ where
             check_and_calculate_data_length(buf.as_ref().len(), headroom, HEADER_MIN_LEN)?;
 
         Ok(DataBuffer {
-            header_information: Eth {
-                header_start_offset: 0,
+            header_metadata: Eth {
                 headroom,
                 header_length: HEADER_MIN_LEN,
                 data_length,
@@ -59,7 +59,7 @@ where
     }
 }
 
-impl HeaderInformation for Eth {
+impl HeaderMetadata for Eth {
     #[inline]
     fn headroom_internal(&self) -> usize {
         self.headroom
@@ -67,7 +67,7 @@ impl HeaderInformation for Eth {
 
     #[inline]
     fn header_start_offset(&self, _layer: Layer) -> usize {
-        self.header_start_offset
+        0
     }
 
     /// By returning 0 if the layer does not exists, it is possible to use header length in calculations
@@ -92,7 +92,7 @@ impl HeaderInformation for Eth {
     }
 }
 
-impl HeaderInformationMut for Eth {
+impl HeaderMetadataMut for Eth {
     #[inline]
     fn headroom_internal_mut(&mut self) -> &mut usize {
         &mut self.headroom
@@ -118,11 +118,11 @@ impl HeaderInformationMut for Eth {
         &mut self,
         data_length: usize,
         buffer_length: usize,
-    ) -> Result<(), UnexpectedBufferEndError> {
+    ) -> Result<(), LengthExceedsAvailableSpaceError> {
         if data_length + self.headroom > buffer_length {
-            Err(UnexpectedBufferEndError {
-                expected_length: data_length,
-                actual_length: buffer_length - self.headroom,
+            Err(LengthExceedsAvailableSpaceError {
+                required_space: data_length,
+                available_space: buffer_length - self.headroom,
             })
         } else {
             self.data_length = data_length;
@@ -131,33 +131,33 @@ impl HeaderInformationMut for Eth {
     }
 }
 
-impl<B, H> EthernetMethods for DataBuffer<B, H>
+impl<B, HM> EthernetMethods for DataBuffer<B, HM>
 where
     B: AsRef<[u8]>,
-    H: HeaderInformation + HeaderInformationMut + EthernetMarker,
+    HM: HeaderMetadata + HeaderMetadataMut + EthernetMarker,
 {
 }
 
-impl<B, H> EthernetMethodsMut for DataBuffer<B, H>
+impl<B, HM> EthernetMethodsMut for DataBuffer<B, HM>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
-    H: HeaderInformation + HeaderInformationMut + EthernetMarker + Sized,
+    HM: HeaderMetadata + HeaderMetadataMut + EthernetMarker + Sized,
 {
 }
 
-impl<B, H> UpdateEtherTypeBelowIeee802_1q for DataBuffer<B, H>
+impl<B, HM> UpdateEtherTypeBelowIeee802_1q for DataBuffer<B, HM>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
-    H: HeaderInformation + HeaderInformationMut + EthernetMarker + Sized,
+    HM: HeaderMetadata + HeaderMetadataMut + EthernetMarker + Sized,
 {
     #[inline]
     fn set_single_tagged(&mut self) {
-        self.set_ethernet_ether_type(EtherType::CustomerTag)
+        self.set_ethernet_ether_type(EtherType::CustomerTag);
     }
 
     #[inline]
     fn set_double_tagged(&mut self) {
-        self.set_ethernet_ether_type(EtherType::ServiceTag)
+        self.set_ethernet_ether_type(EtherType::ServiceTag);
     }
 }
 
@@ -190,9 +190,9 @@ where
 #[cfg(test)]
 mod tests {
 
-    use crate::data_buffer::traits::HeaderInformationMut;
+    use crate::data_buffer::traits::HeaderMetadataMut;
     use crate::data_buffer::{DataBuffer, Payload, PayloadMut};
-    use crate::error::UnexpectedBufferEndError;
+    use crate::error::{LengthExceedsAvailableSpaceError, UnexpectedBufferEndError};
     use crate::ethernet::{Eth, EthernetMethods, EthernetMethodsMut};
     use crate::test_utils::copy_into_slice;
     use crate::typed_protocol_headers::EtherType;
@@ -348,9 +348,9 @@ mod tests {
         assert_eq!(16, ethernet_frame.payload_length());
 
         assert_eq!(
-            Err(UnexpectedBufferEndError {
-                expected_length: 65,
-                actual_length: 64,
+            Err(LengthExceedsAvailableSpaceError {
+                required_space: 65,
+                available_space: 64,
             }),
             ethernet_frame.set_data_length(65, ETHERNET_FRAME.len())
         );
@@ -359,9 +359,9 @@ mod tests {
         let data_len = data.len();
         let mut ethernet_frame = DataBuffer::<_, Eth>::new(&mut data, 10).unwrap();
         assert_eq!(
-            Err(UnexpectedBufferEndError {
-                expected_length: 99,
-                actual_length: 90,
+            Err(LengthExceedsAvailableSpaceError {
+                required_space: 99,
+                available_space: 90,
             }),
             ethernet_frame.set_data_length(99, data_len)
         );

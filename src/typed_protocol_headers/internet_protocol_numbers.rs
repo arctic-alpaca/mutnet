@@ -303,7 +303,7 @@ pub enum InternetProtocolNumber {
 }
 impl core::fmt::Display for InternetProtocolNumber {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_fmt(format_args!("{:?}", self))
+        f.write_fmt(format_args!("{self:?}"))
     }
 }
 impl TryFrom<u8> for InternetProtocolNumber {
@@ -467,8 +467,10 @@ impl TryFrom<u8> for InternetProtocolNumber {
     }
 }
 
+/// Error returned by [`InternetProtocolNumber::try_from()`].
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct UnrecognizedInternetProtocolNumberError {
+    /// The unrecognized internet protocol number.
     pub internet_protocol_number: u8,
 }
 

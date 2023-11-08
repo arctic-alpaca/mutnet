@@ -1,4 +1,4 @@
-//! IEEE 802.1Q type and method traits.
+//! IEEE 802.1Q implementation and IEEE 802.1Q specific errors.
 
 mod error;
 mod method_traits;
@@ -9,34 +9,46 @@ pub use method_traits::*;
 #[cfg(all(feature = "remove_checksum", feature = "verify_vlan", kani))]
 mod verification;
 
-use crate::data_buffer::traits::HeaderInformationExtraction;
+use crate::data_buffer::traits::HeaderMetadataExtraction;
 use crate::data_buffer::traits::{
-    BufferAccess, BufferAccessMut, HeaderInformation, HeaderInformationMut, Layer,
+    BufferAccess, BufferAccessMut, HeaderMetadata, HeaderMetadataMut, Layer,
 };
 use crate::data_buffer::{
     BufferIntoInner, DataBuffer, EthernetMarker, Ieee802_1QVlanMarker, Payload, PayloadMut,
 };
-use crate::error::UnexpectedBufferEndError;
+use crate::error::LengthExceedsAvailableSpaceError;
 use crate::internal_utils::{check_and_calculate_data_length, header_start_offset_from_phi};
-use crate::no_previous_header::NoPreviousHeaderInformation;
-use crate::vlan::Vlan;
+use crate::no_previous_header::NoPreviousHeader;
+
+/// Supported VLAN tags.
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[cfg_attr(kani, derive(kani::Arbitrary))]
+pub enum Vlan {
+    /// Single tagged.
+    SingleTagged,
+    /// Double tagged.
+    DoubleTagged,
+}
 
 /// IEEE 802.1Q metadata.
 ///
 /// Contains meta data about the IEEE 802.1Q header in the parsed data buffer.
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
-pub struct Ieee802_1QVlan<PHI: HeaderInformation + HeaderInformationMut> {
+pub struct Ieee802_1QVlan<PHM: HeaderMetadata + HeaderMetadataMut> {
+    /// Offset from the start of the non-headroom part of the data buffer.
     header_start_offset: usize,
+    /// Header length.
     header_length: usize,
-    previous_header_information: PHI,
+    /// Metadata of the previous header(s).
+    previous_header_metadata: PHM,
 }
 
-impl<B, PHI> DataBuffer<B, Ieee802_1QVlan<PHI>>
+impl<B, PHM> DataBuffer<B, Ieee802_1QVlan<PHM>>
 where
     B: AsRef<[u8]>,
-    PHI: HeaderInformation + HeaderInformationMut + Copy,
+    PHM: HeaderMetadata + HeaderMetadataMut + Copy,
 {
-    /// Parses `buf` and creates a new [DataBuffer] for an IEEE 802.1Q layer with no previous layers.
+    /// Parses `buf` and creates a new [`DataBuffer`] for an IEEE 802.1Q layer with no previous layers.
     ///
     /// `headroom` indicates the amount of headroom in the provided `buf`.
     ///
@@ -50,17 +62,15 @@ where
         buf: B,
         headroom: usize,
         expected_vlan_tags: Vlan,
-    ) -> Result<DataBuffer<B, Ieee802_1QVlan<NoPreviousHeaderInformation>>, ParseIeee802_1QError>
-    {
-        let lower_layer_data_buffer =
-            DataBuffer::<B, NoPreviousHeaderInformation>::new(buf, headroom)?;
-        DataBuffer::<B, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new_from_lower(
+    ) -> Result<DataBuffer<B, Ieee802_1QVlan<NoPreviousHeader>>, ParseIeee802_1QError> {
+        let lower_layer_data_buffer = DataBuffer::<B, NoPreviousHeader>::new(buf, headroom)?;
+        DataBuffer::<B, Ieee802_1QVlan<NoPreviousHeader>>::new_from_lower(
             lower_layer_data_buffer,
             expected_vlan_tags,
         )
     }
 
-    /// Consumes the `lower_layer_data_buffer` and creates a new [DataBuffer] with an additional
+    /// Consumes the `lower_layer_data_buffer` and creates a new [`DataBuffer`] with an additional
     /// IEEE 802.1Q layer.
     ///
     /// # Errors
@@ -70,13 +80,13 @@ where
     /// - no customer tag is found if `expected_vlan_tag` indicates double tagging.
     #[inline]
     pub fn new_from_lower(
-        lower_layer_data_buffer: impl HeaderInformation
+        lower_layer_data_buffer: impl HeaderMetadata
             + Payload
             + BufferIntoInner<B>
-            + HeaderInformationExtraction<PHI>,
+            + HeaderMetadataExtraction<PHM>,
         expected_vlan_tag: Vlan,
-    ) -> Result<DataBuffer<B, Ieee802_1QVlan<PHI>>, ParseIeee802_1QError> {
-        let previous_header_information = lower_layer_data_buffer.extract_header_information();
+    ) -> Result<DataBuffer<B, Ieee802_1QVlan<PHM>>, ParseIeee802_1QError> {
+        let previous_header_metadata = lower_layer_data_buffer.extract_header_metadata();
 
         let vlan_header_length = match expected_vlan_tag {
             Vlan::SingleTagged => {
@@ -96,7 +106,7 @@ where
 
                 if lower_layer_data_buffer.payload()[DOUBLE_TAGGED_C_TAG_INDICATOR] != [0x81, 0x00]
                 {
-                    return Err(ParseIeee802_1QError::STagWithoutCTag(STagWithoutCTagError));
+                    return Err(ParseIeee802_1QError::STagWithoutCTag);
                 }
 
                 HEADER_MIN_LEN_DOUBLE_TAGGED
@@ -104,40 +114,36 @@ where
         };
 
         Ok(Self {
-            header_information: Ieee802_1QVlan {
-                header_start_offset: header_start_offset_from_phi(previous_header_information),
+            header_metadata: Ieee802_1QVlan {
+                header_start_offset: header_start_offset_from_phi(previous_header_metadata),
                 header_length: vlan_header_length,
-                previous_header_information: *previous_header_information,
+                previous_header_metadata: *previous_header_metadata,
             },
             buffer: lower_layer_data_buffer.buffer_into_inner(),
         })
     }
 }
-impl<PHI> EthernetMarker for Ieee802_1QVlan<PHI> where
-    PHI: HeaderInformation + HeaderInformationMut + EthernetMarker
+impl<PHM> EthernetMarker for Ieee802_1QVlan<PHM> where
+    PHM: HeaderMetadata + HeaderMetadataMut + EthernetMarker
 {
 }
-impl<PHI> Ieee802_1QVlanMarker for Ieee802_1QVlan<PHI> where
-    PHI: HeaderInformation + HeaderInformationMut
-{
-}
+impl<PHM> Ieee802_1QVlanMarker for Ieee802_1QVlan<PHM> where PHM: HeaderMetadata + HeaderMetadataMut {}
 
-impl<B, H> Ieee802_1QMethods for DataBuffer<B, H>
+impl<B, HM> Ieee802_1QMethods for DataBuffer<B, HM>
 where
     B: AsRef<[u8]>,
-    H: HeaderInformation + HeaderInformationMut + Ieee802_1QVlanMarker,
+    HM: HeaderMetadata + HeaderMetadataMut + Ieee802_1QVlanMarker,
 {
 }
-impl<B, H> Ieee802_1QMethodsMut for DataBuffer<B, H>
+impl<B, HM> Ieee802_1QMethodsMut for DataBuffer<B, HM>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
-    H: HeaderInformation + HeaderInformationMut + Ieee802_1QVlanMarker,
-    DataBuffer<B, H>: UpdateEtherTypeBelowIeee802_1q,
+    HM: HeaderMetadata + HeaderMetadataMut + Ieee802_1QVlanMarker,
+    DataBuffer<B, HM>: UpdateEtherTypeBelowIeee802_1q,
 {
 }
 
-impl<B> UpdateEtherTypeBelowIeee802_1q
-    for DataBuffer<B, Ieee802_1QVlan<NoPreviousHeaderInformation>>
+impl<B> UpdateEtherTypeBelowIeee802_1q for DataBuffer<B, Ieee802_1QVlan<NoPreviousHeader>>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
 {
@@ -148,13 +154,13 @@ where
     fn set_double_tagged(&mut self) {}
 }
 
-impl<PHI> HeaderInformation for Ieee802_1QVlan<PHI>
+impl<PHM> HeaderMetadata for Ieee802_1QVlan<PHM>
 where
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn headroom_internal(&self) -> usize {
-        self.previous_header_information.headroom_internal()
+        self.previous_header_metadata.headroom_internal()
     }
 
     #[inline]
@@ -162,7 +168,7 @@ where
         if layer == LAYER {
             self.header_start_offset
         } else {
-            self.previous_header_information.header_start_offset(layer)
+            self.previous_header_metadata.header_start_offset(layer)
         }
     }
 
@@ -171,7 +177,7 @@ where
         if layer == LAYER {
             self.header_length
         } else {
-            self.previous_header_information.header_start_offset(layer)
+            self.previous_header_metadata.header_start_offset(layer)
         }
     }
 
@@ -182,24 +188,24 @@ where
 
     #[inline]
     fn data_length(&self) -> usize {
-        self.previous_header_information.data_length()
+        self.previous_header_metadata.data_length()
     }
 }
 
-impl<PHI> HeaderInformationMut for Ieee802_1QVlan<PHI>
+impl<PHM> HeaderMetadataMut for Ieee802_1QVlan<PHM>
 where
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn headroom_internal_mut(&mut self) -> &mut usize {
-        self.previous_header_information.headroom_internal_mut()
+        self.previous_header_metadata.headroom_internal_mut()
     }
 
     #[inline]
     fn increase_header_start_offset(&mut self, increase_by: usize, layer: Layer) {
         if layer != LAYER {
             self.header_start_offset += increase_by;
-            self.previous_header_information
+            self.previous_header_metadata
                 .increase_header_start_offset(increase_by, layer);
         }
     }
@@ -208,7 +214,7 @@ where
     fn decrease_header_start_offset(&mut self, decrease_by: usize, layer: Layer) {
         if layer != LAYER {
             self.header_start_offset -= decrease_by;
-            self.previous_header_information
+            self.previous_header_metadata
                 .decrease_header_start_offset(decrease_by, layer);
         }
     }
@@ -218,7 +224,7 @@ where
         if layer == LAYER {
             &mut self.header_length
         } else {
-            self.previous_header_information.header_length_mut(layer)
+            self.previous_header_metadata.header_length_mut(layer)
         }
     }
 
@@ -227,16 +233,16 @@ where
         &mut self,
         data_length: usize,
         buffer_length: usize,
-    ) -> Result<(), UnexpectedBufferEndError> {
-        self.previous_header_information
+    ) -> Result<(), LengthExceedsAvailableSpaceError> {
+        self.previous_header_metadata
             .set_data_length(data_length, buffer_length)
     }
 }
 
-impl<B, PHI> Payload for DataBuffer<B, Ieee802_1QVlan<PHI>>
+impl<B, PHM> Payload for DataBuffer<B, Ieee802_1QVlan<PHM>>
 where
     B: AsRef<[u8]>,
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn payload(&self) -> &[u8] {
@@ -250,10 +256,10 @@ where
     }
 }
 
-impl<B, PHI> PayloadMut for DataBuffer<B, Ieee802_1QVlan<PHI>>
+impl<B, PHM> PayloadMut for DataBuffer<B, Ieee802_1QVlan<PHM>>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
     fn payload_mut(&mut self) -> &mut [u8] {
@@ -265,18 +271,17 @@ where
 #[cfg(test)]
 mod tests {
     use crate::data_buffer;
-    use crate::data_buffer::traits::HeaderInformation;
+    use crate::data_buffer::traits::HeaderMetadata;
     use crate::data_buffer::{DataBuffer, Payload, PayloadMut};
     use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError};
     use crate::ethernet::{Eth, EthernetMethods};
     use crate::ieee802_1q_vlan::{
         Ieee802_1QMethods, Ieee802_1QMethodsMut, Ieee802_1QVlan, NotDoubleTaggedError,
-        ParseIeee802_1QError, STagWithoutCTagError, LAYER,
+        ParseIeee802_1QError, Vlan, LAYER,
     };
-    use crate::no_previous_header::NoPreviousHeaderInformation;
+    use crate::no_previous_header::NoPreviousHeader;
     use crate::test_utils::copy_into_slice;
     use crate::typed_protocol_headers::EtherType;
-    use crate::vlan::Vlan;
 
     const ETHERNET_SINGLE_TAGGED: [u8; 20] = [
         0x01, 0x80, 0x41, 0xAE, 0xFD, 0x7E, // Dst
@@ -314,14 +319,12 @@ mod tests {
 
     #[test]
     fn new_single_tagged() {
-        assert!(
-            DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
-                SINGLE_TAGGED,
-                0,
-                Vlan::SingleTagged,
-            )
-            .is_ok()
-        );
+        assert!(DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
+            SINGLE_TAGGED,
+            0,
+            Vlan::SingleTagged,
+        )
+        .is_ok());
     }
 
     #[test]
@@ -333,7 +336,7 @@ mod tests {
                     actual_length: 3,
                 }
             )),
-            DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+            DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
                 &SINGLE_TAGGED[..3],
                 0,
                 Vlan::SingleTagged,
@@ -350,7 +353,7 @@ mod tests {
                     actual_length: SINGLE_TAGGED.len(),
                 }
             )),
-            DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+            DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
                 &SINGLE_TAGGED,
                 SINGLE_TAGGED.len() + 1,
                 Vlan::SingleTagged,
@@ -360,14 +363,12 @@ mod tests {
 
     #[test]
     fn new_double_tagged() {
-        assert!(
-            DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
-                DOUBLE_TAGGED,
-                0,
-                Vlan::DoubleTagged,
-            )
-            .is_ok()
-        );
+        assert!(DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
+            DOUBLE_TAGGED,
+            0,
+            Vlan::DoubleTagged,
+        )
+        .is_ok());
     }
 
     #[test]
@@ -375,12 +376,8 @@ mod tests {
         let mut data = DOUBLE_TAGGED;
         data[3] = 1;
         assert_eq!(
-            Err(ParseIeee802_1QError::STagWithoutCTag(STagWithoutCTagError)),
-            DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
-                &data,
-                0,
-                Vlan::DoubleTagged,
-            )
+            Err(ParseIeee802_1QError::STagWithoutCTag),
+            DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(&data, 0, Vlan::DoubleTagged,)
         );
     }
 
@@ -393,7 +390,7 @@ mod tests {
                     actual_length: 7,
                 }
             )),
-            DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+            DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
                 &DOUBLE_TAGGED[..7],
                 0,
                 Vlan::DoubleTagged,
@@ -410,7 +407,7 @@ mod tests {
                     actual_length: DOUBLE_TAGGED.len(),
                 }
             )),
-            DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+            DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
                 &DOUBLE_TAGGED,
                 DOUBLE_TAGGED.len() + 1,
                 Vlan::DoubleTagged,
@@ -420,7 +417,7 @@ mod tests {
 
     #[test]
     fn single_tagged_ieee802_1q_c_tag_control_information() {
-        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -434,7 +431,7 @@ mod tests {
 
     #[test]
     fn double_tagged_ieee802_1q_c_tag_control_information() {
-        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -448,7 +445,7 @@ mod tests {
 
     #[test]
     fn single_tagged_ieee802_1q_c_tag_priority_code_point() {
-        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -459,7 +456,7 @@ mod tests {
 
     #[test]
     fn double_tagged_ieee802_1q_c_tag_priority_code_point() {
-        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -470,7 +467,7 @@ mod tests {
 
     #[test]
     fn single_tagged_ieee802_1q_c_tag_drop_eligible_indicator() {
-        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -481,7 +478,7 @@ mod tests {
 
     #[test]
     fn double_tagged_ieee802_1q_c_tag_drop_eligible_indicator() {
-        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -492,7 +489,7 @@ mod tests {
 
     #[test]
     fn single_tagged_ieee802_1q_c_tag_vlan_identifier() {
-        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -503,7 +500,7 @@ mod tests {
 
     #[test]
     fn double_tagged_ieee802_1q_c_tag_vlan_identifier() {
-        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -514,7 +511,7 @@ mod tests {
 
     #[test]
     fn single_tagged_ieee802_1q_s_tag_control_information() {
-        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -525,7 +522,7 @@ mod tests {
 
     #[test]
     fn double_tagged_ieee802_1q_s_tag_control_information() {
-        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -539,7 +536,7 @@ mod tests {
 
     #[test]
     fn single_tagged_ieee802_1q_s_tag_priority_code_point() {
-        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -550,7 +547,7 @@ mod tests {
 
     #[test]
     fn double_tagged_ieee802_1q_s_tag_priority_code_point() {
-        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -564,7 +561,7 @@ mod tests {
 
     #[test]
     fn single_tagged_ieee802_1q_s_tag_drop_eligible_indicator() {
-        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -578,7 +575,7 @@ mod tests {
 
     #[test]
     fn double_tagged_ieee802_1q_s_tag_drop_eligible_indicator() {
-        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -592,7 +589,7 @@ mod tests {
 
     #[test]
     fn single_tagged_ieee802_1q_s_tag_vlan_identifier() {
-        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -603,7 +600,7 @@ mod tests {
 
     #[test]
     fn double_tagged_ieee802_1q_s_tag_vlan_identifier() {
-        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -617,7 +614,7 @@ mod tests {
 
     #[test]
     fn single_tagged_ieee802_1q_typed_vlan() {
-        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -628,7 +625,7 @@ mod tests {
 
     #[test]
     fn double_tagged_ieee802_1q_typed_vlan() {
-        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -639,7 +636,7 @@ mod tests {
 
     #[test]
     fn single_tagged_ieee802_1q_ether_type() {
-        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -650,7 +647,7 @@ mod tests {
 
     #[test]
     fn double_tagged_ieee802_1q_ether_type() {
-        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -661,7 +658,7 @@ mod tests {
 
     #[test]
     fn single_tagged_ieee802_1q_typed_ether_type() {
-        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -675,7 +672,7 @@ mod tests {
 
     #[test]
     fn double_tagged_ieee802_1q_typed_ether_type() {
-        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             &DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -689,7 +686,7 @@ mod tests {
 
     #[test]
     fn single_tagged_set_ieee802_1q_c_tag_control_information() {
-        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -704,7 +701,7 @@ mod tests {
 
     #[test]
     fn double_tagged_set_ieee802_1q_c_tag_control_information() {
-        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -719,7 +716,7 @@ mod tests {
 
     #[test]
     fn single_tagged_set_ieee802_1q_c_tag_priority_code_point() {
-        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -731,7 +728,7 @@ mod tests {
 
     #[test]
     fn double_tagged_set_ieee802_1q_c_tag_priority_code_point() {
-        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -743,7 +740,7 @@ mod tests {
 
     #[test]
     fn single_tagged_set_ieee802_1q_c_tag_drop_eligible_indicator() {
-        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -756,7 +753,7 @@ mod tests {
 
     #[test]
     fn double_tagged_set_ieee802_1q_c_tag_drop_eligible_indicator() {
-        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -769,7 +766,7 @@ mod tests {
 
     #[test]
     fn single_tagged_set_ieee802_1q_c_tag_vlan_identifier() {
-        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -782,7 +779,7 @@ mod tests {
 
     #[test]
     fn double_tagged_set_ieee802_1q_c_tag_vlan_identifier() {
-        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -797,12 +794,9 @@ mod tests {
     fn single_tagged_add_or_update_ieee802_1q_s_tag() {
         let mut data = [0_u8; 50];
         copy_into_slice(&mut data, &SINGLE_TAGGED, 38);
-        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
-            data,
-            38,
-            Vlan::SingleTagged,
-        )
-        .unwrap();
+        let mut single_tagged =
+            DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(data, 38, Vlan::SingleTagged)
+                .unwrap();
         assert_eq!(None, single_tagged.ieee802_1q_s_tag_control_information());
         assert!(single_tagged
             .add_or_update_ieee802_1q_s_tag(&[0xBB, 0xBB])
@@ -846,7 +840,7 @@ mod tests {
 
     #[test]
     fn single_tagged_add_or_update_ieee802_1q_s_tag_no_headroom() {
-        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -863,12 +857,9 @@ mod tests {
 
         let mut data = [0_u8; 50];
         copy_into_slice(&mut data, &SINGLE_TAGGED, 3);
-        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
-            data,
-            3,
-            Vlan::SingleTagged,
-        )
-        .unwrap();
+        let mut single_tagged =
+            DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(data, 3, Vlan::SingleTagged)
+                .unwrap();
         assert_eq!(None, single_tagged.ieee802_1q_s_tag_control_information());
         assert_eq!(
             Err(NotEnoughHeadroomError {
@@ -881,7 +872,7 @@ mod tests {
 
     #[test]
     fn double_tagged_add_or_update_ieee802_1q_s_tag() {
-        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -902,7 +893,7 @@ mod tests {
 
     #[test]
     fn single_tagged_set_ieee802_1q_s_tag_priority_code_point() {
-        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -916,7 +907,7 @@ mod tests {
 
     #[test]
     fn double_tagged_set_ieee802_1q_s_tag_priority_code_point() {
-        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -937,7 +928,7 @@ mod tests {
 
     #[test]
     fn single_tagged_set_ieee802_1q_s_tag_drop_eligible_indicator() {
-        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -951,7 +942,7 @@ mod tests {
 
     #[test]
     fn double_tagged_set_ieee802_1q_s_tag_drop_eligible_indicator() {
-        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -972,7 +963,7 @@ mod tests {
 
     #[test]
     fn single_tagged_set_ieee802_1q_s_tag_vlan_identifier() {
-        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -986,7 +977,7 @@ mod tests {
 
     #[test]
     fn double_tagged_set_ieee802_1q_s_tag_vlan_identifier() {
-        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -1007,7 +998,7 @@ mod tests {
 
     #[test]
     fn single_tagged_cut_ieee802_1q_s_tag() {
-        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -1019,7 +1010,7 @@ mod tests {
 
     #[test]
     fn double_tagged_cut_ieee802_1q_s_tag() {
-        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -1063,7 +1054,7 @@ mod tests {
 
     #[test]
     fn single_tagged_set_ieee802_1q_ether_type() {
-        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -1082,7 +1073,7 @@ mod tests {
 
     #[test]
     fn double_tagged_set_ieee802_1q_ether_type() {
-        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut double_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             DOUBLE_TAGGED,
             0,
             Vlan::DoubleTagged,
@@ -1101,7 +1092,7 @@ mod tests {
 
     #[test]
     fn payload() {
-        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -1112,7 +1103,7 @@ mod tests {
 
     #[test]
     fn payload_length() {
-        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,
@@ -1123,7 +1114,7 @@ mod tests {
 
     #[test]
     fn payload_mut() {
-        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeaderInformation>>::new(
+        let mut single_tagged = DataBuffer::<_, Ieee802_1QVlan<NoPreviousHeader>>::new(
             SINGLE_TAGGED,
             0,
             Vlan::SingleTagged,

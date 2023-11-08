@@ -7,7 +7,7 @@ use mutnet::arp::ArpMethods;
 use mutnet::ethernet::EthernetMethods;
 use mutnet::ipv4::Ipv4Methods;
 use mutnet::ipv6::Ipv6Methods;
-use mutnet::multi_step_parser::{parse_network_data, EthernetMultiStepParserResult};
+use mutnet::multi_step_parser::{parse_network_data, MultiStepParserResult};
 use mutnet::tcp::TcpMethods;
 use mutnet::typed_protocol_headers::EtherType;
 use mutnet::typed_protocol_headers::InternetProtocolNumber;
@@ -113,120 +113,120 @@ fn main() {
                 // is active. Checksum offloading offloads the checksum calculation to the hardware
                 // results in invalid checksums on the software level for outgoing data.
                 match parse_network_data::<_, 10>(packet.data, 0, false, false, false) {
-                    Ok(EthernetMultiStepParserResult::Ethernet(data_buffer)) => {
+                    Ok(MultiStepParserResult::Ethernet(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::VlanEth(data_buffer)) => {
+                    Ok(MultiStepParserResult::VlanEth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::ArpEth(data_buffer)) => {
-                        log_ethernet(&data_buffer, &mut output);
-                        log_arp(&data_buffer, &mut output);
-                    }
-                    Ok(EthernetMultiStepParserResult::ArpVlanEth(data_buffer)) => {
+                    Ok(MultiStepParserResult::ArpEth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_arp(&data_buffer, &mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::Ipv4Eth(data_buffer)) => {
+                    Ok(MultiStepParserResult::ArpVlanEth(data_buffer)) => {
+                        log_ethernet(&data_buffer, &mut output);
+                        log_arp(&data_buffer, &mut output);
+                    }
+                    Ok(MultiStepParserResult::Ipv4Eth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_ipv4(&data_buffer, &mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::FragmentIpv4Eth(data_buffer)) => {
-                        log_ethernet(&data_buffer, &mut output);
-                        log_ipv4(&data_buffer, &mut output);
-                        log_fragment(&mut output);
-                    }
-                    Ok(EthernetMultiStepParserResult::TcpIpv4Eth(data_buffer)) => {
-                        log_ethernet(&data_buffer, &mut output);
-                        log_ipv4(&data_buffer, &mut output);
-                        log_tcp(&data_buffer, &mut output);
-                    }
-                    Ok(EthernetMultiStepParserResult::UdpIpv4Eth(data_buffer)) => {
-                        log_ethernet(&data_buffer, &mut output);
-                        log_ipv4(&data_buffer, &mut output);
-                        log_udp(&data_buffer, &mut output);
-                    }
-                    Ok(EthernetMultiStepParserResult::Ipv4VlanEth(data_buffer)) => {
-                        log_ethernet(&data_buffer, &mut output);
-                        log_ipv4(&data_buffer, &mut output);
-                    }
-                    Ok(EthernetMultiStepParserResult::FragmentIpv4VlanEth(data_buffer)) => {
+                    Ok(MultiStepParserResult::FragmentIpv4Eth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_ipv4(&data_buffer, &mut output);
                         log_fragment(&mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::TcpIpv4VlanEth(data_buffer)) => {
+                    Ok(MultiStepParserResult::TcpIpv4Eth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_ipv4(&data_buffer, &mut output);
                         log_tcp(&data_buffer, &mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::UdpIpv4VlanEth(data_buffer)) => {
+                    Ok(MultiStepParserResult::UdpIpv4Eth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_ipv4(&data_buffer, &mut output);
                         log_udp(&data_buffer, &mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::Ipv6Eth(data_buffer)) => {
+                    Ok(MultiStepParserResult::Ipv4VlanEth(data_buffer)) => {
+                        log_ethernet(&data_buffer, &mut output);
+                        log_ipv4(&data_buffer, &mut output);
+                    }
+                    Ok(MultiStepParserResult::FragmentIpv4VlanEth(data_buffer)) => {
+                        log_ethernet(&data_buffer, &mut output);
+                        log_ipv4(&data_buffer, &mut output);
+                        log_fragment(&mut output);
+                    }
+                    Ok(MultiStepParserResult::TcpIpv4VlanEth(data_buffer)) => {
+                        log_ethernet(&data_buffer, &mut output);
+                        log_ipv4(&data_buffer, &mut output);
+                        log_tcp(&data_buffer, &mut output);
+                    }
+                    Ok(MultiStepParserResult::UdpIpv4VlanEth(data_buffer)) => {
+                        log_ethernet(&data_buffer, &mut output);
+                        log_ipv4(&data_buffer, &mut output);
+                        log_udp(&data_buffer, &mut output);
+                    }
+                    Ok(MultiStepParserResult::Ipv6Eth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_ipv6(&data_buffer, &mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::TcpIpv6Eth(data_buffer)) => {
+                    Ok(MultiStepParserResult::TcpIpv6Eth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_ipv6(&data_buffer, &mut output);
                         log_tcp(&data_buffer, &mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::UdpIpv6Eth(data_buffer)) => {
+                    Ok(MultiStepParserResult::UdpIpv6Eth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_ipv6(&data_buffer, &mut output);
                         log_udp(&data_buffer, &mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::Ipv6VlanEth(data_buffer)) => {
+                    Ok(MultiStepParserResult::Ipv6VlanEth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_ipv6(&data_buffer, &mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::TcpIpv6VlanEth(data_buffer)) => {
+                    Ok(MultiStepParserResult::TcpIpv6VlanEth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_ipv6(&data_buffer, &mut output);
                         log_tcp(&data_buffer, &mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::UdpIpv6VlanEth(data_buffer)) => {
+                    Ok(MultiStepParserResult::UdpIpv6VlanEth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_ipv6(&data_buffer, &mut output);
                         log_udp(&data_buffer, &mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::Ipv6ExtsIpv6Eth(data_buffer)) => {
+                    Ok(MultiStepParserResult::Ipv6ExtsIpv6Eth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_ipv6(&data_buffer, &mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::TcpIpv6ExtsIpv6Eth(data_buffer)) => {
+                    Ok(MultiStepParserResult::TcpIpv6ExtsIpv6Eth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_ipv6(&data_buffer, &mut output);
                         log_tcp(&data_buffer, &mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::UdpIpv6ExtsIpv6Eth(data_buffer)) => {
+                    Ok(MultiStepParserResult::UdpIpv6ExtsIpv6Eth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_ipv6(&data_buffer, &mut output);
                         log_udp(&data_buffer, &mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::Ipv6ExtsIpv6VlanEth(data_buffer)) => {
+                    Ok(MultiStepParserResult::Ipv6ExtsIpv6VlanEth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_ipv6(&data_buffer, &mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::TcpIpv6ExtsIpv6VlanEth(data_buffer)) => {
+                    Ok(MultiStepParserResult::TcpIpv6ExtsIpv6VlanEth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_ipv6(&data_buffer, &mut output);
                         log_tcp(&data_buffer, &mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::UdpIpv6ExtsIpv6VlanEth(data_buffer)) => {
+                    Ok(MultiStepParserResult::UdpIpv6ExtsIpv6VlanEth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_ipv6(&data_buffer, &mut output);
                         log_udp(&data_buffer, &mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::FragmentIpv6ExtsIpv6Eth(data_buffer)) => {
+                    Ok(MultiStepParserResult::FragmentIpv6ExtsIpv6Eth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_ipv6(&data_buffer, &mut output);
                         log_fragment(&mut output);
                     }
-                    Ok(EthernetMultiStepParserResult::FragmentIpv6ExtsIpv6VlanEth(data_buffer)) => {
+                    Ok(MultiStepParserResult::FragmentIpv6ExtsIpv6VlanEth(data_buffer)) => {
                         log_ethernet(&data_buffer, &mut output);
                         log_ipv6(&data_buffer, &mut output);
                         log_fragment(&mut output);

@@ -2,7 +2,7 @@ use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughpu
 use etherparse::{Ipv4HeaderSlice, ReadError};
 use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
 use mutnet::ipv4::{Ipv4, Ipv4Methods, Ipv4MethodsMut, ParseIpv4Error};
-use mutnet::no_previous_header::NoPreviousHeaderInformation;
+use mutnet::no_previous_header::NoPreviousHeader;
 use mutnet::typed_protocol_headers::{Dscp, Ecn};
 use rand::{thread_rng, Rng};
 
@@ -54,7 +54,7 @@ const IPV4: [u8; 92] = [
 pub fn random_ipv4() -> [u8; 92] {
     let mut rng = thread_rng();
 
-    let mut ipv4 = DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(IPV4, 0, false).unwrap();
+    let mut ipv4 = DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4, 0, false).unwrap();
     ipv4.set_ipv4_ihl(rng.gen_range(0..11) + 5).unwrap();
     let dscp = {
         let mut dscp: u8 = rng.gen();
@@ -95,8 +95,8 @@ pub fn random_ipv4() -> [u8; 92] {
 #[inline(always)]
 pub fn parse_ipv4(
     bytes: &[u8],
-) -> Result<DataBuffer<&[u8], Ipv4<NoPreviousHeaderInformation>>, ParseIpv4Error> {
-    DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(bytes, 0, false)
+) -> Result<DataBuffer<&[u8], Ipv4<NoPreviousHeader>>, ParseIpv4Error> {
+    DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(bytes, 0, false)
 }
 
 #[allow(clippy::type_complexity)]
@@ -295,7 +295,7 @@ pub fn ipv4(c: &mut Criterion) {
         b.iter_batched_ref(
             random_ipv4,
             |data| {
-                let buffer = DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(
+                let buffer = DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(
                     std::hint::black_box(data),
                     0,
                     false,
@@ -324,7 +324,7 @@ pub fn ipv4(c: &mut Criterion) {
         b.iter_batched_ref(
             random_ipv4,
             |data| {
-                let buffer = DataBuffer::<_, Ipv4<NoPreviousHeaderInformation>>::new(
+                let buffer = DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(
                     std::hint::black_box(data),
                     0,
                     false,

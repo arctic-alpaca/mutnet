@@ -47,7 +47,7 @@ One example is modifying TCP's payload offset header which carries its changes o
 
 # Layer method trait implementation
 Layer methods interact with the underlying data buffer and the layer's metadata (length, offset) via the
-`HeaderInformation`, `HeaderInformationMut`, `HeaderManipulation`, `BufferAccess` and `BufferAccessMut` traits.
+`HeaderMetadata`, `HeaderMetadataMut`, `HeaderManipulation`, `BufferAccess` and `BufferAccessMut` traits.
 Method call specific to a layer (e.g. length) are parameterized with a `Layer` which indicates which layer's
 length is requested.
 The stacked layer structs (e.g. `Eth`, `Arp`) forward the call to the next layer until the requested `Layer` matches the current layer
@@ -58,5 +58,5 @@ possible combinations (e.g. IPv6 -> optional IPv6 extensions -> TCP).
 ## Moving headers
 Layer structs store their data's start relative to the general data start.
 This allows moving layers below the expanding/shrinking layer without modification of the header start offset.
-Layers above the modified layer are updated by the `increase_header_start_offset()` and `decrease_header_start_offset()`
+Layers above the modified layer are updated by the `shrink_header()` and `grow_header()`
 methods of `HeaderInformationMut`.

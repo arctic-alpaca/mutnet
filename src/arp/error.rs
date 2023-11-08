@@ -1,3 +1,5 @@
+//! ARP specific errors.
+
 use crate::error::UnexpectedBufferEndError;
 
 use core::fmt::{Debug, Display, Formatter};
@@ -8,11 +10,18 @@ use core::error;
 #[cfg(feature = "std")]
 use std::error;
 
+/// Error returned when parsing an ARP header.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum ParseArpError {
+    /// The data buffer ended unexpectedly.
     UnexpectedBufferEnd(UnexpectedBufferEndError),
+    /// The hardware or protocol type is not supported.
     UnsupportedHardwareOrProtocolFields,
-    UnsupportedOperationCode { operation_code: u16 },
+    /// The operation code is not supported
+    UnsupportedOperationCode {
+        /// The operation code found.
+        operation_code: u16,
+    },
 }
 
 impl From<UnexpectedBufferEndError> for ParseArpError {

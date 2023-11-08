@@ -3,7 +3,7 @@ use etherparse::{Ipv6HeaderSlice, ReadError};
 use mutnet::addresses::ipv6::Ipv6Addr;
 use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
 use mutnet::ipv6::{Ipv6, Ipv6Methods, Ipv6MethodsMut, ParseIpv6Error};
-use mutnet::no_previous_header::NoPreviousHeaderInformation;
+use mutnet::no_previous_header::NoPreviousHeader;
 use mutnet::typed_protocol_headers::InternetProtocolNumber;
 
 #[rustfmt::skip]
@@ -28,7 +28,7 @@ const IPV6: [u8; 60] = [
 ];
 
 pub fn random_ipv6() -> [u8; 60] {
-    let mut ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(IPV6, 0).unwrap();
+    let mut ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6, 0).unwrap();
     ipv6.set_ipv6_traffic_class(rand::random());
     ipv6.set_ipv6_flow_label(rand::random());
     while ipv6.set_ipv6_payload_length(rand::random()).is_err() {}
@@ -46,8 +46,8 @@ pub fn random_ipv6() -> [u8; 60] {
 #[inline(always)]
 pub fn mutnet_new(
     bytes: &[u8],
-) -> Result<DataBuffer<&[u8], Ipv6<NoPreviousHeaderInformation>>, ParseIpv6Error> {
-    DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(bytes, 0)
+) -> Result<DataBuffer<&[u8], Ipv6<NoPreviousHeader>>, ParseIpv6Error> {
+    DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(bytes, 0)
 }
 
 #[inline(always)]
@@ -150,11 +150,9 @@ pub fn ipv6(c: &mut Criterion) {
         b.iter_batched_ref(
             random_ipv6,
             |data| {
-                let buffer = DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(
-                    std::hint::black_box(data),
-                    0,
-                )
-                .unwrap();
+                let buffer =
+                    DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(std::hint::black_box(data), 0)
+                        .unwrap();
                 let mut result = &mut mutnet_get_functions_inlined(&buffer);
                 std::hint::black_box(&mut result);
             },
@@ -178,11 +176,9 @@ pub fn ipv6(c: &mut Criterion) {
         b.iter_batched_ref(
             random_ipv6,
             |data| {
-                let buffer = DataBuffer::<_, Ipv6<NoPreviousHeaderInformation>>::new(
-                    std::hint::black_box(data),
-                    0,
-                )
-                .unwrap();
+                let buffer =
+                    DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(std::hint::black_box(data), 0)
+                        .unwrap();
                 let mut result = &mut mutnet_get_functions_not_inlined(&buffer);
                 std::hint::black_box(&mut result);
             },

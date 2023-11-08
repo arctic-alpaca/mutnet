@@ -1,6 +1,7 @@
 # Unreleased
 ### Added
 - `headroom` method to `BufferIntoInner` trait, allows users to know how much of the buffer is headroom
+- Documentation and warn on missing documentation
 
 ### Changed
 - **breaking** Changed `ArpMethodsMut` method names to match other setters
@@ -11,7 +12,7 @@
 - **breaking** Rename `Ipv6ExtTypedHeader` to `Ipv6ExtTypedHeaderError`
 - **breaking** `Ipv6ExtMethods::ipv6_extensions` now returns options in the array to indicate the amount of extensions
 - **breaking** Refactor project structure
-- **breaking** Rename errors
+- **breaking** Rename and restructure errors and some other structs
 
 ### Fixed
 - Return an error on a hop by hop IPv6 extension that is not the first extension

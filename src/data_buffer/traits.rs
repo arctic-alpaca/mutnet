@@ -1,4 +1,6 @@
-use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError};
+//! Traits used to access header metadata or network data from the [`DataBuffer`].
+
+use crate::error::{LengthExceedsAvailableSpaceError, NotEnoughHeadroomError};
 use crate::ipv6_extensions::{Ipv6ExtMetaData, Ipv6ExtMetaDataMut};
 use core::ops::Range;
 
@@ -31,37 +33,37 @@ pub trait PayloadMut {
     fn payload_mut(&mut self) -> &mut [u8];
 }
 
-/// Allows extracting the header information of a `DataBuffer`.
-pub(crate) trait HeaderInformationExtraction<H>
+/// Allows extracting the header metadata from a `DataBuffer`.
+pub(crate) trait HeaderMetadataExtraction<HM>
 where
-    H: HeaderInformation + HeaderInformationMut + Copy,
+    HM: HeaderMetadata + HeaderMetadataMut + Copy,
 {
     /// Returns the stack of parsed protocols metadata structs.
-    fn extract_header_information(&self) -> &H;
+    fn extract_header_metadata(&self) -> &HM;
 }
 
 /// Trait marking a layer to implement Ethernet methods.
-pub(crate) trait EthernetMarker: HeaderInformation + HeaderInformationMut {}
+pub(crate) trait EthernetMarker: HeaderMetadata + HeaderMetadataMut {}
 /// Trait marking a layer to implement IEEE 802.1Q methods.
-pub(crate) trait Ieee802_1QVlanMarker: HeaderInformation + HeaderInformationMut {}
+pub(crate) trait Ieee802_1QVlanMarker: HeaderMetadata + HeaderMetadataMut {}
 /// Trait marking a layer to implement ARP methods.
-pub(crate) trait ArpMarker: HeaderInformation + HeaderInformationMut {}
+pub(crate) trait ArpMarker: HeaderMetadata + HeaderMetadataMut {}
 /// Trait marking a layer to implement IPv4 methods.
-pub(crate) trait Ipv4Marker: HeaderInformation + HeaderInformationMut {}
+pub(crate) trait Ipv4Marker: HeaderMetadata + HeaderMetadataMut {}
 /// Trait marking a layer to implement IPv6 methods.
-pub(crate) trait Ipv6Marker: HeaderInformation + HeaderInformationMut {}
+pub(crate) trait Ipv6Marker: HeaderMetadata + HeaderMetadataMut {}
 /// Trait marking a layer to implement IPv6 extensions methods.
 pub(crate) trait Ipv6ExtMarker<const MAX_EXTENSIONS: usize>:
-    HeaderInformation
-    + HeaderInformationMut
+    HeaderMetadata
+    + HeaderMetadataMut
     + Ipv6ExtMetaData<MAX_EXTENSIONS>
     + Ipv6ExtMetaDataMut<MAX_EXTENSIONS>
 {
 }
 /// Trait marking a layer to implement TCP methods.
-pub(crate) trait TcpMarker: HeaderInformation + HeaderInformationMut {}
+pub(crate) trait TcpMarker: HeaderMetadata + HeaderMetadataMut {}
 /// Trait marking a layer to implement UDP methods.
-pub(crate) trait UdpMarker: HeaderInformation + HeaderInformationMut {}
+pub(crate) trait UdpMarker: HeaderMetadata + HeaderMetadataMut {}
 
 /// Indicates the layer requesting data.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -79,31 +81,47 @@ pub(crate) enum Layer {
 
 /// Methods to access the data buffer.
 pub(crate) trait BufferAccess {
-    /// Returns the length of the data buffer.
+    /// Returns the length of the complete data buffer.
     fn buffer_length(&self) -> usize;
-    /// Returns a slice containing header and payload of the layer indicated by `layer`.
+
+    /// Returns a slice containing data starting at `layer` and ending with the data length end.
+    ///
+    /// Is data length aware. This means it will limit the slice to the length of the data as
+    /// indicated by length header fields and not just return all data until the end of the buffer.
     fn data_buffer_starting_at_header(&self, layer: Layer) -> &[u8];
 
+    /// Returns a slice as indicated by `range` starting from `layer`.
     fn read_slice(&self, layer: Layer, range: Range<usize>) -> &[u8];
+    /// Returns the byte at `idx` starting from `layer`.
     fn read_value(&self, layer: Layer, idx: usize) -> u8;
+    /// Returns an array as indicated by `range` starting from `layer`.
     fn read_array<const N: usize>(&self, layer: Layer, range: Range<usize>) -> [u8; N];
 }
 
 /// Methods to mutably access the data buffer.
 pub(crate) trait BufferAccessMut {
-    /// Returns a mutable slice containing header and payload of the layer indicated by `layer`.
+    /// Returns a mutable slice containing data starting at `layer` and ending with the data length end.
+    ///
+    /// Is data length aware. This means it will limit the slice to the length of the data as
+    /// indicated by length header fields and not just return all data until the end of the buffer.
     fn data_buffer_starting_at_header_mut(&mut self, layer: Layer) -> &mut [u8];
 
-    /// Returns a slice to the whole data buffer.
+    /// Returns a mutable slice to the whole data buffer.
     fn buffer_mut(&mut self) -> &mut [u8];
 
+    /// Returns a mutable slice as indicated by `range` starting from `layer`.
     fn get_slice_mut(&mut self, layer: Layer, range: Range<usize>) -> &mut [u8];
+    /// Writes `value` at `idx` starting from `layer`.
     fn write_value(&mut self, layer: Layer, idx: usize, value: u8);
+    /// Writes overwrites `range` with `slice` starting from `layer`.
+    ///
+    /// # Panics:
+    /// Panics if `range` and `slice` are not the same length.
     fn write_slice(&mut self, layer: Layer, range: Range<usize>, slice: &[u8]);
 }
 
-/// Methods to access information about the start of data and header.
-pub(crate) trait HeaderInformation {
+/// Methods to access header metadata.
+pub(crate) trait HeaderMetadata {
     /// Returns the amount of headroom of the data buffer.
     ///
     /// Buffer:
@@ -142,7 +160,7 @@ pub(crate) trait HeaderInformation {
 ///
 /// Growing and shrinking the header and the headroom.
 pub(crate) trait HeaderManipulation:
-    BufferAccess + BufferAccessMut + HeaderInformation + HeaderInformationMut
+    BufferAccess + BufferAccessMut + HeaderMetadata + HeaderMetadataMut
 {
     /// Grows the header, shrinks the headroom.
     ///
@@ -220,7 +238,7 @@ pub(crate) trait HeaderManipulation:
     }
 }
 
-pub(crate) trait HeaderInformationMut {
+pub(crate) trait HeaderMetadataMut {
     /// Returns a mutable reference to the amount of headroom available.
     ///
     /// Data buffer:
@@ -249,5 +267,5 @@ pub(crate) trait HeaderInformationMut {
         &mut self,
         data_length: usize,
         buffer_length: usize,
-    ) -> Result<(), UnexpectedBufferEndError>;
+    ) -> Result<(), LengthExceedsAvailableSpaceError>;
 }

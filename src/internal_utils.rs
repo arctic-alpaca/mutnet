@@ -1,7 +1,5 @@
 use crate::checksum::internet_checksum_intermediary;
-use crate::data_buffer::traits::{
-    HeaderInformation, HeaderInformationMut, HeaderManipulation, Layer,
-};
+use crate::data_buffer::traits::{HeaderManipulation, HeaderMetadata, HeaderMetadataMut, Layer};
 use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError};
 use crate::ipv4::Ipv4Methods;
 use crate::ipv6::Ipv6Methods;
@@ -29,12 +27,12 @@ where
 }
 
 #[inline]
-pub(crate) fn header_start_offset_from_phi<PHI>(previous_header_information: &PHI) -> usize
+pub(crate) fn header_start_offset_from_phi<PHM>(previous_header_metadata: &PHM) -> usize
 where
-    PHI: HeaderInformation + HeaderInformationMut,
+    PHM: HeaderMetadata + HeaderMetadataMut,
 {
-    previous_header_information.header_start_offset(previous_header_information.layer())
-        + previous_header_information.header_length(previous_header_information.layer())
+    previous_header_metadata.header_start_offset(previous_header_metadata.layer())
+        + previous_header_metadata.header_length(previous_header_metadata.layer())
 }
 
 #[inline]
@@ -60,7 +58,7 @@ pub(crate) fn grow_or_shrink_header_at_end(
 
 #[inline]
 pub(crate) fn pseudoheader_checksum_ipv6_internal(
-    ipv6: &(impl Ipv6Methods + HeaderInformation),
+    ipv6: &(impl Ipv6Methods + HeaderMetadata),
     protocol_next_header: u8,
 ) -> u64 {
     let tcp_udp_length = (u32::from(ipv6.ipv6_payload_length())
@@ -80,7 +78,7 @@ pub(crate) fn pseudoheader_checksum_ipv6_internal(
 
 #[inline]
 pub(crate) fn pseudoheader_checksum_ipv4_internal(
-    ipv4: &(impl Ipv4Methods + HeaderInformation),
+    ipv4: &(impl Ipv4Methods + HeaderMetadata),
     protocol_next_header: u8,
 ) -> u64 {
     let tcp_udp_length =

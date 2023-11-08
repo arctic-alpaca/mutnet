@@ -1,19 +1,24 @@
-use crate::error::{UnexpectedBufferEndError, WrongChecksumError};
+//! UDP specific errors.
+
+use crate::error::{
+    InvalidChecksumError, LengthExceedsAvailableSpaceError, UnexpectedBufferEndError,
+};
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
 use core::fmt::{Debug, Display, Formatter};
 #[cfg(feature = "std")]
 use std::error;
 
+/// Error returned when parsing a UDP header.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum ParseUdpError {
+    /// The data buffer ended unexpectedly.
     UnexpectedBufferEnd(UnexpectedBufferEndError),
-    WrongChecksum(WrongChecksumError),
+    /// Invalid checksum.
+    InvalidChecksum(InvalidChecksumError),
+    /// Length header value is smaller than the required eight bytes.
     LengthHeaderTooSmall {
-        length_header: usize,
-    },
-    LengthHeaderTooLarge {
-        data_length: usize,
+        /// Length header value.
         length_header: usize,
     },
 }
@@ -25,10 +30,10 @@ impl From<UnexpectedBufferEndError> for ParseUdpError {
     }
 }
 
-impl From<WrongChecksumError> for ParseUdpError {
+impl From<InvalidChecksumError> for ParseUdpError {
     #[inline]
-    fn from(value: WrongChecksumError) -> Self {
-        Self::WrongChecksum(value)
+    fn from(value: InvalidChecksumError) -> Self {
+        Self::InvalidChecksum(value)
     }
 }
 
@@ -38,22 +43,13 @@ impl Display for ParseUdpError {
             Self::UnexpectedBufferEnd(err) => {
                 write!(f, "{err}")
             }
-            Self::WrongChecksum(err) => {
+            Self::InvalidChecksum(err) => {
                 write!(f, "{err}")
             }
             Self::LengthHeaderTooSmall { length_header } => {
                 write!(
                     f,
                     "Length header is {length_header} but was expected to be at least 8"
-                )
-            }
-            Self::LengthHeaderTooLarge {
-                data_length,
-                length_header,
-            } => {
-                write!(
-                    f,
-                    "Length header expected to be at most {data_length} but was {length_header}"
                 )
             }
         }
@@ -63,23 +59,29 @@ impl Display for ParseUdpError {
 #[cfg(feature = "error_trait")]
 impl error::Error for ParseUdpError {}
 
+/// Error returned by methods manipulating the length header.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum SetLengthError {
-    UnexpectedBufferEnd(UnexpectedBufferEndError),
-    LengthTooSmall { length: usize },
+    /// The supplied length exceeds the available space.
+    LengthExceedsAvailableSpace(LengthExceedsAvailableSpaceError),
+    /// Supplied length is smaller than the required 8 bytes.
+    LengthTooSmall {
+        /// Supplied length.
+        length: usize,
+    },
 }
 
-impl From<UnexpectedBufferEndError> for SetLengthError {
+impl From<LengthExceedsAvailableSpaceError> for SetLengthError {
     #[inline]
-    fn from(value: UnexpectedBufferEndError) -> Self {
-        Self::UnexpectedBufferEnd(value)
+    fn from(value: LengthExceedsAvailableSpaceError) -> Self {
+        Self::LengthExceedsAvailableSpace(value)
     }
 }
 
 impl Display for SetLengthError {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::UnexpectedBufferEnd(err) => {
+            Self::LengthExceedsAvailableSpace(err) => {
                 write!(f, "{err}")
             }
             Self::LengthTooSmall { length } => {

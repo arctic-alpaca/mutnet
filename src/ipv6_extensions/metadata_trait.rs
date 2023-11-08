@@ -1,3 +1,5 @@
+//! Traits to access IPv6 extensions metadata.
+
 use crate::ipv6_extensions::{Ipv6ExtensionIndexOutOfBoundsError, Ipv6ExtensionMetadata};
 
 pub(crate) trait Ipv6ExtMetaData<const MAX_EXTENSIONS: usize> {

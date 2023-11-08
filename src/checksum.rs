@@ -7,10 +7,10 @@ mod verification;
 #[inline]
 pub(crate) fn finalize_checksum(checksum: u64) -> u16 {
     let (mut checksum, carry) = ((checksum >> 32) as u32).overflowing_add(checksum as u32);
-    checksum += carry as u32;
+    checksum += u32::from(carry);
 
     let (mut checksum, carry) = ((checksum >> 16) as u16).overflowing_add(checksum as u16);
-    checksum += carry as u16;
+    checksum += u16::from(carry);
 
     !checksum.to_be()
 }

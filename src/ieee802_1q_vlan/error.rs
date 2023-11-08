@@ -1,3 +1,5 @@
+//! IEEE 802.1Q specific errors.
+
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
 
@@ -8,10 +10,13 @@ use std::error;
 
 use crate::error::UnexpectedBufferEndError;
 
+/// Error returned when parsing a IEEE802.1Q header.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum ParseIeee802_1QError {
+    /// The data buffer ended unexpectedly.
     UnexpectedBufferEnd(UnexpectedBufferEndError),
-    STagWithoutCTag(STagWithoutCTagError),
+    /// Found service tag without client tag (header is indicated to be double tagged but is not).
+    STagWithoutCTag,
 }
 
 impl From<UnexpectedBufferEndError> for ParseIeee802_1QError {
@@ -21,18 +26,14 @@ impl From<UnexpectedBufferEndError> for ParseIeee802_1QError {
     }
 }
 
-impl From<STagWithoutCTagError> for ParseIeee802_1QError {
-    #[inline]
-    fn from(value: STagWithoutCTagError) -> Self {
-        Self::STagWithoutCTag(value)
-    }
-}
-
 impl Display for ParseIeee802_1QError {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::STagWithoutCTag(err) => {
-                write!(f, "{err}")
+            Self::STagWithoutCTag => {
+                write!(
+                    f,
+                    "Ethernet frame has service tag without client tag in IEEE802.1Q header"
+                )
             }
             Self::UnexpectedBufferEnd(err) => {
                 write!(f, "{err}")
@@ -44,18 +45,7 @@ impl Display for ParseIeee802_1QError {
 #[cfg(feature = "error_trait")]
 impl error::Error for ParseIeee802_1QError {}
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub struct STagWithoutCTagError;
-
-impl Display for STagWithoutCTagError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        write!(f, "Ethernet frame has S tag without C tag")
-    }
-}
-
-#[cfg(feature = "error_trait")]
-impl error::Error for STagWithoutCTagError {}
-
+/// Header returned by methods expecting a double tagged packet.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct NotDoubleTaggedError;
 

@@ -3,7 +3,7 @@
 /// MAC Address in six octets.
 pub type MacAddress = [u8; 6];
 
-/// Checks whether a [`MacAddress`] is the broadcast address.
+/// Returns `true` if a [`MacAddress`] is the broadcast address.
 ///
 /// # Examples
 ///
@@ -18,7 +18,7 @@ pub fn is_broadcast(mac_addr: &MacAddress) -> bool {
     mac_addr == &[0xFF; 6]
 }
 
-/// Checks whether a [`MacAddress`] is a multicast address.
+/// Returns `true` if the provided [`MacAddress`] is a multicast address.
 ///
 /// # Examples
 ///

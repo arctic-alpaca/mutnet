@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
 use etherparse::{ReadError, UdpHeaderSlice};
 use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
-use mutnet::no_previous_header::NoPreviousHeaderInformation;
+use mutnet::no_previous_header::NoPreviousHeader;
 use mutnet::udp::{ParseUdpError, Udp, UdpMethods, UdpMethodsMut};
 use rand::{thread_rng, Rng};
 
@@ -22,8 +22,7 @@ const UDP: [u8; 14] = [
 pub fn random_udp() -> [u8; 14] {
     let mut rng = thread_rng();
 
-    let mut udp =
-        DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(UDP, 0).unwrap();
+    let mut udp = DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
     udp.set_udp_destination_port(rand::random());
     udp.set_udp_source_port(rand::random());
     udp.set_udp_checksum(rand::random());
@@ -36,10 +35,8 @@ pub fn random_udp() -> [u8; 14] {
 }
 
 #[inline(always)]
-pub fn mutnet_new(
-    bytes: &[u8],
-) -> Result<DataBuffer<&[u8], Udp<NoPreviousHeaderInformation>>, ParseUdpError> {
-    DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(bytes, 0)
+pub fn mutnet_new(bytes: &[u8]) -> Result<DataBuffer<&[u8], Udp<NoPreviousHeader>>, ParseUdpError> {
+    DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(bytes, 0)
 }
 
 #[inline(always)]
@@ -118,12 +115,11 @@ pub fn tcp(c: &mut Criterion) {
         b.iter_batched_ref(
             random_udp,
             |data| {
-                let buffer =
-                    DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(
-                        std::hint::black_box(data),
-                        0,
-                    )
-                    .unwrap();
+                let buffer = DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(
+                    std::hint::black_box(data),
+                    0,
+                )
+                .unwrap();
                 let mut result = &mut mutnet_get_functions_inlined(&buffer);
                 std::hint::black_box(&mut result);
             },
@@ -147,12 +143,11 @@ pub fn tcp(c: &mut Criterion) {
         b.iter_batched_ref(
             random_udp,
             |data| {
-                let buffer =
-                    DataBuffer::<_, Udp<NoPreviousHeaderInformation>>::new_without_checksum(
-                        std::hint::black_box(data),
-                        0,
-                    )
-                    .unwrap();
+                let buffer = DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(
+                    std::hint::black_box(data),
+                    0,
+                )
+                .unwrap();
                 let mut result = &mut mutnet_get_functions_not_inlined(&buffer);
                 std::hint::black_box(&mut result);
             },
