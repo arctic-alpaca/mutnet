@@ -37,9 +37,10 @@ pub fn internet_checksum_up_to_64_bytes(buf: &[u8]) -> u16 {
 }
 
 #[cfg(feature = "remove_checksum")]
+/// Used for layer verification, with actual checksum calculation, the proofs do not finish.
 #[inline]
 pub fn internet_checksum_up_to_64_bytes(_buf: &[u8]) -> u16 {
-    return 0;
+    0
 }
 
 /// Calculates the intermediary internet checksum for the provided `buf` via the method described in
@@ -79,9 +80,10 @@ pub fn internet_checksum_intermediary<const CHUNK_SIZE: usize>(buf: &[u8]) -> u6
 }
 
 #[cfg(feature = "remove_checksum")]
+/// Used for layer verification, with actual checksum calculation, the proofs do not finish.
 #[inline]
 pub fn internet_checksum_intermediary<const CHUNK_SIZE: usize>(_buf: &[u8]) -> u64 {
-    return 0;
+    0
 }
 
 /// Calculates the internet checksum for the provided `buf` via the method described in <https://www.ietf.org/rfc/rfc1071.txt>.
@@ -129,9 +131,10 @@ pub fn internet_checksum<const CHUNK_SIZE: usize>(checksum_part: u64, buf: &[u8]
 }
 
 #[cfg(feature = "remove_checksum")]
+/// Used for layer verification, with actual checksum calculation, the proofs do not finish.
 #[inline]
 pub fn internet_checksum<const CHUNK_SIZE: usize>(_checksum_part: u64, _buf: &[u8]) -> u16 {
-    return 0;
+    0
 }
 
 /// Matches the length of the provided `buf` up to and including 64 bytes of length and calculates
