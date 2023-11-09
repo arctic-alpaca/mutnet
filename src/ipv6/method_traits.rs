@@ -31,7 +31,7 @@ pub(crate) const LAYER: Layer = Layer::Ipv6;
 // Length manipulating methods:
 // - set_ipv6_payload_length (has proof)
 
-/// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
+/// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing an
 /// [`Ipv6`](crate::ipv6::Ipv6) header.
 pub trait Ipv6Methods: HeaderMetadata + BufferAccess {
     /// Returns the IPv6 version.
@@ -98,7 +98,7 @@ pub trait Ipv6Methods: HeaderMetadata + BufferAccess {
     }
 }
 
-/// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
+/// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing an
 /// [`Ipv6`](crate::ipv6::Ipv6) header and wrapping a mutable data buffer.
 pub trait Ipv6MethodsMut: HeaderManipulation + BufferAccessMut + Ipv6Methods + Sized {
     /// Sets the IPv6 traffic class.

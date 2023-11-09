@@ -54,7 +54,7 @@ pub(crate) const LAYER: Layer = Layer::Ipv4;
 // - set_ipv4_total_length (has proof)
 // - set_ipv4_ihl (has proof)
 
-/// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
+/// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing an
 /// [`Ipv4`](crate::ipv4::Ipv4) header.
 pub trait Ipv4Methods: HeaderMetadata + BufferAccess {
     /// Returns the IPv4 version.
@@ -213,7 +213,7 @@ pub trait Ipv4Methods: HeaderMetadata + BufferAccess {
     }
 }
 
-/// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
+/// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing an
 /// [`Ipv4`](crate::ipv4::Ipv4) header and wrapping a mutable data buffer.
 pub trait Ipv4MethodsMut:
     Ipv4Methods + BufferAccessMut + HeaderManipulation + UpdateIpv4Length + Sized

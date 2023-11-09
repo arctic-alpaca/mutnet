@@ -17,7 +17,7 @@ pub(crate) const LAYER: Layer = Layer::EthernetII;
 
 // Length manipulating methods: None
 
-/// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
+/// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing an
 /// [`Eth`](crate::ethernet::Eth) header.
 pub trait EthernetMethods: HeaderMetadata + BufferAccess {
     /// Returns the ethernet II destination.
@@ -48,7 +48,7 @@ pub trait EthernetMethods: HeaderMetadata + BufferAccess {
     }
 }
 
-/// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
+/// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing an
 /// [`Eth`](crate::ethernet::Eth) header and wrapping a mutable data buffer.
 pub trait EthernetMethodsMut:
     EthernetMethods + BufferAccessMut + HeaderManipulation + Sized

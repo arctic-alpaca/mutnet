@@ -31,7 +31,7 @@ pub(crate) const LAYER: Layer = Layer::Ieee802_1QVlan;
 // - cut_ieee802_1q_s_tag (has proof)
 
 /// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
-/// [`Ieee802_1QVlan`](crate::ieee802_1q_clan::Ieee802_1QVlan) header.
+/// [`Ieee802_1QVlan`](crate::ieee802_1q_vlan::Ieee802_1QVlan) header.
 pub trait Ieee802_1QMethods: HeaderMetadata + BufferAccess {
     /// Returns the IEEE802.1Q customer tag control information.
     #[inline]
@@ -159,7 +159,7 @@ pub trait Ieee802_1QMethods: HeaderMetadata + BufferAccess {
 }
 
 /// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
-/// [`Ieee802_1QVlan`](crate::ieee802_1q_clan::Ieee802_1QVlan)  header and wrapping a mutable data buffer.
+/// [`Ieee802_1QVlan`](crate::ieee802_1q_vlan::Ieee802_1QVlan)  header and wrapping a mutable data buffer.
 pub trait Ieee802_1QMethodsMut:
     HeaderMetadata
     + Ieee802_1QMethods

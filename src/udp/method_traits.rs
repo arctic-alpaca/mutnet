@@ -67,7 +67,7 @@ pub trait UdpMethods: HeaderMetadata + TcpUdpChecksum + BufferAccess {
 }
 
 /// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
-/// [`Udp`](crate::tcp::Udp) header and wrapping a mutable data buffer.
+/// [`Udp`](crate::udp::Udp) header and wrapping a mutable data buffer.
 pub trait UdpMethodsMut:
     HeaderMetadata
     + HeaderManipulation

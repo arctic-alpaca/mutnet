@@ -1,4 +1,4 @@
-//! Address aliases for easier usage.
+//! Address aliases.
 
 pub mod ipv4;
 pub mod ipv6;
