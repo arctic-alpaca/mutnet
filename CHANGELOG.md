@@ -1,4 +1,4 @@
-# Unreleased
+# 0.4.0 (9. November 2023)
 ### Added
 - `headroom` method to `BufferIntoInner` trait, allows users to know how much of the buffer is headroom
 - Documentation and warn on missing documentation
@@ -13,6 +13,7 @@
 - **breaking** `Ipv6ExtMethods::ipv6_extensions` now returns options in the array to indicate the amount of extensions
 - **breaking** Refactor project structure
 - **breaking** Rename and restructure errors and some other structs
+- Improve Docs
 
 ### Fixed
 - Return an error on a hop by hop IPv6 extension that is not the first extension
