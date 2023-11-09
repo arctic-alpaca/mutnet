@@ -1,4 +1,4 @@
-//! Wrapper for data buffer and parsed protocols metadata.
+//! Wrapper for network data buffer and parsed protocols metadata.
 pub(crate) mod traits;
 
 use crate::data_buffer::traits::HeaderMetadataExtraction;

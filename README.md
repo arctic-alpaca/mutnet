@@ -87,7 +87,7 @@ Any layer may only occur once per parsed data buffer.
 
 ## Features
 - `error_trait`: use unstable `core::error:Error`, only available in nightly
-- `std`: use std for `std::error::Error` (enabled by default)
+- `std`: use std (enabled by default)
 - All other features are for development usage only
 
 ## License

@@ -102,6 +102,8 @@ where
     ///
     /// `headroom` indicates the amount of headroom in the provided `buf`.
     ///
+    /// The returned boolean indicates whether the payload is fragmented.
+    ///
     /// # Errors
     ///
     /// Returns an error if:
@@ -131,6 +133,8 @@ where
 
     /// Consumes the `lower_layer_data_buffer` and creates a new [`DataBuffer`] with an additional
     /// IPv6 extensions layer.
+    ///
+    /// The returned boolean indicates whether the payload is fragmented.
     ///
     /// # Errors
     ///
