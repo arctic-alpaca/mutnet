@@ -57,7 +57,7 @@ pub(crate) fn grow_or_shrink_header_at_end(
 }
 
 #[inline]
-pub(crate) fn pseudoheader_checksum_ipv6_internal(
+pub(crate) fn pseudo_header_checksum_ipv6_internal(
     ipv6: &(impl Ipv6Methods + HeaderMetadata),
     protocol_next_header: u8,
 ) -> u64 {
@@ -77,7 +77,7 @@ pub(crate) fn pseudoheader_checksum_ipv6_internal(
 }
 
 #[inline]
-pub(crate) fn pseudoheader_checksum_ipv4_internal(
+pub(crate) fn pseudo_header_checksum_ipv4_internal(
     ipv4: &(impl Ipv4Methods + HeaderMetadata),
     protocol_next_header: u8,
 ) -> u64 {

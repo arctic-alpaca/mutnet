@@ -22,7 +22,7 @@ use crate::error::{
 };
 use crate::internal_utils::{
     check_and_calculate_data_length, header_start_offset_from_phi,
-    pseudoheader_checksum_ipv4_internal, pseudoheader_checksum_ipv6_internal,
+    pseudo_header_checksum_ipv4_internal, pseudo_header_checksum_ipv6_internal,
 };
 use crate::ipv4::{Ipv4, UpdateIpv4Length};
 use crate::ipv6::{Ipv6, UpdateIpv6Length};
@@ -30,7 +30,7 @@ use crate::ipv6_extensions::{Ipv6ExtMetaData, Ipv6ExtMetaDataMut, Ipv6Extensions
 use crate::ipv6_extensions::{Ipv6ExtensionIndexOutOfBoundsError, Ipv6ExtensionMetadata};
 use crate::no_previous_header::NoPreviousHeader;
 use crate::typed_protocol_headers::constants;
-use crate::utility_traits::{TcpUdpChecksum, UpdateIpLength};
+use crate::utility_traits::{PseudoHeaderChecksum, UpdateIpLength};
 
 /// UDP metadata.
 ///
@@ -62,7 +62,7 @@ impl<B, PHM> DataBuffer<B, Udp<PHM>>
 where
     B: AsRef<[u8]>,
     PHM: HeaderMetadata + HeaderMetadataMut + Copy,
-    DataBuffer<B, Udp<PHM>>: TcpUdpChecksum,
+    DataBuffer<B, Udp<PHM>>: PseudoHeaderChecksum,
 {
     /// Parses `buf` and creates a new [`DataBuffer`] for an UDP layer with no previous layers.
     ///
@@ -159,12 +159,12 @@ where
     }
 }
 
-impl<B> TcpUdpChecksum for DataBuffer<B, Udp<NoPreviousHeader>>
+impl<B> PseudoHeaderChecksum for DataBuffer<B, Udp<NoPreviousHeader>>
 where
     B: AsRef<[u8]>,
 {
     #[inline]
-    fn pseudoheader_checksum(&self) -> u64 {
+    fn pseudo_header_checksum(&self) -> u64 {
         0
     }
 }
@@ -211,37 +211,37 @@ where
     }
 }
 
-impl<B, PHM> TcpUdpChecksum for DataBuffer<B, Udp<Ipv4<PHM>>>
+impl<B, PHM> PseudoHeaderChecksum for DataBuffer<B, Udp<Ipv4<PHM>>>
 where
     B: AsRef<[u8]>,
     PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
-    fn pseudoheader_checksum(&self) -> u64 {
-        pseudoheader_checksum_ipv4_internal(self, constants::UDP)
+    fn pseudo_header_checksum(&self) -> u64 {
+        pseudo_header_checksum_ipv4_internal(self, constants::UDP)
     }
 }
 
-impl<B, PHM> TcpUdpChecksum for DataBuffer<B, Udp<Ipv6<PHM>>>
+impl<B, PHM> PseudoHeaderChecksum for DataBuffer<B, Udp<Ipv6<PHM>>>
 where
     B: AsRef<[u8]>,
     PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
-    fn pseudoheader_checksum(&self) -> u64 {
-        pseudoheader_checksum_ipv6_internal(self, constants::UDP)
+    fn pseudo_header_checksum(&self) -> u64 {
+        pseudo_header_checksum_ipv6_internal(self, constants::UDP)
     }
 }
 
-impl<B, PHM, const MAX_EXTENSIONS: usize> TcpUdpChecksum
+impl<B, PHM, const MAX_EXTENSIONS: usize> PseudoHeaderChecksum
     for DataBuffer<B, Udp<Ipv6Extensions<PHM, MAX_EXTENSIONS>>>
 where
     B: AsRef<[u8]>,
     PHM: HeaderMetadata + HeaderMetadataMut + Ipv6Marker,
 {
     #[inline]
-    fn pseudoheader_checksum(&self) -> u64 {
-        pseudoheader_checksum_ipv6_internal(self, constants::UDP)
+    fn pseudo_header_checksum(&self) -> u64 {
+        pseudo_header_checksum_ipv6_internal(self, constants::UDP)
     }
 }
 
@@ -367,7 +367,7 @@ impl<B, PHM> Payload for DataBuffer<B, Udp<PHM>>
 where
     B: AsRef<[u8]>,
     PHM: HeaderMetadata + HeaderMetadataMut,
-    DataBuffer<B, Udp<PHM>>: TcpUdpChecksum,
+    DataBuffer<B, Udp<PHM>>: PseudoHeaderChecksum,
 {
     #[inline]
     fn payload(&self) -> &[u8] {
@@ -386,7 +386,7 @@ impl<B, PHM> PayloadMut for DataBuffer<B, Udp<PHM>>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
     PHM: HeaderMetadata + HeaderMetadataMut,
-    DataBuffer<B, Udp<PHM>>: TcpUdpChecksum,
+    DataBuffer<B, Udp<PHM>>: PseudoHeaderChecksum,
 {
     #[inline]
     fn payload_mut(&mut self) -> &mut [u8] {
@@ -400,7 +400,7 @@ impl<B, HM> UdpMethods for DataBuffer<B, HM>
 where
     B: AsRef<[u8]>,
     HM: HeaderMetadata + HeaderMetadataMut + UdpMarker,
-    DataBuffer<B, HM>: TcpUdpChecksum,
+    DataBuffer<B, HM>: PseudoHeaderChecksum,
 {
 }
 
@@ -408,7 +408,7 @@ impl<B, HM> UdpMethodsMut for DataBuffer<B, HM>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
     HM: HeaderMetadata + HeaderMetadataMut + UdpMarker,
-    DataBuffer<B, HM>: TcpUdpChecksum + UpdateIpLength,
+    DataBuffer<B, HM>: PseudoHeaderChecksum + UpdateIpLength,
 {
 }
 

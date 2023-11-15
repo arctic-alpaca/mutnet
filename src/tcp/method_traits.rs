@@ -6,7 +6,7 @@ use crate::data_buffer::traits::{
 };
 use crate::internal_utils::grow_or_shrink_header_at_end;
 use crate::tcp::SetDataOffsetError;
-use crate::utility_traits::{TcpUdpChecksum, UpdateIpLength};
+use crate::utility_traits::{PseudoHeaderChecksum, UpdateIpLength};
 use core::ops::Range;
 use core::ops::RangeInclusive;
 
@@ -51,7 +51,7 @@ pub(crate) const LAYER: Layer = Layer::Tcp;
 
 /// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
 /// [`Tcp`](crate::tcp::Tcp) header.
-pub trait TcpMethods: HeaderMetadata + TcpUdpChecksum + BufferAccess {
+pub trait TcpMethods: HeaderMetadata + PseudoHeaderChecksum + BufferAccess {
     /// Returns the TCP source port.
     #[inline]
     fn tcp_source_port(&self) -> u16 {
@@ -180,7 +180,7 @@ pub trait TcpMethods: HeaderMetadata + TcpUdpChecksum + BufferAccess {
     /// the pseudo header is set to zero.
     #[inline]
     fn tcp_calculate_checksum(&self) -> u16 {
-        let checksum = self.pseudoheader_checksum();
+        let checksum = self.pseudo_header_checksum();
 
         internet_checksum::<4>(checksum, self.data_buffer_starting_at_header(LAYER))
     }
@@ -193,7 +193,7 @@ pub trait TcpMethodsMut:
     + HeaderManipulation
     + BufferAccessMut
     + TcpMethods
-    + TcpUdpChecksum
+    + PseudoHeaderChecksum
     + UpdateIpLength
     + Sized
 {

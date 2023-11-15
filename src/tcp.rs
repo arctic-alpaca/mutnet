@@ -22,7 +22,7 @@ use crate::error::{
 };
 use crate::internal_utils::{
     check_and_calculate_data_length, header_start_offset_from_phi,
-    pseudoheader_checksum_ipv4_internal, pseudoheader_checksum_ipv6_internal,
+    pseudo_header_checksum_ipv4_internal, pseudo_header_checksum_ipv6_internal,
 };
 use crate::ipv4::{Ipv4, UpdateIpv4Length};
 use crate::ipv6::{Ipv6, UpdateIpv6Length};
@@ -30,7 +30,7 @@ use crate::ipv6_extensions::{Ipv6ExtMetaData, Ipv6ExtMetaDataMut, Ipv6Extensions
 use crate::ipv6_extensions::{Ipv6ExtensionIndexOutOfBoundsError, Ipv6ExtensionMetadata};
 use crate::no_previous_header::NoPreviousHeader;
 use crate::typed_protocol_headers::constants;
-use crate::utility_traits::{TcpUdpChecksum, UpdateIpLength};
+use crate::utility_traits::{PseudoHeaderChecksum, UpdateIpLength};
 
 /// TCP metadata.
 ///
@@ -65,7 +65,7 @@ impl<B, PHM> DataBuffer<B, Tcp<PHM>>
 where
     B: AsRef<[u8]>,
     PHM: HeaderMetadata + HeaderMetadataMut + Copy,
-    DataBuffer<B, Tcp<PHM>>: TcpUdpChecksum,
+    DataBuffer<B, Tcp<PHM>>: PseudoHeaderChecksum,
 {
     /// Parses `buf` and creates a new [`DataBuffer`] for an TCP layer with no previous layers.
     ///
@@ -149,12 +149,12 @@ where
     }
 }
 
-impl<B> TcpUdpChecksum for DataBuffer<B, Tcp<NoPreviousHeader>>
+impl<B> PseudoHeaderChecksum for DataBuffer<B, Tcp<NoPreviousHeader>>
 where
     B: AsRef<[u8]>,
 {
     #[inline]
-    fn pseudoheader_checksum(&self) -> u64 {
+    fn pseudo_header_checksum(&self) -> u64 {
         0
     }
 }
@@ -201,37 +201,37 @@ where
     }
 }
 
-impl<B, PHM> TcpUdpChecksum for DataBuffer<B, Tcp<Ipv4<PHM>>>
+impl<B, PHM> PseudoHeaderChecksum for DataBuffer<B, Tcp<Ipv4<PHM>>>
 where
     B: AsRef<[u8]>,
     PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
-    fn pseudoheader_checksum(&self) -> u64 {
-        pseudoheader_checksum_ipv4_internal(self, constants::TCP)
+    fn pseudo_header_checksum(&self) -> u64 {
+        pseudo_header_checksum_ipv4_internal(self, constants::TCP)
     }
 }
 
-impl<B, PHM> TcpUdpChecksum for DataBuffer<B, Tcp<Ipv6<PHM>>>
+impl<B, PHM> PseudoHeaderChecksum for DataBuffer<B, Tcp<Ipv6<PHM>>>
 where
     B: AsRef<[u8]>,
     PHM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
-    fn pseudoheader_checksum(&self) -> u64 {
-        pseudoheader_checksum_ipv6_internal(self, constants::TCP)
+    fn pseudo_header_checksum(&self) -> u64 {
+        pseudo_header_checksum_ipv6_internal(self, constants::TCP)
     }
 }
 
-impl<B, PHM, const MAX_EXTENSIONS: usize> TcpUdpChecksum
+impl<B, PHM, const MAX_EXTENSIONS: usize> PseudoHeaderChecksum
     for DataBuffer<B, Tcp<Ipv6Extensions<PHM, MAX_EXTENSIONS>>>
 where
     B: AsRef<[u8]>,
     PHM: HeaderMetadata + HeaderMetadataMut + Ipv6Marker,
 {
     #[inline]
-    fn pseudoheader_checksum(&self) -> u64 {
-        pseudoheader_checksum_ipv6_internal(self, constants::TCP)
+    fn pseudo_header_checksum(&self) -> u64 {
+        pseudo_header_checksum_ipv6_internal(self, constants::TCP)
     }
 }
 
@@ -386,7 +386,7 @@ impl<B, HM> TcpMethods for DataBuffer<B, HM>
 where
     B: AsRef<[u8]>,
     HM: HeaderMetadata + HeaderMetadataMut + TcpMarker,
-    DataBuffer<B, HM>: TcpUdpChecksum,
+    DataBuffer<B, HM>: PseudoHeaderChecksum,
 {
 }
 
@@ -394,7 +394,7 @@ impl<B, HM> TcpMethodsMut for DataBuffer<B, HM>
 where
     B: AsRef<[u8]> + AsMut<[u8]>,
     HM: HeaderMetadata + HeaderMetadataMut + TcpMarker,
-    DataBuffer<B, HM>: TcpUdpChecksum + UpdateIpLength,
+    DataBuffer<B, HM>: PseudoHeaderChecksum + UpdateIpLength,
 {
 }
 

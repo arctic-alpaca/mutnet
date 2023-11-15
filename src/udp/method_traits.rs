@@ -5,7 +5,7 @@ use crate::data_buffer::{
     BufferAccess, BufferAccessMut, HeaderManipulation, HeaderMetadata, Layer,
 };
 use crate::udp::SetLengthError;
-use crate::utility_traits::{TcpUdpChecksum, UpdateIpLength};
+use crate::utility_traits::{PseudoHeaderChecksum, UpdateIpLength};
 use core::ops::Range;
 
 pub(crate) const SOURCE_PORT: Range<usize> = 0..2;
@@ -22,7 +22,7 @@ pub(crate) const LAYER: Layer = Layer::Udp;
 
 /// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
 /// [`Udp`](crate::udp::Udp) header.
-pub trait UdpMethods: HeaderMetadata + TcpUdpChecksum + BufferAccess {
+pub trait UdpMethods: HeaderMetadata + PseudoHeaderChecksum + BufferAccess {
     /// Returns the UDP source port.
     #[inline]
     fn udp_source_port(&self) -> u16 {
@@ -56,11 +56,11 @@ pub trait UdpMethods: HeaderMetadata + TcpUdpChecksum + BufferAccess {
     /// the pseudo header is set to zero.
     #[inline]
     fn udp_calculate_checksum(&self) -> u16 {
-        let pseudoheader_checksum = self.pseudoheader_checksum();
+        let pseudo_header_checksum = self.pseudo_header_checksum();
 
         let payload_end = usize::from(self.udp_length());
         internet_checksum::<4>(
-            pseudoheader_checksum,
+            pseudo_header_checksum,
             &self.data_buffer_starting_at_header(LAYER)[..payload_end],
         )
     }
@@ -73,7 +73,7 @@ pub trait UdpMethodsMut:
     + HeaderManipulation
     + BufferAccessMut
     + UdpMethods
-    + TcpUdpChecksum
+    + PseudoHeaderChecksum
     + UpdateIpLength
     + Sized
 {
