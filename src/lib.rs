@@ -226,6 +226,7 @@
 #![forbid(unsafe_code)]
 #![forbid(unreachable_pub)]
 #![warn(missing_docs)]
+#![warn(clippy::missing_errors_doc)]
 
 mod internal_utils;
 mod test_utils;
