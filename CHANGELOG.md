@@ -1,6 +1,7 @@
 # 0.5.0 (unreleased)
 ### Changed
 - Set MSRV to 1.74.0 to drop nightly requirement
+- **breaking** Change `DataBuffer` layer parsing method names
 
 # 0.4.0 (9. November 2023)
 ### Added

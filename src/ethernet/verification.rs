@@ -12,7 +12,7 @@ fn get_ethernet_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(mut to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
+    if let Ok(mut to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         let _ = to_test.ethernet_destination();
         let _ = to_test.ethernet_source();
         let _ = to_test.ethernet_ether_type();
@@ -31,9 +31,10 @@ fn set_ethernet_destination_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(mut to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
+    if let Ok(mut to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         let _ = to_test.set_ethernet_destination(&kani::any());
-        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap();
+        DataBuffer::<_, Eth>::parse_ethernet_layer(to_test.buffer_into_inner(), any_headroom)
+            .unwrap();
     }
 }
 
@@ -45,9 +46,10 @@ fn set_ethernet_source_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(mut to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
+    if let Ok(mut to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         let _ = to_test.set_ethernet_source(&kani::any());
-        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap();
+        DataBuffer::<_, Eth>::parse_ethernet_layer(to_test.buffer_into_inner(), any_headroom)
+            .unwrap();
     }
 }
 
@@ -59,8 +61,9 @@ fn set_ethernet_ether_type_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(mut to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
+    if let Ok(mut to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         let _ = to_test.set_ethernet_ether_type(kani::any());
-        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap();
+        DataBuffer::<_, Eth>::parse_ethernet_layer(to_test.buffer_into_inner(), any_headroom)
+            .unwrap();
     }
 }

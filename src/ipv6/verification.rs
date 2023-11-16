@@ -17,8 +17,8 @@ fn get_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             let _ = to_test.ipv6_version();
             let _ = to_test.ipv6_traffic_class();
             let _ = to_test.ipv6_flow_label();
@@ -43,11 +43,15 @@ fn set_ipv6_traffic_class_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             to_test.set_ipv6_traffic_class(kani::any());
-            let _ = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
             )
             .unwrap();
         }
@@ -62,11 +66,15 @@ fn set_ipv6_flow_label_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             to_test.set_ipv6_flow_label(kani::any());
-            let _ = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
             )
             .unwrap();
         }
@@ -81,11 +89,15 @@ fn set_ipv6_payload_length_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             let _ = to_test.set_ipv6_payload_length(kani::any());
-            let _ = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
             )
             .unwrap();
         }
@@ -100,10 +112,10 @@ fn set_ipv6_payload_length_proof_complete() {
 
     let any_headroom = kani::any_where(|i| *i <= EXTENDED_HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 let old_ipv6_payload_length_usize = usize::from(to_test.ipv6_payload_length());
                 let new_ipv6_payload_length = kani::any();
@@ -158,10 +170,13 @@ fn set_ipv6_payload_length_proof_complete() {
                 );
                 assert_eq!(tcp_header_length, to_test.header_length(Layer::Tcp));
 
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -180,11 +195,15 @@ fn set_ipv6_next_header_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             to_test.set_ipv6_next_header(kani::any());
-            let _ = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
             )
             .unwrap();
         }
@@ -199,11 +218,15 @@ fn set_ipv6_hop_limit_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             to_test.set_ipv6_hop_limit(kani::any());
-            let _ = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
             )
             .unwrap();
         }
@@ -218,11 +241,15 @@ fn set_ipv6_source_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             to_test.set_ipv6_source(kani::any());
-            let _ = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
             )
             .unwrap();
         }
@@ -237,11 +264,15 @@ fn set_ipv6_destination_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             to_test.set_ipv6_destination(kani::any());
-            let _ = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
             )
             .unwrap();
         }

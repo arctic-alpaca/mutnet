@@ -19,15 +19,15 @@ fn get_ipv6_ext_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(next_header) = to_test.ipv6_next_header().try_into() {
-                if let Ok((mut to_test, _has_fragment)) =
-                    DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::new_from_lower(
-                        to_test,
-                        next_header,
-                    )
-                {
+                if let Ok((mut to_test, _has_fragment)) = DataBuffer::<
+                    _,
+                    Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>,
+                >::parse_ipv6_extensions_layer(
+                    to_test, next_header
+                ) {
                     let _ = to_test.ipv6_ext_amount();
                     let _ = to_test.ipv6_extensions();
                     let _ = to_test.ipv6_ext_next_header();
@@ -61,15 +61,15 @@ fn set_ipv6_ext_next_header() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(first_extension) = to_test.ipv6_next_header().try_into() {
-                if let Ok((mut to_test, _has_fragment)) =
-                    DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::new_from_lower(
-                        to_test,
-                        first_extension,
-                    )
-                {
+                if let Ok((mut to_test, _has_fragment)) = DataBuffer::<
+                    _,
+                    Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>,
+                >::parse_ipv6_extensions_layer(
+                    to_test, first_extension
+                ) {
                     let next_header = kani::any();
                     kani::assume(next_header as u8 != Ipv6ExtensionType::HopByHop as u8);
                     kani::assume(next_header as u8 != Ipv6ExtensionType::DestinationOptions as u8);
@@ -77,13 +77,16 @@ fn set_ipv6_ext_next_header() {
                     kani::assume(next_header as u8 != Ipv6ExtensionType::Routing as u8);
                     let _ = to_test.set_ipv6_ext_next_header(next_header);
 
-                    let to_test = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                    let to_test = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap();
                     let _ =
-                        DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::new_from_lower(
+                        DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::parse_ipv6_extensions_layer(
                             to_test,
                             first_extension,
                         )
@@ -103,20 +106,20 @@ fn set_ipv6_ext_length_complete() {
 
     let mut any_headroom = kani::any_where(|i| *i <= EXTENDED_HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(first_extension) = to_test.ipv6_next_header().try_into() {
-                if let Ok((to_test, has_fragment)) =
-                    DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::new_from_lower(
-                        to_test,
-                        first_extension,
-                    )
-                {
+                if let Ok((to_test, has_fragment)) = DataBuffer::<
+                    _,
+                    Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>,
+                >::parse_ipv6_extensions_layer(
+                    to_test, first_extension
+                ) {
                     if !has_fragment {
                         if let Ok(mut to_test) = DataBuffer::<
                             _,
                             Tcp<Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>,
-                        >::new_from_lower(
+                        >::parse_tcp_layer(
                             to_test, true
                         ) {
                             let selected_ext = kani::any();
@@ -255,23 +258,24 @@ fn set_ipv6_ext_length_complete() {
                                 );
                                 assert_eq!(tcp_header_length, to_test.header_length(Layer::Tcp));
 
-                                let eth = DataBuffer::<_, Eth>::new(
+                                let eth = DataBuffer::<_, Eth>::parse_ethernet_layer(
                                     to_test.buffer_into_inner(),
                                     any_headroom,
                                 )
                                 .unwrap();
-                                let ipv6 = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(eth).unwrap();
+                                let ipv6 =
+                                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(eth).unwrap();
                                 let (ipv6_exts, _has_fragment) = DataBuffer::<
                                     _,
                                     Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>,
-                                >::new_from_lower(
+                                >::parse_ipv6_extensions_layer(
                                     ipv6, first_extension
                                 )
                                 .unwrap();
                                 let _ = DataBuffer::<
                                     _,
                                     Tcp<Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>,
-                                >::new_from_lower(
+                                >::parse_tcp_layer(
                                     ipv6_exts, true
                                 )
                                 .unwrap();
@@ -293,20 +297,20 @@ fn set_ipv6_ext_routing_type() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(first_extension) = to_test.ipv6_next_header().try_into() {
-                if let Ok((mut to_test, _has_fragment)) =
-                    DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::new_from_lower(
-                        to_test,
-                        first_extension,
-                    )
-                {
+                if let Ok((mut to_test, _has_fragment)) = DataBuffer::<
+                    _,
+                    Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>,
+                >::parse_ipv6_extensions_layer(
+                    to_test, first_extension
+                ) {
                     let _ = to_test.set_ipv6_ext_routing_type(kani::any(), kani::any());
                     let _ =
-                        DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::new_from_lower(
-                            DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                                DataBuffer::<_, Eth>::new(
+                        DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::parse_ipv6_extensions_layer(
+                            DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                                DataBuffer::<_, Eth>::parse_ethernet_layer(
                                     to_test.buffer_into_inner(),
                                     any_headroom,
                                 )
@@ -331,20 +335,20 @@ fn set_ipv6_ext_segments_left() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(first_extension) = to_test.ipv6_next_header().try_into() {
-                if let Ok((mut to_test, _has_fragment)) =
-                    DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::new_from_lower(
-                        to_test,
-                        first_extension,
-                    )
-                {
+                if let Ok((mut to_test, _has_fragment)) = DataBuffer::<
+                    _,
+                    Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>,
+                >::parse_ipv6_extensions_layer(
+                    to_test, first_extension
+                ) {
                     let _ = to_test.set_ipv6_ext_segments_left(kani::any(), kani::any());
                     let _ =
-                        DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::new_from_lower(
-                            DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                                DataBuffer::<_, Eth>::new(
+                        DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::parse_ipv6_extensions_layer(
+                            DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                                DataBuffer::<_, Eth>::parse_ethernet_layer(
                                     to_test.buffer_into_inner(),
                                     any_headroom,
                                 )
@@ -369,20 +373,20 @@ fn set_ipv6_ext_fragment_offset() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(first_extension) = to_test.ipv6_next_header().try_into() {
-                if let Ok((mut to_test, _has_fragment)) =
-                    DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::new_from_lower(
-                        to_test,
-                        first_extension,
-                    )
-                {
+                if let Ok((mut to_test, _has_fragment)) = DataBuffer::<
+                    _,
+                    Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>,
+                >::parse_ipv6_extensions_layer(
+                    to_test, first_extension
+                ) {
                     let _ = to_test.set_ipv6_ext_fragment_offset(kani::any(), kani::any());
                     let _ =
-                        DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::new_from_lower(
-                            DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                                DataBuffer::<_, Eth>::new(
+                        DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::parse_ipv6_extensions_layer(
+                            DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                                DataBuffer::<_, Eth>::parse_ethernet_layer(
                                     to_test.buffer_into_inner(),
                                     any_headroom,
                                 )
@@ -407,20 +411,20 @@ fn set_ipv6_ext_more_fragments() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(first_extension) = to_test.ipv6_next_header().try_into() {
-                if let Ok((mut to_test, _has_fragment)) =
-                    DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::new_from_lower(
-                        to_test,
-                        first_extension,
-                    )
-                {
+                if let Ok((mut to_test, _has_fragment)) = DataBuffer::<
+                    _,
+                    Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>,
+                >::parse_ipv6_extensions_layer(
+                    to_test, first_extension
+                ) {
                     let _ = to_test.set_ipv6_ext_more_fragments(kani::any(), kani::any());
                     let _ =
-                        DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::new_from_lower(
-                            DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                                DataBuffer::<_, Eth>::new(
+                        DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::parse_ipv6_extensions_layer(
+                            DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                                DataBuffer::<_, Eth>::parse_ethernet_layer(
                                     to_test.buffer_into_inner(),
                                     any_headroom,
                                 )
@@ -445,20 +449,20 @@ fn set_ipv6_ext_fragment_identification() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(first_extension) = to_test.ipv6_next_header().try_into() {
-                if let Ok((mut to_test, _has_fragment)) =
-                    DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::new_from_lower(
-                        to_test,
-                        first_extension,
-                    )
-                {
+                if let Ok((mut to_test, _has_fragment)) = DataBuffer::<
+                    _,
+                    Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>,
+                >::parse_ipv6_extensions_layer(
+                    to_test, first_extension
+                ) {
                     let _ = to_test.set_ipv6_ext_fragment_identification(kani::any(), kani::any());
                     let _ =
-                        DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::new_from_lower(
-                            DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                                DataBuffer::<_, Eth>::new(
+                        DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, MAX_EXTENSIONS>>::parse_ipv6_extensions_layer(
+                            DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                                DataBuffer::<_, Eth>::parse_ethernet_layer(
                                     to_test.buffer_into_inner(),
                                     any_headroom,
                                 )

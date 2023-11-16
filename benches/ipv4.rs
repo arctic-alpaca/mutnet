@@ -54,7 +54,8 @@ const IPV4: [u8; 92] = [
 pub fn random_ipv4() -> [u8; 92] {
     let mut rng = thread_rng();
 
-    let mut ipv4 = DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4, 0, false).unwrap();
+    let mut ipv4 =
+        DataBuffer::<_, Ipv4<NoPreviousHeader>>::parse_ipv4_alone(IPV4, 0, false).unwrap();
     ipv4.set_ipv4_ihl(rng.gen_range(0..11) + 5).unwrap();
     let dscp = {
         let mut dscp: u8 = rng.gen();
@@ -96,7 +97,7 @@ pub fn random_ipv4() -> [u8; 92] {
 pub fn parse_ipv4(
     bytes: &[u8],
 ) -> Result<DataBuffer<&[u8], Ipv4<NoPreviousHeader>>, ParseIpv4Error> {
-    DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(bytes, 0, false)
+    DataBuffer::<_, Ipv4<NoPreviousHeader>>::parse_ipv4_alone(bytes, 0, false)
 }
 
 #[allow(clippy::type_complexity)]
@@ -295,7 +296,7 @@ pub fn ipv4(c: &mut Criterion) {
         b.iter_batched_ref(
             random_ipv4,
             |data| {
-                let buffer = DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(
+                let buffer = DataBuffer::<_, Ipv4<NoPreviousHeader>>::parse_ipv4_alone(
                     std::hint::black_box(data),
                     0,
                     false,
@@ -324,7 +325,7 @@ pub fn ipv4(c: &mut Criterion) {
         b.iter_batched_ref(
             random_ipv4,
             |data| {
-                let buffer = DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(
+                let buffer = DataBuffer::<_, Ipv4<NoPreviousHeader>>::parse_ipv4_alone(
                     std::hint::black_box(data),
                     0,
                     false,

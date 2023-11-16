@@ -61,12 +61,12 @@ where
     /// - the provided data buffer is shorter than expected.
     /// - the version field is not six.
     #[inline]
-    pub fn new(
+    pub fn parse_ipv6_alone(
         buf: B,
         headroom: usize,
     ) -> Result<DataBuffer<B, Ipv6<NoPreviousHeader>>, ParseIpv6Error> {
         let lower_layer_data_buffer = DataBuffer::<B, NoPreviousHeader>::new(buf, headroom)?;
-        DataBuffer::<B, Ipv6<NoPreviousHeader>>::new_from_lower(lower_layer_data_buffer)
+        DataBuffer::<B, Ipv6<NoPreviousHeader>>::parse_ipv6_layer(lower_layer_data_buffer)
     }
 
     /// Consumes the `lower_layer_data_buffer` and creates a new [`DataBuffer`] with an additional
@@ -78,7 +78,7 @@ where
     /// - the provided data buffer is shorter than expected.
     /// - the version field is not six.
     #[inline]
-    pub fn new_from_lower(
+    pub fn parse_ipv6_layer(
         lower_layer_data_buffer: impl HeaderMetadata
             + Payload
             + BufferIntoInner<B>
@@ -463,7 +463,7 @@ mod tests {
 
     #[test]
     fn new() {
-        assert!(DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0,).is_ok());
+        assert!(DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0,).is_ok());
     }
 
     #[test]
@@ -476,7 +476,10 @@ mod tests {
                     actual_length: 8,
                 }
             )),
-            DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(&IPV6_PACKET[..IPV6_PACKET.len() - 1], 0,)
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(
+                &IPV6_PACKET[..IPV6_PACKET.len() - 1],
+                0,
+            )
         );
 
         // Checks min header length
@@ -487,7 +490,7 @@ mod tests {
                     actual_length: 39,
                 }
             )),
-            DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(&IPV6_PACKET[..39], 0)
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(&IPV6_PACKET[..39], 0)
         );
     }
 
@@ -500,7 +503,7 @@ mod tests {
                     actual_length: 49,
                 }
             )),
-            DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 500,)
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 500,)
         );
     }
 
@@ -510,7 +513,7 @@ mod tests {
         data[0] = 0x51;
         assert_eq!(
             Err(ParseIpv6Error::VersionHeaderValueNotSix),
-            DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(&data, 0,)
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(&data, 0,)
         );
     }
 
@@ -525,41 +528,46 @@ mod tests {
                     actual_length: 9,
                 }
             )),
-            DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(&data, 0,)
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(&data, 0,)
         );
     }
 
     #[test]
     fn ipv6_version() {
-        let ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(6, ipv6_packet.ipv6_version());
     }
 
     #[test]
     fn ipv6_traffic_class() {
-        let ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(0x12, ipv6_packet.ipv6_traffic_class());
     }
 
     #[test]
     fn ipv6_flow_label() {
-        let ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(0x3FFFF, ipv6_packet.ipv6_flow_label());
     }
 
     #[test]
     fn ipv6_payload_length() {
-        let ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(0x9, ipv6_packet.ipv6_payload_length());
     }
 
     #[test]
     fn ipv6_next_header() {
-        let ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(
             InternetProtocolNumber::Tcp as u8,
@@ -569,7 +577,8 @@ mod tests {
 
     #[test]
     fn ipv6_typed_next_header() {
-        let ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(
             Ok(InternetProtocolNumber::Tcp),
@@ -579,14 +588,16 @@ mod tests {
 
     #[test]
     fn ipv6_hop_limit() {
-        let ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(0xFF, ipv6_packet.ipv6_hop_limit());
     }
 
     #[test]
     fn ipv6_source() {
-        let ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(
             [
@@ -599,7 +610,8 @@ mod tests {
 
     #[test]
     fn ipv6_destination() {
-        let ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(
             [
@@ -612,7 +624,8 @@ mod tests {
 
     #[test]
     fn payload() {
-        let ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(
             &[0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,],
@@ -622,7 +635,8 @@ mod tests {
 
     #[test]
     fn payload_mut() {
-        let mut ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let mut ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(
             &mut [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,],
@@ -631,14 +645,16 @@ mod tests {
     }
     #[test]
     fn payload_length() {
-        let ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(9, ipv6_packet.payload_length());
     }
 
     #[test]
     fn set_ipv6_traffic_class() {
-        let mut ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let mut ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(0x12, ipv6_packet.ipv6_traffic_class());
         ipv6_packet.set_ipv6_traffic_class(0xFF);
@@ -648,7 +664,8 @@ mod tests {
 
     #[test]
     fn set_ipv6_flow_label() {
-        let mut ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let mut ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(0x3FFFF, ipv6_packet.ipv6_flow_label());
         ipv6_packet.set_ipv6_flow_label(0xF1111);
@@ -658,7 +675,8 @@ mod tests {
 
     #[test]
     fn set_ipv6_payload_length() {
-        let mut ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let mut ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(9, ipv6_packet.payload_length());
         assert_eq!(Ok(()), ipv6_packet.set_ipv6_payload_length(8));
@@ -683,10 +701,10 @@ mod tests {
 
     #[test]
     fn set_ipv6_payload_length_ipv6_ext_tcp() {
-        let mut tcp = DataBuffer::<_, Tcp<Ipv6Extensions<Ipv6<Eth>, 10>>>::new_from_lower(
-            DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, 10>>::new_from_lower(
-                DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                    DataBuffer::<_, Eth>::new(ETH_IPV6_EXT_TCP, 0).unwrap(),
+        let mut tcp = DataBuffer::<_, Tcp<Ipv6Extensions<Ipv6<Eth>, 10>>>::parse_tcp_layer(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, 10>>::parse_ipv6_extensions_layer(
+                DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                    DataBuffer::<_, Eth>::parse_ethernet_layer(ETH_IPV6_EXT_TCP, 0).unwrap(),
                 )
                 .unwrap(),
                 Ipv6ExtensionType::HopByHop,
@@ -714,15 +732,16 @@ mod tests {
 
     #[test]
     fn set_ipv6_payload_length_ipv6_ext() {
-        let mut ipv6_ext = DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, 10>>::new_from_lower(
-            DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(ETH_IPV6_EXT_TCP, 0).unwrap(),
+        let mut ipv6_ext =
+            DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, 10>>::parse_ipv6_extensions_layer(
+                DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                    DataBuffer::<_, Eth>::parse_ethernet_layer(ETH_IPV6_EXT_TCP, 0).unwrap(),
+                )
+                .unwrap(),
+                Ipv6ExtensionType::HopByHop,
             )
-            .unwrap(),
-            Ipv6ExtensionType::HopByHop,
-        )
-        .unwrap()
-        .0;
+            .unwrap()
+            .0;
         assert_eq!(50, ipv6_ext.ipv6_payload_length());
         assert_eq!(24, ipv6_ext.header_length(Layer::Ipv6Ext));
         assert_eq!(Ok(()), ipv6_ext.set_ipv6_payload_length(24));
@@ -737,7 +756,8 @@ mod tests {
 
     #[test]
     fn set_ipv6_next_header() {
-        let mut ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let mut ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(
             Ok(InternetProtocolNumber::Tcp),
@@ -752,7 +772,8 @@ mod tests {
 
     #[test]
     fn set_ipv6_hop_limit() {
-        let mut ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let mut ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(0xFF, ipv6_packet.ipv6_hop_limit());
         ipv6_packet.set_ipv6_hop_limit(0x0);
@@ -761,7 +782,8 @@ mod tests {
 
     #[test]
     fn set_ipv6_source() {
-        let mut ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let mut ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!([0xFF; 16], ipv6_packet.ipv6_source());
         ipv6_packet.set_ipv6_source([0x00; 16]);
@@ -770,7 +792,8 @@ mod tests {
 
     #[test]
     fn set_ipv6_destination() {
-        let mut ipv6_packet = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_PACKET, 0).unwrap();
+        let mut ipv6_packet =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!([0xFF; 16], ipv6_packet.ipv6_destination());
         ipv6_packet.set_ipv6_destination([0x00; 16]);

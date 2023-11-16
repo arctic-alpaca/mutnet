@@ -118,7 +118,7 @@ fn mutnet_new<const MAX_EXTENSIONS: usize>(
     ),
     ParseIpv6ExtensionsError,
 > {
-    DataBuffer::<_, Ipv6Extensions<NoPreviousHeader, MAX_EXTENSIONS>>::new(
+    DataBuffer::<_, Ipv6Extensions<NoPreviousHeader, MAX_EXTENSIONS>>::parse_ipv6_extensions_alone(
         bytes,
         0,
         first_extension,

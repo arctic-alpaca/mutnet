@@ -19,10 +19,10 @@ fn get_tcp_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 let _ = to_test.tcp_source_port();
                 let _ = to_test.tcp_destination_port();
@@ -61,10 +61,10 @@ fn get_tcp_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 let _ = to_test.tcp_source_port();
                 let _ = to_test.tcp_destination_port();
@@ -103,16 +103,19 @@ fn set_tcp_source_port_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_source_port(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -132,16 +135,19 @@ fn set_tcp_source_port_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_source_port(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -160,16 +166,19 @@ fn set_tcp_destination_port_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_destination_port(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -189,16 +198,19 @@ fn set_tcp_destination_port_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_destination_port(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -217,16 +229,19 @@ fn set_tcp_sequence_number_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_sequence_number(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -246,16 +261,19 @@ fn set_tcp_sequence_number_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_sequence_number(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -274,16 +292,19 @@ fn set_tcp_acknowledgement_number_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_acknowledgement_number(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -303,16 +324,19 @@ fn set_tcp_acknowledgement_number_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_acknowledgement_number(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -331,10 +355,10 @@ fn set_tcp_data_offset_ipv4_proof() {
 
     let mut any_headroom = kani::any_where(|i| *i <= EXTENDED_HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 let old_tcp_data_offset_bytes = usize::from(to_test.tcp_data_offset()) * 4;
                 let new_tcp_data_offset = kani::any();
@@ -409,10 +433,13 @@ fn set_tcp_data_offset_ipv4_proof() {
                     tcp_header_start_offset,
                     to_test.header_start_offset(Layer::Tcp)
                 );
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -432,10 +459,10 @@ fn set_tcp_data_offset_ipv6_proof() {
 
     let mut any_headroom = kani::any_where(|i| *i <= EXTENDED_HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 let old_tcp_data_offset_bytes = usize::from(to_test.tcp_data_offset()) * 4;
                 let new_tcp_data_offset = kani::any();
@@ -520,10 +547,13 @@ fn set_tcp_data_offset_ipv6_proof() {
                     tcp_header_start_offset,
                     to_test.header_start_offset(Layer::Tcp)
                 );
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -542,16 +572,19 @@ fn set_tcp_reserved_bits_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_reserved_bits(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -571,16 +604,19 @@ fn set_tcp_reserved_bits_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_reserved_bits(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -599,16 +635,19 @@ fn set_tcp_flags_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_flags(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -628,16 +667,19 @@ fn set_tcp_flags_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_flags(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -656,16 +698,19 @@ fn set_tcp_congestion_window_reduced_flag_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_congestion_window_reduced_flag(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -685,16 +730,19 @@ fn set_tcp_congestion_window_reduced_flag_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_congestion_window_reduced_flag(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -713,16 +761,19 @@ fn set_tcp_ecn_echo_flag_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_ecn_echo_flag(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -742,16 +793,19 @@ fn set_tcp_ecn_echo_flag_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_ecn_echo_flag(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -770,16 +824,19 @@ fn set_tcp_urgent_pointer_flag_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_urgent_pointer_flag(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -799,16 +856,19 @@ fn set_tcp_urgent_pointer_flag_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_urgent_pointer_flag(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -827,16 +887,19 @@ fn set_tcp_acknowledgement_flag_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_acknowledgement_flag(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -856,16 +919,19 @@ fn set_tcp_acknowledgement_flag_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_acknowledgement_flag(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -884,16 +950,19 @@ fn set_tcp_push_flag_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_push_flag(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -913,16 +982,19 @@ fn set_tcp_push_flag_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_push_flag(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -941,16 +1013,19 @@ fn set_tcp_reset_flag_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_reset_flag(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -970,16 +1045,19 @@ fn set_tcp_reset_flag_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_reset_flag(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -998,16 +1076,19 @@ fn set_tcp_synchronize_flag_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_synchronize_flag(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -1027,16 +1108,19 @@ fn set_tcp_synchronize_flag_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_synchronize_flag(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -1055,16 +1139,19 @@ fn set_tcp_fin_flag_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_fin_flag(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -1084,16 +1171,19 @@ fn set_tcp_fin_flag_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_fin_flag(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -1112,16 +1202,19 @@ fn set_tcp_window_size_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_window_size(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -1141,16 +1234,19 @@ fn set_tcp_window_size_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_window_size(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -1169,16 +1265,19 @@ fn set_tcp_checksum_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_checksum(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -1198,16 +1297,19 @@ fn set_tcp_checksum_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_checksum(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -1226,16 +1328,19 @@ fn set_tcp_urgent_pointer_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_urgent_pointer(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -1255,16 +1360,19 @@ fn set_tcp_urgent_pointer_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.set_tcp_urgent_pointer(kani::any());
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,
@@ -1283,16 +1391,19 @@ fn update_tcp_checksum_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.update_tcp_checksum();
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -1312,16 +1423,19 @@ fn update_tcp_checksum_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 to_test.update_tcp_checksum();
-                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_TCP,

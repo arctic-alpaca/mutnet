@@ -44,7 +44,10 @@ where
     ///
     /// Returns an error if the provided data buffer is shorter than expected.
     #[inline]
-    pub fn new(buf: B, headroom: usize) -> Result<DataBuffer<B, Eth>, UnexpectedBufferEndError> {
+    pub fn parse_ethernet_layer(
+        buf: B,
+        headroom: usize,
+    ) -> Result<DataBuffer<B, Eth>, UnexpectedBufferEndError> {
         let data_length =
             check_and_calculate_data_length(buf.as_ref().len(), headroom, HEADER_MIN_LEN)?;
 
@@ -210,7 +213,7 @@ mod tests {
 
     #[test]
     fn new() {
-        assert!(DataBuffer::<_, Eth>::new(ETHERNET_FRAME, 0).is_ok());
+        assert!(DataBuffer::<_, Eth>::parse_ethernet_layer(ETHERNET_FRAME, 0).is_ok());
     }
 
     #[test]
@@ -220,7 +223,7 @@ mod tests {
                 expected_length: 14,
                 actual_length: 12,
             }),
-            DataBuffer::<_, Eth>::new(&ETHERNET_FRAME[..12], 0)
+            DataBuffer::<_, Eth>::parse_ethernet_layer(&ETHERNET_FRAME[..12], 0)
         );
     }
 
@@ -231,13 +234,13 @@ mod tests {
                 expected_length: 14,
                 actual_length: 0,
             }),
-            DataBuffer::<_, Eth>::new(&ETHERNET_FRAME, ETHERNET_FRAME.len() + 1)
+            DataBuffer::<_, Eth>::parse_ethernet_layer(&ETHERNET_FRAME, ETHERNET_FRAME.len() + 1)
         );
     }
 
     #[test]
     fn ethernet_destination() {
-        let ethernet_frame = DataBuffer::<_, Eth>::new(ETHERNET_FRAME, 0).unwrap();
+        let ethernet_frame = DataBuffer::<_, Eth>::parse_ethernet_layer(ETHERNET_FRAME, 0).unwrap();
         assert_eq!(
             [0x00, 0x80, 0x41, 0xAE, 0xFD, 0x7E],
             ethernet_frame.ethernet_destination()
@@ -246,7 +249,7 @@ mod tests {
 
     #[test]
     fn ethernet_source() {
-        let ethernet_frame = DataBuffer::<_, Eth>::new(ETHERNET_FRAME, 0).unwrap();
+        let ethernet_frame = DataBuffer::<_, Eth>::parse_ethernet_layer(ETHERNET_FRAME, 0).unwrap();
         assert_eq!(
             [0x7E, 0xFD, 0xAE, 0x41, 0x80, 0x00],
             ethernet_frame.ethernet_source()
@@ -255,13 +258,13 @@ mod tests {
 
     #[test]
     fn ethernet_ether_type() {
-        let ethernet_frame = DataBuffer::<_, Eth>::new(ETHERNET_FRAME, 0).unwrap();
+        let ethernet_frame = DataBuffer::<_, Eth>::parse_ethernet_layer(ETHERNET_FRAME, 0).unwrap();
         assert_eq!(0x0800, ethernet_frame.ethernet_ether_type());
     }
 
     #[test]
     fn ethernet_typed_ether_type() {
-        let ethernet_frame = DataBuffer::<_, Eth>::new(ETHERNET_FRAME, 0).unwrap();
+        let ethernet_frame = DataBuffer::<_, Eth>::parse_ethernet_layer(ETHERNET_FRAME, 0).unwrap();
         assert_eq!(
             Ok(EtherType::Ipv4),
             ethernet_frame.ethernet_typed_ether_type()
@@ -270,7 +273,8 @@ mod tests {
 
     #[test]
     fn set_ethernet_destination() {
-        let mut ethernet_frame = DataBuffer::<_, Eth>::new(ETHERNET_FRAME, 0).unwrap();
+        let mut ethernet_frame =
+            DataBuffer::<_, Eth>::parse_ethernet_layer(ETHERNET_FRAME, 0).unwrap();
         assert_eq!(
             [0x00, 0x80, 0x41, 0xAE, 0xFD, 0x7E],
             ethernet_frame.ethernet_destination()
@@ -284,7 +288,8 @@ mod tests {
 
     #[test]
     fn set_ethernet_source() {
-        let mut ethernet_frame = DataBuffer::<_, Eth>::new(ETHERNET_FRAME, 0).unwrap();
+        let mut ethernet_frame =
+            DataBuffer::<_, Eth>::parse_ethernet_layer(ETHERNET_FRAME, 0).unwrap();
         assert_eq!(
             [0x7E, 0xFD, 0xAE, 0x41, 0x80, 0x00],
             ethernet_frame.ethernet_source()
@@ -298,7 +303,8 @@ mod tests {
 
     #[test]
     fn set_ethernet_ether_type() {
-        let mut ethernet_frame = DataBuffer::<_, Eth>::new(ETHERNET_FRAME, 0).unwrap();
+        let mut ethernet_frame =
+            DataBuffer::<_, Eth>::parse_ethernet_layer(ETHERNET_FRAME, 0).unwrap();
         assert_eq!(0x0800, ethernet_frame.ethernet_ether_type());
         ethernet_frame.set_ethernet_ether_type(EtherType::Ipv6);
         assert_eq!(EtherType::Ipv6 as u16, ethernet_frame.ethernet_ether_type());
@@ -306,7 +312,7 @@ mod tests {
 
     #[test]
     fn payload() {
-        let ethernet_frame = DataBuffer::<_, Eth>::new(ETHERNET_FRAME, 0).unwrap();
+        let ethernet_frame = DataBuffer::<_, Eth>::parse_ethernet_layer(ETHERNET_FRAME, 0).unwrap();
         assert_eq!(
             &[
                 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -320,13 +326,14 @@ mod tests {
 
     #[test]
     fn payload_length() {
-        let ethernet_frame = DataBuffer::<_, Eth>::new(ETHERNET_FRAME, 0).unwrap();
+        let ethernet_frame = DataBuffer::<_, Eth>::parse_ethernet_layer(ETHERNET_FRAME, 0).unwrap();
         assert_eq!(50, ethernet_frame.payload_length());
     }
 
     #[test]
     fn payload_mut() {
-        let mut ethernet_frame = DataBuffer::<_, Eth>::new(ETHERNET_FRAME, 0).unwrap();
+        let mut ethernet_frame =
+            DataBuffer::<_, Eth>::parse_ethernet_layer(ETHERNET_FRAME, 0).unwrap();
 
         assert_eq!(
             &[
@@ -341,7 +348,8 @@ mod tests {
 
     #[test]
     fn set_data_length() {
-        let mut ethernet_frame = DataBuffer::<_, Eth>::new(ETHERNET_FRAME, 0).unwrap();
+        let mut ethernet_frame =
+            DataBuffer::<_, Eth>::parse_ethernet_layer(ETHERNET_FRAME, 0).unwrap();
         ethernet_frame
             .set_data_length(30, ETHERNET_FRAME.len())
             .unwrap();
@@ -357,7 +365,7 @@ mod tests {
         let mut data = [0x00; 100];
         copy_into_slice(&mut data, &ETHERNET_FRAME, 10);
         let data_len = data.len();
-        let mut ethernet_frame = DataBuffer::<_, Eth>::new(&mut data, 10).unwrap();
+        let mut ethernet_frame = DataBuffer::<_, Eth>::parse_ethernet_layer(&mut data, 10).unwrap();
         assert_eq!(
             Err(LengthExceedsAvailableSpaceError {
                 required_space: 99,

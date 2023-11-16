@@ -28,7 +28,7 @@ const IPV6: [u8; 60] = [
 ];
 
 pub fn random_ipv6() -> [u8; 60] {
-    let mut ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6, 0).unwrap();
+    let mut ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6, 0).unwrap();
     ipv6.set_ipv6_traffic_class(rand::random());
     ipv6.set_ipv6_flow_label(rand::random());
     while ipv6.set_ipv6_payload_length(rand::random()).is_err() {}
@@ -47,7 +47,7 @@ pub fn random_ipv6() -> [u8; 60] {
 pub fn mutnet_new(
     bytes: &[u8],
 ) -> Result<DataBuffer<&[u8], Ipv6<NoPreviousHeader>>, ParseIpv6Error> {
-    DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(bytes, 0)
+    DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(bytes, 0)
 }
 
 #[inline(always)]
@@ -150,9 +150,11 @@ pub fn ipv6(c: &mut Criterion) {
         b.iter_batched_ref(
             random_ipv6,
             |data| {
-                let buffer =
-                    DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(std::hint::black_box(data), 0)
-                        .unwrap();
+                let buffer = DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(
+                    std::hint::black_box(data),
+                    0,
+                )
+                .unwrap();
                 let mut result = &mut mutnet_get_functions_inlined(&buffer);
                 std::hint::black_box(&mut result);
             },
@@ -176,9 +178,11 @@ pub fn ipv6(c: &mut Criterion) {
         b.iter_batched_ref(
             random_ipv6,
             |data| {
-                let buffer =
-                    DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(std::hint::black_box(data), 0)
-                        .unwrap();
+                let buffer = DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(
+                    std::hint::black_box(data),
+                    0,
+                )
+                .unwrap();
                 let mut result = &mut mutnet_get_functions_not_inlined(&buffer);
                 std::hint::black_box(&mut result);
             },

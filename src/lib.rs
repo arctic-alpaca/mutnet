@@ -111,12 +111,12 @@
 //! let headroom = 0;
 //!
 //! // Parse network data without headroom.
-//! let ethernet = DataBuffer::<&[u8;64], Eth>::new(network_data_ref, headroom).unwrap();
+//! let ethernet = DataBuffer::<&[u8;64], Eth>::parse_ethernet_layer(network_data_ref, headroom).unwrap();
 //! // The network data buffer type can usually be elided.
 //! let check_ipv4_checksum = true;
-//! let ipv4 = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(ethernet, check_ipv4_checksum).unwrap();
+//! let ipv4 = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(ethernet, check_ipv4_checksum).unwrap();
 //! let check_tcp_checksum = true;
-//! let tcp = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(ipv4, check_tcp_checksum).unwrap();
+//! let tcp = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(ipv4, check_tcp_checksum).unwrap();
 //!
 //! // The mutnet::tcp::TcpMethods trait needs to be in scope to access non-mutable TCP methods.
 //! assert_eq!(tcp.tcp_source_port(), 0x1234);
@@ -194,12 +194,12 @@
 //! let headroom = 36;
 //!
 //! // Parse network data without headroom.
-//! let ethernet = DataBuffer::<&mut [u8;100], Eth>::new(network_data_ref_mut, headroom).unwrap();
+//! let ethernet = DataBuffer::<&mut [u8;100], Eth>::parse_ethernet_layer(network_data_ref_mut, headroom).unwrap();
 //! // The network data buffer type can usually be elided.
 //! let check_ipv4_checksum = true;
-//! let ipv4 = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(ethernet, check_ipv4_checksum).unwrap();
+//! let ipv4 = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(ethernet, check_ipv4_checksum).unwrap();
 //! let check_tcp_checksum = true;
-//! let mut tcp = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(ipv4, check_tcp_checksum).unwrap();
+//! let mut tcp = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(ipv4, check_tcp_checksum).unwrap();
 //!
 //! // The mutnet::tcp::TcpMethods trait needs to be in scope to access non-mutating TCP methods.
 //! assert_eq!(tcp.tcp_source_port(), 0x1234);

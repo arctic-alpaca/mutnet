@@ -77,13 +77,13 @@ where
     /// - the provided data buffer is shorter than expected.
     /// - the length field value is invalid.
     #[inline]
-    pub fn new_without_checksum(
+    pub fn parse_udp_alone(
         buf: B,
         headroom: usize,
     ) -> Result<DataBuffer<B, Udp<NoPreviousHeader>>, ParseUdpError> {
         let lower_layer_data_buffer = DataBuffer::<B, NoPreviousHeader>::new(buf, headroom)?;
 
-        DataBuffer::<B, Udp<NoPreviousHeader>>::new_from_lower(lower_layer_data_buffer, false)
+        DataBuffer::<B, Udp<NoPreviousHeader>>::parse_udp_layer(lower_layer_data_buffer, false)
     }
 
     /// Consumes the `lower_layer_data_buffer` and creates a new [`DataBuffer`] with an additional
@@ -105,7 +105,7 @@ where
     /// - the length field value is invalid.
     /// - if `check_udp_checksum` is true and the checksum is invalid.
     #[inline]
-    pub fn new_from_lower(
+    pub fn parse_udp_layer(
         lower_layer_data_buffer: impl HeaderMetadata
             + Payload
             + BufferIntoInner<B>
@@ -621,10 +621,10 @@ mod tests {
     #[test]
     fn new() {
         assert!(
-            DataBuffer::<_, Udp<Ipv6Extensions<Ipv6<Eth>, 10>>>::new_from_lower(
-                DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, 10>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(ETH_IPV6_EXT_UDP, 0).unwrap(),
+            DataBuffer::<_, Udp<Ipv6Extensions<Ipv6<Eth>, 10>>>::parse_udp_layer(
+                DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, 10>>::parse_ipv6_extensions_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(ETH_IPV6_EXT_UDP, 0).unwrap(),
                     )
                     .unwrap(),
                     Ipv6ExtensionType::Routing,
@@ -636,16 +636,16 @@ mod tests {
             .is_ok()
         );
 
-        assert!(DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).is_ok());
+        assert!(DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(UDP, 0).is_ok());
     }
 
     #[test]
     fn new_data_buffer_too_short() {
         assert!(
-            DataBuffer::<_, Udp<Ipv6Extensions<Ipv6<Eth>, 10>>>::new_from_lower(
-                DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, 10>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(ETH_IPV6_EXT_UDP, 0).unwrap(),
+            DataBuffer::<_, Udp<Ipv6Extensions<Ipv6<Eth>, 10>>>::parse_udp_layer(
+                DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, 10>>::parse_ipv6_extensions_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(ETH_IPV6_EXT_UDP, 0).unwrap(),
                     )
                     .unwrap(),
                     Ipv6ExtensionType::Routing,
@@ -665,15 +665,15 @@ mod tests {
                     actual_length: 7,
                 }
             )),
-            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(&UDP[..7], 0)
+            DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(&UDP[..7], 0)
         );
     }
 
     #[test]
     fn new_ipv6_payload_shorter_than_udp_length() {
-        let mut ipv6 = DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, 10>>::new_from_lower(
-            DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(ETH_IPV6_EXT_UDP, 0).unwrap(),
+        let mut ipv6 = DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, 10>>::parse_ipv6_extensions_layer(
+            DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(ETH_IPV6_EXT_UDP, 0).unwrap(),
             )
             .unwrap(),
             Ipv6ExtensionType::Routing,
@@ -688,7 +688,7 @@ mod tests {
                     actual_length: 7,
                 }
             )),
-            DataBuffer::<_, Udp<_>>::new_from_lower(ipv6.clone(), false)
+            DataBuffer::<_, Udp<_>>::parse_udp_layer(ipv6.clone(), false)
         );
         ipv6.set_ipv6_payload_length(32).unwrap();
         assert_eq!(
@@ -698,7 +698,7 @@ mod tests {
                     actual_length: 8,
                 }
             )),
-            DataBuffer::<_, Udp<_>>::new_from_lower(ipv6.clone(), false)
+            DataBuffer::<_, Udp<_>>::parse_udp_layer(ipv6.clone(), false)
         );
     }
 
@@ -708,7 +708,7 @@ mod tests {
         data[5] = 7;
         assert_eq!(
             Err(ParseUdpError::LengthHeaderTooSmall { length_header: 7 }),
-            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(data, 0,)
+            DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(data, 0,)
         );
     }
 
@@ -721,7 +721,7 @@ mod tests {
                     actual_length: 14,
                 }
             )),
-            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 500,)
+            DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(UDP, 500,)
         );
     }
 
@@ -736,15 +736,15 @@ mod tests {
                     actual_length: 14,
                 }
             )),
-            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(data, 0,)
+            DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(data, 0,)
         );
     }
 
     #[test]
     fn new_invalid_checksum() {
-        let mut ipv6 = DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, 10>>::new_from_lower(
-            DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(ETH_IPV6_EXT_UDP, 0).unwrap(),
+        let mut ipv6 = DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, 10>>::parse_ipv6_extensions_layer(
+            DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(ETH_IPV6_EXT_UDP, 0).unwrap(),
             )
             .unwrap(),
             Ipv6ExtensionType::Routing,
@@ -756,54 +756,48 @@ mod tests {
             Err(ParseUdpError::InvalidChecksum(InvalidChecksumError {
                 calculated_checksum: 65501
             })),
-            DataBuffer::<_, Udp<_>>::new_from_lower(ipv6.clone(), true)
+            DataBuffer::<_, Udp<_>>::parse_udp_layer(ipv6.clone(), true)
         );
     }
 
     #[test]
     fn udp_source_port() {
-        let udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
+        let udp_datagram = DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(UDP, 0).unwrap();
 
         assert_eq!(0x1234, udp_datagram.udp_source_port());
     }
 
     #[test]
     fn udp_destination_port() {
-        let udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
+        let udp_datagram = DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(UDP, 0).unwrap();
 
         assert_eq!(0x4567, udp_datagram.udp_destination_port());
     }
 
     #[test]
     fn udp_length() {
-        let udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
+        let udp_datagram = DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(UDP, 0).unwrap();
 
         assert_eq!(0xC, udp_datagram.udp_length());
     }
 
     #[test]
     fn udp_checksum() {
-        let udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
+        let udp_datagram = DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(UDP, 0).unwrap();
 
         assert_eq!(0xABCD, udp_datagram.udp_checksum());
     }
 
     #[test]
     fn udp_calculate_checksum() {
-        let udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
+        let udp_datagram = DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(UDP, 0).unwrap();
 
         assert_eq!(0xFC8A, udp_datagram.udp_calculate_checksum());
     }
 
     #[test]
     fn payload() {
-        let udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
+        let udp_datagram = DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(UDP, 0).unwrap();
 
         assert_eq!(&[0xFF; 4], udp_datagram.payload());
     }
@@ -811,15 +805,14 @@ mod tests {
     #[test]
     fn payload_mut() {
         let mut udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
+            DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(UDP, 0).unwrap();
 
         assert_eq!(&[0xFF; 4], udp_datagram.payload_mut());
     }
 
     #[test]
     fn payload_length() {
-        let udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
+        let udp_datagram = DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(UDP, 0).unwrap();
 
         assert_eq!(4, udp_datagram.payload_length());
     }
@@ -827,7 +820,7 @@ mod tests {
     #[test]
     fn set_udp_source_port() {
         let mut udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
+            DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(UDP, 0).unwrap();
 
         assert_eq!(0x1234, udp_datagram.udp_source_port());
         udp_datagram.set_udp_source_port(0xFFDD);
@@ -837,7 +830,7 @@ mod tests {
     #[test]
     fn set_udp_destination_port() {
         let mut udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
+            DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(UDP, 0).unwrap();
 
         assert_eq!(0x4567, udp_datagram.udp_destination_port());
         udp_datagram.set_udp_destination_port(0xFFDD);
@@ -846,19 +839,20 @@ mod tests {
 
     #[test]
     fn set_udp_length() {
-        let mut udp_datagram = DataBuffer::<_, Udp<Ipv6Extensions<Ipv6<Eth>, 10>>>::new_from_lower(
-            DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, 10>>::new_from_lower(
-                DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                    DataBuffer::<_, Eth>::new(ETH_IPV6_EXT_UDP, 0).unwrap(),
+        let mut udp_datagram =
+            DataBuffer::<_, Udp<Ipv6Extensions<Ipv6<Eth>, 10>>>::parse_udp_layer(
+                DataBuffer::<_, Ipv6Extensions<Ipv6<Eth>, 10>>::parse_ipv6_extensions_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(ETH_IPV6_EXT_UDP, 0).unwrap(),
+                    )
+                    .unwrap(),
+                    Ipv6ExtensionType::Routing,
                 )
-                .unwrap(),
-                Ipv6ExtensionType::Routing,
+                .unwrap()
+                .0,
+                true,
             )
-            .unwrap()
-            .0,
-            true,
-        )
-        .unwrap();
+            .unwrap();
 
         assert_eq!(0xC, udp_datagram.udp_length());
         // IPv6 length includes two more bytes than the UDP length, this is why the ipv6 payload length
@@ -895,7 +889,7 @@ mod tests {
     #[test]
     fn set_udp_checksum() {
         let mut udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
+            DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(UDP, 0).unwrap();
 
         assert_eq!(0xABCD, udp_datagram.udp_checksum());
         udp_datagram.set_udp_checksum(0xFFDD);
@@ -905,7 +899,7 @@ mod tests {
     #[test]
     fn update_udp_checksum() {
         let mut udp_datagram =
-            DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
+            DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(UDP, 0).unwrap();
 
         assert_eq!(0xABCD, udp_datagram.udp_checksum());
         udp_datagram.update_udp_checksum();
@@ -917,10 +911,10 @@ mod tests {
     fn set_ipv4_ihl() {
         let mut data = [0; 124];
         copy_into_slice(&mut data, &ETH_IPV4_UDP, 60);
-        let ethernet = DataBuffer::<_, Eth>::new(data, 60).unwrap();
-        let ipv4 = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(ethernet, true).unwrap();
+        let ethernet = DataBuffer::<_, Eth>::parse_ethernet_layer(data, 60).unwrap();
+        let ipv4 = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(ethernet, true).unwrap();
 
-        let mut tcp_packet = DataBuffer::<_, Udp<Ipv4<Eth>>>::new_from_lower(ipv4, true).unwrap();
+        let mut tcp_packet = DataBuffer::<_, Udp<Ipv4<Eth>>>::parse_udp_layer(ipv4, true).unwrap();
 
         let source_port = tcp_packet.udp_source_port();
         assert_eq!(38, tcp_packet.header_start_offset(Layer::Udp));

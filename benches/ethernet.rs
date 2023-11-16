@@ -21,7 +21,7 @@ const ETHERNET: [u8; 64] = [
 ];
 
 fn random_valid_ethernet() -> [u8; 64] {
-    let mut ethernet = DataBuffer::<_, Eth>::new(ETHERNET, 0).unwrap();
+    let mut ethernet = DataBuffer::<_, Eth>::parse_ethernet_layer(ETHERNET, 0).unwrap();
     ethernet.set_ethernet_destination(&rand::random());
     ethernet.set_ethernet_source(&rand::random());
     let ether_type = {
@@ -41,7 +41,7 @@ fn random_valid_ethernet() -> [u8; 64] {
 
 #[inline(always)]
 fn mutnet_new(bytes: &[u8]) -> Result<DataBuffer<&[u8], Eth>, UnexpectedBufferEndError> {
-    DataBuffer::<_, Eth>::new(bytes, 0)
+    DataBuffer::<_, Eth>::parse_ethernet_layer(bytes, 0)
 }
 
 #[inline(always)]
@@ -120,7 +120,9 @@ pub fn ethernet(c: &mut Criterion) {
         b.iter_batched_ref(
             random_valid_ethernet,
             |data| {
-                let buffer = DataBuffer::<_, Eth>::new(std::hint::black_box(data), 0).unwrap();
+                let buffer =
+                    DataBuffer::<_, Eth>::parse_ethernet_layer(std::hint::black_box(data), 0)
+                        .unwrap();
                 let mut result = &mut mutnet_get_functions_inlined(&buffer);
                 std::hint::black_box(&mut result);
             },
@@ -146,7 +148,9 @@ pub fn ethernet(c: &mut Criterion) {
         b.iter_batched_ref(
             random_valid_ethernet,
             |data| {
-                let buffer = DataBuffer::<_, Eth>::new(std::hint::black_box(data), 0).unwrap();
+                let buffer =
+                    DataBuffer::<_, Eth>::parse_ethernet_layer(std::hint::black_box(data), 0)
+                        .unwrap();
                 let mut result = &mut mutnet_get_functions_not_inlined(&buffer);
                 std::hint::black_box(&mut result);
             },

@@ -13,8 +13,8 @@ fn get_arp_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Arp<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Arp<Eth>>::parse_arp_layer(to_test) {
             let _ = to_test.arp_hardware_type();
             let _ = to_test.arp_protocol_type();
             let _ = to_test.arp_typed_protocol_type();
@@ -38,11 +38,15 @@ fn arp_set_operation_code_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Arp<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) = DataBuffer::<_, Arp<Eth>>::parse_arp_layer(to_test) {
             to_test.set_arp_operation_code(kani::any());
-            let _ = DataBuffer::<_, Arp<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Arp<Eth>>::parse_arp_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
             )
             .unwrap();
         }
@@ -57,11 +61,15 @@ fn arp_set_sender_hardware_address_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Arp<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) = DataBuffer::<_, Arp<Eth>>::parse_arp_layer(to_test) {
             to_test.set_arp_sender_hardware_address(&kani::any());
-            let _ = DataBuffer::<_, Arp<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Arp<Eth>>::parse_arp_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
             )
             .unwrap();
         }
@@ -76,11 +84,15 @@ fn arp_set_sender_protocol_address_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Arp<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) = DataBuffer::<_, Arp<Eth>>::parse_arp_layer(to_test) {
             to_test.set_arp_sender_protocol_address(&kani::any());
-            let _ = DataBuffer::<_, Arp<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Arp<Eth>>::parse_arp_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
             )
             .unwrap();
         }
@@ -95,11 +107,15 @@ fn arp_set_target_hardware_address_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Arp<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) = DataBuffer::<_, Arp<Eth>>::parse_arp_layer(to_test) {
             to_test.set_arp_target_hardware_address(&kani::any());
-            let _ = DataBuffer::<_, Arp<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Arp<Eth>>::parse_arp_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
             )
             .unwrap();
         }
@@ -114,11 +130,15 @@ fn arp_set_target_protocol_address_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Arp<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) = DataBuffer::<_, Arp<Eth>>::parse_arp_layer(to_test) {
             to_test.set_arp_target_protocol_address(&kani::any());
-            let _ = DataBuffer::<_, Arp<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Arp<Eth>>::parse_arp_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
             )
             .unwrap();
         }

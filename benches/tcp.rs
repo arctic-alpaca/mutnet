@@ -45,7 +45,7 @@ const TCP: [u8;60] = [
 ];
 
 pub fn random_tcp() -> [u8; 60] {
-    let mut tcp = DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP, 0).unwrap();
+    let mut tcp = DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP, 0).unwrap();
     tcp.set_tcp_source_port(rand::random());
     tcp.set_tcp_destination_port(rand::random());
     tcp.set_tcp_sequence_number(rand::random());
@@ -69,7 +69,7 @@ pub fn random_tcp() -> [u8; 60] {
 
 #[inline(always)]
 pub fn mutnet_new(bytes: &[u8]) -> Result<DataBuffer<&[u8], Tcp<NoPreviousHeader>>, ParseTcpError> {
-    DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(bytes, 0)
+    DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(bytes, 0)
 }
 
 #[allow(clippy::type_complexity)]
@@ -276,7 +276,7 @@ pub fn tcp(c: &mut Criterion) {
         b.iter_batched_ref(
             random_tcp,
             |data| {
-                let buffer = DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(
+                let buffer = DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(
                     std::hint::black_box(data),
                     0,
                 )
@@ -304,7 +304,7 @@ pub fn tcp(c: &mut Criterion) {
         b.iter_batched_ref(
             random_tcp,
             |data| {
-                let buffer = DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(
+                let buffer = DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(
                     std::hint::black_box(data),
                     0,
                 )

@@ -33,7 +33,7 @@ const ARP_IPV4_REQUEST1: [u8;28] = [
 pub fn random_valid_arp() -> [u8; 28] {
     let mut rng = thread_rng();
 
-    let mut arp = DataBuffer::<_, Arp<NoPreviousHeader>>::new(ARP_IPV4_REQUEST1, 0).unwrap();
+    let mut arp = DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST1, 0).unwrap();
 
     let operation_code = match rng.gen_range(0..2) {
         0_u8 => OperationCode::Reply,
@@ -53,7 +53,7 @@ pub fn random_valid_arp() -> [u8; 28] {
 fn mutnet_new(
     bytes: &mut [u8],
 ) -> Result<DataBuffer<&mut [u8], Arp<NoPreviousHeader>>, ParseArpError> {
-    DataBuffer::<_, Arp<NoPreviousHeader>>::new(bytes, 0)
+    DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(bytes, 0)
 }
 
 #[inline(always)]
@@ -131,7 +131,7 @@ pub fn arp(c: &mut Criterion) {
             random_valid_arp,
             |data| {
                 let buffer =
-                    DataBuffer::<_, Arp<NoPreviousHeader>>::new(std::hint::black_box(data), 0)
+                    DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(std::hint::black_box(data), 0)
                         .unwrap();
                 let mut result = &mut mutnet_get_functions_inlined(&buffer);
                 std::hint::black_box(&mut result);
@@ -145,7 +145,7 @@ pub fn arp(c: &mut Criterion) {
             random_valid_arp,
             |data| {
                 let buffer =
-                    DataBuffer::<_, Arp<NoPreviousHeader>>::new(std::hint::black_box(data), 0)
+                    DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(std::hint::black_box(data), 0)
                         .unwrap();
                 let mut result = &mut mutnet_get_functions_not_inlined(&buffer);
                 std::hint::black_box(&mut result);

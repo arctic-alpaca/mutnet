@@ -80,13 +80,13 @@ where
     /// - the provided data buffer is shorter than expected.
     /// - the data offset field value is invalid.
     #[inline]
-    pub fn new_without_checksum(
+    pub fn parse_tcp_alone(
         buf: B,
         headroom: usize,
     ) -> Result<DataBuffer<B, Tcp<NoPreviousHeader>>, ParseTcpError> {
         let lower_layer_data_buffer = DataBuffer::<B, NoPreviousHeader>::new(buf, headroom)?;
 
-        DataBuffer::<B, Tcp<NoPreviousHeader>>::new_from_lower(lower_layer_data_buffer, false)
+        DataBuffer::<B, Tcp<NoPreviousHeader>>::parse_tcp_layer(lower_layer_data_buffer, false)
     }
 
     /// Consumes the `lower_layer_data_buffer` and creates a new [`DataBuffer`] with an additional
@@ -99,7 +99,7 @@ where
     /// - the data offset field value is invalid.
     /// - if `check_tcp_checksum` is true and the checksum is invalid.
     #[inline]
-    pub fn new_from_lower(
+    pub fn parse_tcp_layer(
         lower_layer_data_buffer: impl HeaderMetadata
             + Payload
             + BufferIntoInner<B>
@@ -816,7 +816,7 @@ mod tests {
     #[test]
     fn new() {
         assert!(
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .is_ok()
         );
     }
@@ -830,7 +830,7 @@ mod tests {
                     actual_length: 19,
                 }
             )),
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(
                 &TCP_PACKET_NO_OPTIONS[..19],
                 0
             )
@@ -842,10 +842,7 @@ mod tests {
                     actual_length: 27,
                 }
             )),
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(
-                &TCP_PACKET_OPTIONS[..27],
-                0
-            )
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(&TCP_PACKET_OPTIONS[..27], 0)
         );
     }
 
@@ -858,10 +855,7 @@ mod tests {
                     actual_length: 26,
                 }
             )),
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(
-                &TCP_PACKET_NO_OPTIONS,
-                290
-            )
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(&TCP_PACKET_NO_OPTIONS, 290)
         );
     }
 
@@ -873,7 +867,7 @@ mod tests {
             Err(ParseTcpError::DataOffsetHeaderValueTooSmall {
                 data_offset_header: 4
             }),
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(&data, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(&data, 0)
         );
 
         let mut data = TCP_PACKET_NO_OPTIONS;
@@ -885,44 +879,46 @@ mod tests {
                     actual_length: 26,
                 }
             )),
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(&data, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(&data, 0)
         );
     }
 
     // Verified by hand
     #[test]
     fn checksum() {
-        let ipv4 = DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(IPV4_TCP, 0, true).unwrap();
-        assert!(DataBuffer::<_, Tcp<_>>::new_from_lower(ipv4, true).is_ok());
+        let ipv4 =
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::parse_ipv4_alone(IPV4_TCP, 0, true).unwrap();
+        assert!(DataBuffer::<_, Tcp<_>>::parse_tcp_layer(ipv4, true).is_ok());
 
         let mut data = IPV4_TCP;
         data[40] = 0xFF;
-        let ipv4 = DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(data, 0, true).unwrap();
+        let ipv4 =
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::parse_ipv4_alone(data, 0, true).unwrap();
         assert_eq!(
             Err(ParseTcpError::InvalidChecksum(InvalidChecksumError {
                 calculated_checksum: 6655,
             })),
-            DataBuffer::<_, Tcp<_>>::new_from_lower(ipv4, true)
+            DataBuffer::<_, Tcp<_>>::parse_tcp_layer(ipv4, true)
         );
 
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_TCP, 0).unwrap();
-        assert!(DataBuffer::<_, Tcp<_>>::new_from_lower(ipv6, true).is_ok());
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_TCP, 0).unwrap();
+        assert!(DataBuffer::<_, Tcp<_>>::parse_tcp_layer(ipv6, true).is_ok());
 
         let mut data = IPV6_TCP;
         data[40] = 0xFF;
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(data, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(data, 0).unwrap();
         assert_eq!(
             Err(ParseTcpError::InvalidChecksum(InvalidChecksumError {
                 calculated_checksum: 4863,
             })),
-            DataBuffer::<_, Tcp<_>>::new_from_lower(ipv6, true)
+            DataBuffer::<_, Tcp<_>>::parse_tcp_layer(ipv6, true)
         );
     }
 
     #[test]
     fn tcp_source_port() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(0x1234, tcp_packet.tcp_source_port());
     }
@@ -930,7 +926,7 @@ mod tests {
     #[test]
     fn tcp_destination_port() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(0x4567, tcp_packet.tcp_destination_port());
     }
@@ -938,7 +934,7 @@ mod tests {
     #[test]
     fn tcp_sequence_number() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(0x12_34_56_78, tcp_packet.tcp_sequence_number());
     }
@@ -946,7 +942,7 @@ mod tests {
     #[test]
     fn tcp_acknowledgment_number() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(0x09_87_65_43, tcp_packet.tcp_acknowledgment_number());
     }
@@ -954,7 +950,7 @@ mod tests {
     #[test]
     fn tcp_data_offset() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(5, tcp_packet.tcp_data_offset());
     }
@@ -962,7 +958,7 @@ mod tests {
     #[test]
     fn tcp_reserved_bits() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(0, tcp_packet.tcp_reserved_bits());
     }
@@ -970,7 +966,7 @@ mod tests {
     #[test]
     fn tcp_flags() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(0b0101_0101, tcp_packet.tcp_flags());
     }
@@ -978,7 +974,7 @@ mod tests {
     #[test]
     fn tcp_congestion_window_reduced_flag() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert!(!tcp_packet.tcp_congestion_window_reduced_flag());
     }
@@ -986,7 +982,7 @@ mod tests {
     #[test]
     fn tcp_ecn_echo_flag() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert!(tcp_packet.tcp_ecn_echo_flag());
     }
@@ -994,7 +990,7 @@ mod tests {
     #[test]
     fn tcp_urgent_pointer_flag() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert!(!tcp_packet.tcp_urgent_pointer_flag());
     }
@@ -1002,7 +998,7 @@ mod tests {
     #[test]
     fn tcp_acknowledgement_flag() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert!(tcp_packet.tcp_acknowledgement_flag());
     }
@@ -1010,7 +1006,7 @@ mod tests {
     #[test]
     fn tcp_push_flag() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert!(!tcp_packet.tcp_push_flag());
     }
@@ -1018,7 +1014,7 @@ mod tests {
     #[test]
     fn tcp_reset_flag() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert!(tcp_packet.tcp_reset_flag());
     }
@@ -1026,7 +1022,7 @@ mod tests {
     #[test]
     fn tcp_synchronize_flag() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert!(!tcp_packet.tcp_synchronize_flag());
     }
@@ -1034,7 +1030,7 @@ mod tests {
     #[test]
     fn tcp_fin_flag() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert!(tcp_packet.tcp_fin_flag());
     }
@@ -1042,7 +1038,7 @@ mod tests {
     #[test]
     fn tcp_window_size() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(0x1245, tcp_packet.tcp_window_size());
     }
@@ -1050,7 +1046,7 @@ mod tests {
     #[test]
     fn tcp_checksum() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(0x1234, tcp_packet.tcp_checksum());
     }
@@ -1058,7 +1054,7 @@ mod tests {
     #[test]
     fn tcp_urgent_pointer() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(0x5678, tcp_packet.tcp_urgent_pointer());
     }
@@ -1066,20 +1062,19 @@ mod tests {
     #[test]
     fn tcp_options() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(None, tcp_packet.tcp_options());
 
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_OPTIONS, 0)
-                .unwrap();
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_OPTIONS, 0).unwrap();
         assert_eq!(Some([0xFF; 8].as_slice()), tcp_packet.tcp_options());
     }
 
     #[test]
     fn payload() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(&[0xFF; 6], tcp_packet.payload());
     }
@@ -1087,7 +1082,7 @@ mod tests {
     #[test]
     fn payload_mut() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(&mut [0xFF; 6], tcp_packet.payload_mut());
     }
@@ -1095,7 +1090,7 @@ mod tests {
     #[test]
     fn payload_length() {
         let tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(6, tcp_packet.payload_length());
     }
@@ -1103,7 +1098,7 @@ mod tests {
     #[test]
     fn set_tcp_source_port() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(0x1234, tcp_packet.tcp_source_port());
         tcp_packet.set_tcp_source_port(0x8989);
@@ -1113,7 +1108,7 @@ mod tests {
     #[test]
     fn set_tcp_destination_port() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(0x4567, tcp_packet.tcp_destination_port());
         tcp_packet.set_tcp_destination_port(0x6767);
@@ -1123,7 +1118,7 @@ mod tests {
     #[test]
     fn set_tcp_sequence_number() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(0x12_34_56_78, tcp_packet.tcp_sequence_number());
         tcp_packet.set_tcp_sequence_number(0x09_87_65_43);
@@ -1133,7 +1128,7 @@ mod tests {
     #[test]
     fn set_tcp_acknowledgement_number() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(0x09_87_65_43, tcp_packet.tcp_acknowledgment_number());
         tcp_packet.set_tcp_acknowledgement_number(0x12_34_56_77);
@@ -1143,7 +1138,7 @@ mod tests {
     #[test]
     fn set_tcp_reserved_bits() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(0, tcp_packet.tcp_reserved_bits());
         tcp_packet.set_tcp_reserved_bits(0xFF);
@@ -1153,7 +1148,7 @@ mod tests {
     #[test]
     fn set_tcp_flags() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(0b0101_0101, tcp_packet.tcp_flags());
         tcp_packet.set_tcp_flags(0b1010_1010);
@@ -1163,7 +1158,7 @@ mod tests {
     #[test]
     fn set_tcp_congestion_window_reduced_flag() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert!(!tcp_packet.tcp_congestion_window_reduced_flag());
         tcp_packet.set_tcp_congestion_window_reduced_flag(true);
@@ -1173,7 +1168,7 @@ mod tests {
     #[test]
     fn set_tcp_ecn_echo_flag() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert!(tcp_packet.tcp_ecn_echo_flag());
         tcp_packet.set_tcp_ecn_echo_flag(false);
@@ -1183,7 +1178,7 @@ mod tests {
     #[test]
     fn set_tcp_urgent_pointer_flag() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert!(!tcp_packet.tcp_urgent_pointer_flag());
         tcp_packet.set_tcp_urgent_pointer_flag(true);
@@ -1193,7 +1188,7 @@ mod tests {
     #[test]
     fn set_tcp_acknowledgement_flag() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert!(tcp_packet.tcp_acknowledgement_flag());
         tcp_packet.set_tcp_acknowledgement_flag(false);
@@ -1203,7 +1198,7 @@ mod tests {
     #[test]
     fn set_tcp_push_flag() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert!(!tcp_packet.tcp_push_flag());
         tcp_packet.set_tcp_push_flag(true);
@@ -1213,7 +1208,7 @@ mod tests {
     #[test]
     fn set_tcp_reset_flag() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert!(tcp_packet.tcp_reset_flag());
         tcp_packet.set_tcp_reset_flag(false);
@@ -1223,7 +1218,7 @@ mod tests {
     #[test]
     fn set_tcp_synchronize_flag() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert!(!tcp_packet.tcp_synchronize_flag());
         tcp_packet.set_tcp_synchronize_flag(true);
@@ -1233,7 +1228,7 @@ mod tests {
     #[test]
     fn set_tcp_fin_flag() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert!(tcp_packet.tcp_fin_flag());
         tcp_packet.set_tcp_fin_flag(false);
@@ -1243,7 +1238,7 @@ mod tests {
     #[test]
     fn set_tcp_window_size() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(0x1245, tcp_packet.tcp_window_size());
         tcp_packet.set_tcp_window_size(0x5432);
@@ -1253,7 +1248,7 @@ mod tests {
     #[test]
     fn set_tcp_checksum() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(0x1234, tcp_packet.tcp_checksum());
         tcp_packet.set_tcp_checksum(0x5656);
@@ -1263,7 +1258,7 @@ mod tests {
     #[test]
     fn set_tcp_urgent_pointer() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(0x5678, tcp_packet.tcp_urgent_pointer());
         tcp_packet.set_tcp_urgent_pointer(0x0909);
@@ -1275,8 +1270,9 @@ mod tests {
         let mut data = IPV4_TCP;
         data[40] = 0;
 
-        let ipv4 = DataBuffer::<_, Ipv4<NoPreviousHeader>>::new(data, 0, true).unwrap();
-        let mut tcp_packet = DataBuffer::<_, Tcp<_>>::new_from_lower(ipv4, false).unwrap();
+        let ipv4 =
+            DataBuffer::<_, Ipv4<NoPreviousHeader>>::parse_ipv4_alone(data, 0, true).unwrap();
+        let mut tcp_packet = DataBuffer::<_, Tcp<_>>::parse_tcp_layer(ipv4, false).unwrap();
 
         assert_eq!(0xB8, tcp_packet.tcp_checksum());
         tcp_packet.update_tcp_checksum();
@@ -1285,8 +1281,8 @@ mod tests {
         let mut data = IPV6_TCP;
         data[56] = 0;
 
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(data, 0).unwrap();
-        let mut tcp_packet = DataBuffer::<_, Tcp<_>>::new_from_lower(ipv6, false).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(data, 0).unwrap();
+        let mut tcp_packet = DataBuffer::<_, Tcp<_>>::parse_tcp_layer(ipv6, false).unwrap();
 
         assert_eq!(0xBB, tcp_packet.tcp_checksum());
         tcp_packet.update_tcp_checksum();
@@ -1296,20 +1292,19 @@ mod tests {
     #[test]
     fn tcp_options_mut() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(None, tcp_packet.tcp_options_mut());
 
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_OPTIONS, 0)
-                .unwrap();
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_OPTIONS, 0).unwrap();
         assert_eq!(Some([0xFF; 8].as_mut()), tcp_packet.tcp_options_mut());
     }
 
     #[test]
     fn set_tcp_data_offset() {
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(TCP_PACKET_NO_OPTIONS, 0)
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP_PACKET_NO_OPTIONS, 0)
                 .unwrap();
         assert_eq!(None, tcp_packet.tcp_options_mut());
 
@@ -1325,7 +1320,7 @@ mod tests {
         let mut data = [0xFF_u8; 66];
         copy_into_slice(&mut data, &TCP_PACKET_NO_OPTIONS, 40);
         let mut tcp_packet =
-            DataBuffer::<_, Tcp<NoPreviousHeader>>::new_without_checksum(data, 40).unwrap();
+            DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(data, 40).unwrap();
 
         assert_eq!(5, tcp_packet.tcp_data_offset());
         assert_eq!(None, tcp_packet.tcp_options());
@@ -1350,10 +1345,10 @@ mod tests {
 
     #[test]
     fn set_tcp_data_offset_ipv4() {
-        let ethernet = DataBuffer::<_, Eth>::new(ETH_IPV4_TCP, 0).unwrap();
-        let ipv4 = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(ethernet, true).unwrap();
+        let ethernet = DataBuffer::<_, Eth>::parse_ethernet_layer(ETH_IPV4_TCP, 0).unwrap();
+        let ipv4 = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(ethernet, true).unwrap();
 
-        let mut tcp_packet = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(ipv4, true).unwrap();
+        let mut tcp_packet = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(ipv4, true).unwrap();
         assert_eq!(None, tcp_packet.tcp_options_mut());
 
         assert_eq!(
@@ -1367,10 +1362,10 @@ mod tests {
 
         let mut data = [0xFF_u8; 110];
         copy_into_slice(&mut data, &ETH_IPV4_TCP, 40);
-        let ethernet = DataBuffer::<_, Eth>::new(data, 40).unwrap();
-        let ipv4 = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(ethernet, true).unwrap();
+        let ethernet = DataBuffer::<_, Eth>::parse_ethernet_layer(data, 40).unwrap();
+        let ipv4 = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(ethernet, true).unwrap();
 
-        let mut tcp_packet = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(ipv4, true).unwrap();
+        let mut tcp_packet = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(ipv4, true).unwrap();
 
         assert_eq!(&[0xFF; 6], tcp_packet.payload_mut());
         assert_eq!(5, tcp_packet.tcp_data_offset());
@@ -1396,10 +1391,10 @@ mod tests {
 
     #[test]
     fn set_tcp_data_offset_ipv6() {
-        let ethernet = DataBuffer::<_, Eth>::new(ETH_IPV6_TCP, 0).unwrap();
-        let ipv6 = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(ethernet).unwrap();
+        let ethernet = DataBuffer::<_, Eth>::parse_ethernet_layer(ETH_IPV6_TCP, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(ethernet).unwrap();
 
-        let mut tcp_packet = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(ipv6, true).unwrap();
+        let mut tcp_packet = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(ipv6, true).unwrap();
         assert_eq!(None, tcp_packet.tcp_options_mut());
 
         assert_eq!(
@@ -1413,10 +1408,10 @@ mod tests {
 
         let mut data = [0xFF_u8; 150];
         copy_into_slice(&mut data, &ETH_IPV6_TCP, 40);
-        let ethernet = DataBuffer::<_, Eth>::new(data, 40).unwrap();
-        let ipv6 = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(ethernet).unwrap();
+        let ethernet = DataBuffer::<_, Eth>::parse_ethernet_layer(data, 40).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(ethernet).unwrap();
 
-        let mut tcp_packet = DataBuffer::<_, Tcp<Ipv6<Eth>>>::new_from_lower(ipv6, true).unwrap();
+        let mut tcp_packet = DataBuffer::<_, Tcp<Ipv6<Eth>>>::parse_tcp_layer(ipv6, true).unwrap();
         assert_eq!(&[0xFF; 6], tcp_packet.payload_mut());
 
         assert_eq!(5, tcp_packet.tcp_data_offset());
@@ -1445,10 +1440,10 @@ mod tests {
     fn set_ipv4_ihl() {
         let mut data = [0; 124];
         copy_into_slice(&mut data, &ETH_IPV4_TCP, 60);
-        let ethernet = DataBuffer::<_, Eth>::new(data, 60).unwrap();
-        let ipv4 = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(ethernet, true).unwrap();
+        let ethernet = DataBuffer::<_, Eth>::parse_ethernet_layer(data, 60).unwrap();
+        let ipv4 = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(ethernet, true).unwrap();
 
-        let mut tcp_packet = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(ipv4, true).unwrap();
+        let mut tcp_packet = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(ipv4, true).unwrap();
 
         let flags = tcp_packet.tcp_flags();
         assert_eq!(38, tcp_packet.header_start_offset(Layer::Tcp));

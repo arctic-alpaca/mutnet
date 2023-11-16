@@ -22,7 +22,7 @@ const UDP: [u8; 14] = [
 pub fn random_udp() -> [u8; 14] {
     let mut rng = thread_rng();
 
-    let mut udp = DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(UDP, 0).unwrap();
+    let mut udp = DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(UDP, 0).unwrap();
     udp.set_udp_destination_port(rand::random());
     udp.set_udp_source_port(rand::random());
     udp.set_udp_checksum(rand::random());
@@ -36,7 +36,7 @@ pub fn random_udp() -> [u8; 14] {
 
 #[inline(always)]
 pub fn mutnet_new(bytes: &[u8]) -> Result<DataBuffer<&[u8], Udp<NoPreviousHeader>>, ParseUdpError> {
-    DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(bytes, 0)
+    DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(bytes, 0)
 }
 
 #[inline(always)]
@@ -115,7 +115,7 @@ pub fn tcp(c: &mut Criterion) {
         b.iter_batched_ref(
             random_udp,
             |data| {
-                let buffer = DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(
+                let buffer = DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(
                     std::hint::black_box(data),
                     0,
                 )
@@ -143,7 +143,7 @@ pub fn tcp(c: &mut Criterion) {
         b.iter_batched_ref(
             random_udp,
             |data| {
-                let buffer = DataBuffer::<_, Udp<NoPreviousHeader>>::new_without_checksum(
+                let buffer = DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(
                     std::hint::black_box(data),
                     0,
                 )

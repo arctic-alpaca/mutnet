@@ -20,13 +20,14 @@ fn get_ieee_802_1q_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
-        if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(to_test, vlan)
         {
             let _ = to_test.ieee802_1q_c_tag_control_information();
             let _ = to_test.ieee802_1q_c_tag_priority_code_point();
@@ -54,18 +55,23 @@ fn set_ieee802_1q_c_tag_control_information() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
-        if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(to_test, vlan)
         {
             let array: [u8; 2] = kani::any();
             to_test.set_ieee802_1q_c_tag_control_information(&array);
-            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 vlan,
             )
             .unwrap();
@@ -81,17 +87,22 @@ fn set_ieee802_1q_c_tag_priority_code_point() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
-        if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(to_test, vlan)
         {
             to_test.set_ieee802_1q_c_tag_priority_code_point(kani::any());
-            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 vlan,
             )
             .unwrap();
@@ -107,17 +118,22 @@ fn set_ieee802_1q_c_tag_drop_eligible_indicator() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
-        if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(to_test, vlan)
         {
             to_test.set_ieee802_1q_c_tag_drop_eligible_indicator(kani::any());
-            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 vlan,
             )
             .unwrap();
@@ -133,17 +149,22 @@ fn set_ieee802_1q_c_tag_vlan_identifier() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
-        if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(to_test, vlan)
         {
             to_test.set_ieee802_1q_c_tag_vlan_identifier(kani::any());
-            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 vlan,
             )
             .unwrap();
@@ -159,13 +180,14 @@ fn add_or_update_ieee802_1q_s_tag() {
 
     let mut any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         let mut vlan = match to_test.ethernet_ether_type() {
             constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
-        if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(to_test, vlan)
         {
             let array: [u8; 2] = kani::any();
             if to_test.add_or_update_ieee802_1q_s_tag(&array).is_ok() {
@@ -174,8 +196,12 @@ fn add_or_update_ieee802_1q_s_tag() {
                     vlan = Vlan::DoubleTagged;
                 }
             }
-            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 vlan,
             )
             .unwrap();
@@ -191,17 +217,20 @@ fn add_or_update_ieee802_1q_s_tag_complete() {
 
     let mut any_headroom = kani::any_where(|i| *i <= EXTENDED_HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         let mut vlan = match to_test.ethernet_ether_type() {
             constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
-        if let Ok(to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan) {
-            if let Ok(to_test) = DataBuffer::<_, Ipv6<Ieee802_1QVlan<Eth>>>::new_from_lower(to_test)
+        if let Ok(to_test) =
+            DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(to_test, vlan)
+        {
+            if let Ok(to_test) =
+                DataBuffer::<_, Ipv6<Ieee802_1QVlan<Eth>>>::parse_ipv6_layer(to_test)
             {
                 if let Ok(mut to_test) =
-                    DataBuffer::<_, Tcp<Ipv6<Ieee802_1QVlan<Eth>>>>::new_from_lower(to_test, true)
+                    DataBuffer::<_, Tcp<Ipv6<Ieee802_1QVlan<Eth>>>>::parse_tcp_layer(to_test, true)
                 {
                     let internal_headroom = to_test.headroom_internal();
                     let data_length = to_test.data_length();
@@ -286,15 +315,20 @@ fn add_or_update_ieee802_1q_s_tag_complete() {
                     assert_eq!(ipv6_header_length, to_test.header_length(Layer::Ipv6));
                     assert_eq!(tcp_header_length, to_test.header_length(Layer::Tcp));
 
-                    let eth = DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                        .unwrap();
+                    let eth = DataBuffer::<_, Eth>::parse_ethernet_layer(
+                        to_test.buffer_into_inner(),
+                        any_headroom,
+                    )
+                    .unwrap();
                     let vlan =
-                        DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(eth, vlan).unwrap();
-                    let ipv6 =
-                        DataBuffer::<_, Ipv6<Ieee802_1QVlan<Eth>>>::new_from_lower(vlan).unwrap();
-                    let _ =
-                        DataBuffer::<_, Tcp<Ipv6<Ieee802_1QVlan<Eth>>>>::new_from_lower(ipv6, true)
+                        DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(eth, vlan)
                             .unwrap();
+                    let ipv6 =
+                        DataBuffer::<_, Ipv6<Ieee802_1QVlan<Eth>>>::parse_ipv6_layer(vlan).unwrap();
+                    let _ = DataBuffer::<_, Tcp<Ipv6<Ieee802_1QVlan<Eth>>>>::parse_tcp_layer(
+                        ipv6, true,
+                    )
+                    .unwrap();
                 }
             }
         }
@@ -309,13 +343,14 @@ fn set_ieee802_1q_s_tag_priority_code_point() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
-        if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(to_test, vlan)
         {
             match vlan {
                 Vlan::SingleTagged => {
@@ -330,8 +365,12 @@ fn set_ieee802_1q_s_tag_priority_code_point() {
                         .unwrap();
                 }
             }
-            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 vlan,
             )
             .unwrap();
@@ -347,13 +386,14 @@ fn set_ieee802_1q_s_tag_drop_eligible_indicator() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
-        if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(to_test, vlan)
         {
             match vlan {
                 Vlan::SingleTagged => {
@@ -368,8 +408,12 @@ fn set_ieee802_1q_s_tag_drop_eligible_indicator() {
                         .unwrap();
                 }
             }
-            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 vlan,
             )
             .unwrap();
@@ -385,13 +429,14 @@ fn set_ieee802_1q_s_tag_vlan_identifier() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
-        if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(to_test, vlan)
         {
             match vlan {
                 Vlan::SingleTagged => {
@@ -407,8 +452,12 @@ fn set_ieee802_1q_s_tag_vlan_identifier() {
                 }
             }
 
-            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 vlan,
             )
             .unwrap();
@@ -424,13 +473,14 @@ fn cut_ieee802_1q_s_tag() {
 
     let mut any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         let mut vlan = match to_test.ethernet_ether_type() {
             constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
-        if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(to_test, vlan)
         {
             to_test.cut_ieee802_1q_s_tag();
             if vlan == Vlan::DoubleTagged {
@@ -438,8 +488,12 @@ fn cut_ieee802_1q_s_tag() {
                 vlan = Vlan::SingleTagged;
             }
 
-            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 vlan,
             )
             .unwrap();
@@ -455,17 +509,20 @@ fn cut_ieee802_1q_s_tag_complete() {
 
     let mut any_headroom = kani::any_where(|i| *i <= EXTENDED_HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
-        if let Ok(to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan) {
-            if let Ok(to_test) = DataBuffer::<_, Ipv6<Ieee802_1QVlan<Eth>>>::new_from_lower(to_test)
+        if let Ok(to_test) =
+            DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(to_test, vlan)
+        {
+            if let Ok(to_test) =
+                DataBuffer::<_, Ipv6<Ieee802_1QVlan<Eth>>>::parse_ipv6_layer(to_test)
             {
                 if let Ok(mut to_test) =
-                    DataBuffer::<_, Tcp<Ipv6<Ieee802_1QVlan<Eth>>>>::new_from_lower(to_test, true)
+                    DataBuffer::<_, Tcp<Ipv6<Ieee802_1QVlan<Eth>>>>::parse_tcp_layer(to_test, true)
                 {
                     let internal_headroom = to_test.headroom_internal();
                     let data_length = to_test.data_length();
@@ -533,18 +590,22 @@ fn cut_ieee802_1q_s_tag_complete() {
                     assert_eq!(tcp_header_length, to_test.header_length(Layer::Tcp));
                     assert_eq!(EtherType::CustomerTag as u16, to_test.ethernet_ether_type());
 
-                    let eth = DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                        .unwrap();
-                    let vlan = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
+                    let eth = DataBuffer::<_, Eth>::parse_ethernet_layer(
+                        to_test.buffer_into_inner(),
+                        any_headroom,
+                    )
+                    .unwrap();
+                    let vlan = DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(
                         eth,
                         Vlan::SingleTagged,
                     )
                     .unwrap();
                     let ipv6 =
-                        DataBuffer::<_, Ipv6<Ieee802_1QVlan<Eth>>>::new_from_lower(vlan).unwrap();
-                    let _ =
-                        DataBuffer::<_, Tcp<Ipv6<Ieee802_1QVlan<Eth>>>>::new_from_lower(ipv6, true)
-                            .unwrap();
+                        DataBuffer::<_, Ipv6<Ieee802_1QVlan<Eth>>>::parse_ipv6_layer(vlan).unwrap();
+                    let _ = DataBuffer::<_, Tcp<Ipv6<Ieee802_1QVlan<Eth>>>>::parse_tcp_layer(
+                        ipv6, true,
+                    )
+                    .unwrap();
                 }
             }
         }
@@ -559,18 +620,23 @@ fn set_ieee802_1q_ether_type() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         let vlan = match to_test.ethernet_ether_type() {
             constants::CUSTOMER_TAG_802_1Q => Vlan::SingleTagged,
             constants::SERVICE_TAG_802_1Q => Vlan::DoubleTagged,
             _ => return,
         };
-        if let Ok(mut to_test) = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(to_test, vlan)
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(to_test, vlan)
         {
             to_test.set_ieee802_1q_ether_type(kani::any());
 
-            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            let _ = DataBuffer::<_, Ieee802_1QVlan<Eth>>::parse_ieee802_1q_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 vlan,
             )
             .unwrap();

@@ -114,7 +114,7 @@ where
     /// - an unrecognized extension type is passed to the constructor of [`Ipv6Extensions`] (this
     /// constitutes a bug).
     #[inline]
-    pub fn new(
+    pub fn parse_ipv6_extensions_alone(
         buf: B,
         headroom: usize,
         next_header_byte: Ipv6ExtensionType,
@@ -127,7 +127,7 @@ where
     > {
         let lower_layer_data_buffer = DataBuffer::<B, NoPreviousHeader>::new(buf, headroom)?;
 
-        DataBuffer::<B, Ipv6Extensions<NoPreviousHeader, MAX_EXTENSIONS>>::new_from_lower(
+        DataBuffer::<B, Ipv6Extensions<NoPreviousHeader, MAX_EXTENSIONS>>::parse_ipv6_extensions_layer(
             lower_layer_data_buffer,
             next_header_byte,
         )
@@ -146,7 +146,7 @@ where
     /// - an unrecognized extension type is passed to the constructor of [`Ipv6Extensions`] (this
     /// constitutes a bug).
     #[inline]
-    pub fn new_from_lower(
+    pub fn parse_ipv6_extensions_layer(
         lower_layer_data_buffer: impl HeaderMetadata
             + Payload
             + BufferIntoInner<B>
@@ -1019,27 +1019,29 @@ mod tests {
 
     #[test]
     fn new() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let _ = DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+        let _ = DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::parse_ipv6_extensions_layer(
             ipv6,
             next_header,
         )
         .unwrap();
 
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXT_NO_HOP, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXT_NO_HOP, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
-        let _ = DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+        let _ = DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::parse_ipv6_extensions_layer(
             ipv6,
             next_header,
         )
         .unwrap();
 
-        let _ = DataBuffer::<_, Ipv6Extensions<NoPreviousHeader, 10>>::new(
+        let _ = DataBuffer::<_, Ipv6Extensions<NoPreviousHeader, 10>>::parse_ipv6_extensions_alone(
             &IPV6_EXTENSIONS[40..],
             0,
             Ipv6ExtensionType::HopByHop,
@@ -1051,7 +1053,8 @@ mod tests {
     fn new_data_buffer_too_short() {
         let mut data = IPV6_EXTENSIONS;
         data[5] = 7;
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(&data[..47], 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(&data[..47], 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
@@ -1062,7 +1065,7 @@ mod tests {
                     actual_length: 7
                 }
             )),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1075,7 +1078,7 @@ mod tests {
                     actual_length: 7,
                 }
             )),
-            DataBuffer::<_, Ipv6Extensions<NoPreviousHeader, 10>>::new(
+            DataBuffer::<_, Ipv6Extensions<NoPreviousHeader, 10>>::parse_ipv6_extensions_alone(
                 &IPV6_EXTENSIONS[40..47],
                 0,
                 Ipv6ExtensionType::HopByHop
@@ -1086,8 +1089,8 @@ mod tests {
     #[test]
     fn new_fragment() {
         let (_exts, has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
-                DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(&IPV6_EXTENSIONS, 0).unwrap(),
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::parse_ipv6_extensions_layer(
+                DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(&IPV6_EXTENSIONS, 0).unwrap(),
                 Ipv6ExtensionType::HopByHop,
             )
             .unwrap();
@@ -1095,8 +1098,8 @@ mod tests {
         assert!(has_fragment);
 
         let (_exts, has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
-                DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(&IPV6_NO_FRAGMENT, 0).unwrap(),
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::parse_ipv6_extensions_layer(
+                DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(&IPV6_NO_FRAGMENT, 0).unwrap(),
                 Ipv6ExtensionType::HopByHop,
             )
             .unwrap();
@@ -1113,7 +1116,7 @@ mod tests {
                     actual_length: 39,
                 }
             )),
-            DataBuffer::<_, Ipv6Extensions<NoPreviousHeader, 10>>::new(
+            DataBuffer::<_, Ipv6Extensions<NoPreviousHeader, 10>>::parse_ipv6_extensions_alone(
                 &IPV6_EXTENSIONS[40..],
                 290,
                 Ipv6ExtensionType::HopByHop
@@ -1123,38 +1126,39 @@ mod tests {
 
     #[test]
     fn new_extension_limit_reached() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         assert_eq!(
             Err(ParseIpv6ExtensionsError::ExtensionLimitReached),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 0>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 0>>::parse_ipv6_extensions_layer(
                 ipv6.clone(),
                 next_header,
             )
         );
         assert_eq!(
             Err(ParseIpv6ExtensionsError::ExtensionLimitReached),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 1>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 1>>::parse_ipv6_extensions_layer(
                 ipv6.clone(),
                 next_header,
             )
         );
         assert_eq!(
             Err(ParseIpv6ExtensionsError::ExtensionLimitReached),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 2>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 2>>::parse_ipv6_extensions_layer(
                 ipv6.clone(),
                 next_header,
             )
         );
         assert_eq!(
             Err(ParseIpv6ExtensionsError::ExtensionLimitReached),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 3>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 3>>::parse_ipv6_extensions_layer(
                 ipv6.clone(),
                 next_header,
             )
         );
-        let _ = DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 4>>::new_from_lower(
+        let _ = DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 4>>::parse_ipv6_extensions_layer(
             ipv6.clone(),
             next_header,
         )
@@ -1165,7 +1169,7 @@ mod tests {
     fn new_extension_length_to_large() {
         let mut data = IPV6_EXTENSIONS;
         data[41] = 10;
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(data, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(data, 0).unwrap();
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         assert_eq!(
@@ -1175,7 +1179,7 @@ mod tests {
                     actual_length: 39,
                 }
             )),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::parse_ipv6_extensions_layer(
                 ipv6.clone(),
                 next_header,
             )
@@ -1183,7 +1187,7 @@ mod tests {
 
         let mut data = IPV6_EXTENSIONS;
         data[49] = 10;
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(data, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(data, 0).unwrap();
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         assert_eq!(
@@ -1193,14 +1197,14 @@ mod tests {
                     actual_length: 39,
                 }
             )),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::parse_ipv6_extensions_layer(
                 ipv6.clone(),
                 next_header,
             )
         );
         let mut data = IPV6_EXTENSIONS;
         data[57] = 10;
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(data, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(data, 0).unwrap();
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         assert_eq!(
@@ -1210,7 +1214,7 @@ mod tests {
                     actual_length: 39,
                 }
             )),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1219,7 +1223,8 @@ mod tests {
 
     #[test]
     fn new_extension_too_short() {
-        let mut ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let mut ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
         ipv6.payload_mut()[1] = 1;
         ipv6.set_ipv6_payload_length(9).unwrap();
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
@@ -1231,13 +1236,14 @@ mod tests {
                     actual_length: 9,
                 }
             )),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
         );
 
-        let mut ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let mut ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
         ipv6.set_ipv6_payload_length(15).unwrap();
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
@@ -1248,13 +1254,14 @@ mod tests {
                     actual_length: 15,
                 }
             )),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
         );
 
-        let mut ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let mut ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
         ipv6.set_ipv6_payload_length(30).unwrap();
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
@@ -1265,7 +1272,7 @@ mod tests {
                     actual_length: 30,
                 }
             )),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1276,11 +1283,11 @@ mod tests {
     fn new_hop_by_hop_not_first() {
         let mut data = IPV6_EXT_NO_HOP;
         data[40] = Ipv6ExtensionType::HopByHop as u8;
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(data, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(data, 0).unwrap();
 
         assert_eq!(
             Err(ParseIpv6ExtensionsError::InvalidHopByHopPosition),
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::parse_ipv6_extensions_layer(
                 ipv6,
                 Ipv6ExtensionType::Routing,
             )
@@ -1289,11 +1296,13 @@ mod tests {
 
     #[test]
     fn new_atomic_and_regular_fragment() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXT_ATOMIC_AND_REGULAR_FRAGMENT, 0)
-                .unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(
+            IPV6_EXT_ATOMIC_AND_REGULAR_FRAGMENT,
+            0,
+        )
+        .unwrap();
         let (ipv6_ext, is_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::parse_ipv6_extensions_layer(
                 ipv6,
                 Ipv6ExtensionType::Fragment,
             )
@@ -1331,10 +1340,13 @@ mod tests {
 
     #[test]
     fn new_only_atomic_fragment() {
-        let ipv6 =
-            DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXT_ONLY_ATOMIC_FRAGMENT, 0).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(
+            IPV6_EXT_ONLY_ATOMIC_FRAGMENT,
+            0,
+        )
+        .unwrap();
         let (ipv6_ext, is_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::parse_ipv6_extensions_layer(
                 ipv6,
                 Ipv6ExtensionType::Fragment,
             )
@@ -1358,11 +1370,12 @@ mod tests {
 
     #[test]
     fn ipv6_ext_amount() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 10>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1372,12 +1385,13 @@ mod tests {
 
     #[test]
     fn ipv6_extensions() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1396,12 +1410,13 @@ mod tests {
 
     #[test]
     fn ipv6_ext_next_header() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1415,12 +1430,13 @@ mod tests {
 
     #[test]
     fn ipv6_ext_typed_next_header() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1434,12 +1450,13 @@ mod tests {
 
     #[test]
     fn ipv6_ext_per_extension_next_header() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1465,12 +1482,13 @@ mod tests {
 
     #[test]
     fn ipv6_ext_per_extension_typed_next_header() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1498,12 +1516,13 @@ mod tests {
 
     #[test]
     fn ipv6_ext_length() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1528,12 +1547,13 @@ mod tests {
 
     #[test]
     fn ipv6_ext_length_in_bytes() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1555,12 +1575,13 @@ mod tests {
 
     #[test]
     fn ipv6_ext_data() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1587,12 +1608,13 @@ mod tests {
 
     #[test]
     fn ipv6_ext_routing_type() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1628,12 +1650,13 @@ mod tests {
 
     #[test]
     fn ipv6_ext_segments_left() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1666,12 +1689,13 @@ mod tests {
 
     #[test]
     fn ipv6_ext_fragment_offset() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1704,12 +1728,13 @@ mod tests {
 
     #[test]
     fn ipv6_ext_more_fragments() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1742,12 +1767,13 @@ mod tests {
 
     #[test]
     fn ipv6_ext_fragment_identification() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1780,12 +1806,13 @@ mod tests {
 
     #[test]
     fn payload() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1796,12 +1823,13 @@ mod tests {
 
     #[test]
     fn payload_mut() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (mut exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1812,12 +1840,13 @@ mod tests {
 
     #[test]
     fn payload_length() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1828,12 +1857,13 @@ mod tests {
 
     #[test]
     fn set_ipv6_ext_next_header() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (mut exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -1856,12 +1886,12 @@ mod tests {
     fn set_ipv6_ext_length() {
         let mut data = [0; 87];
         copy_into_slice(&mut data, &IPV6_EXTENSIONS, 8);
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(data, 8).unwrap();
+        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(data, 8).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (mut exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -2036,12 +2066,13 @@ mod tests {
 
     #[test]
     fn ipv6_ext_data_mut() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (mut exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -2067,12 +2098,13 @@ mod tests {
     }
     #[test]
     fn set_ipv6_ext_routing_type() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (mut exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -2113,12 +2145,13 @@ mod tests {
 
     #[test]
     fn set_ipv6_ext_segments_left() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (mut exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -2153,12 +2186,13 @@ mod tests {
 
     #[test]
     fn set_ipv6_ext_fragment_offset() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (mut exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -2193,12 +2227,13 @@ mod tests {
 
     #[test]
     fn set_ipv6_ext_more_fragments() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (mut exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )
@@ -2233,12 +2268,13 @@ mod tests {
 
     #[test]
     fn set_ipv6_ext_fragment_identification() {
-        let ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::new(IPV6_EXTENSIONS, 0).unwrap();
+        let ipv6 =
+            DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXTENSIONS, 0).unwrap();
 
         let next_header = ipv6.ipv6_next_header().try_into().unwrap();
 
         let (mut exts, _has_fragment) =
-            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::new_from_lower(
+            DataBuffer::<_, Ipv6Extensions<Ipv6<NoPreviousHeader>, 5>>::parse_ipv6_extensions_layer(
                 ipv6,
                 next_header,
             )

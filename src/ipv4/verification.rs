@@ -20,8 +20,9 @@ fn get_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.ipv4_version();
             let _ = to_test.ipv4_ihl();
@@ -61,10 +62,10 @@ fn set_ipv4_ihl_proof_complete() {
 
     let mut any_headroom = kani::any_where(|i| *i <= EXTENDED_HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 let old_ipv4_ihl_bytes_usize = usize::from(to_test.ipv4_ihl()) * 4;
                 let new_ipv4_ihl = kani::any();
@@ -149,10 +150,13 @@ fn set_ipv4_ihl_proof_complete() {
                             assert_eq!(tcp_header_length, to_test.header_length(Layer::Tcp));
                         }
                     }
-                    let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                        DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                            DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                                .unwrap(),
+                    let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                        DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                            DataBuffer::<_, Eth>::parse_ethernet_layer(
+                                to_test.buffer_into_inner(),
+                                any_headroom,
+                            )
+                            .unwrap(),
                             CHECKSUM_IPV4,
                         )
                         .unwrap(),
@@ -173,12 +177,17 @@ fn ipv4_set_dscp_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_dscp(kani::any());
-            DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -194,12 +203,17 @@ fn ipv4_set_ecn_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_ecn(kani::any());
-            DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -215,12 +229,17 @@ fn ipv4_set_total_length_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_total_length(kani::any());
-            DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -236,10 +255,10 @@ fn ipv4_set_total_length_proof_complete() {
 
     let any_headroom = kani::any_where(|i| *i <= EXTENDED_HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_TCP)
+                DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(to_test, CHECKSUM_TCP)
             {
                 let old_ipv4_total_length_usize = usize::from(to_test.ipv4_total_length());
                 let new_ipv4_total_length = kani::any();
@@ -289,10 +308,13 @@ fn ipv4_set_total_length_proof_complete() {
                     to_test.header_start_offset(Layer::Tcp)
                 );
                 assert_eq!(tcp_header_length, to_test.header_length(Layer::Tcp));
-                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Tcp<Ipv4<Eth>>>::parse_tcp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -312,12 +334,17 @@ fn ipv4_set_identification_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_identification(kani::any());
-            DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -333,12 +360,17 @@ fn ipv4_set_flags_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_flags(kani::any());
-            DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -354,12 +386,17 @@ fn set_ipv4_evil_flag_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_evil_flag(kani::any());
-            DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -375,12 +412,17 @@ fn set_ipv4_dont_fragment_flag_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_dont_fragment_flag(kani::any());
-            DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -396,12 +438,17 @@ fn set_ipv4_more_fragments_flag_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_more_fragments_flag(kani::any());
-            DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -417,12 +464,17 @@ fn ipv4_set_fragment_offset_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_fragment_offset(kani::any());
-            DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -438,12 +490,17 @@ fn ipv4_set_time_to_live_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_time_to_live(kani::any());
-            DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -459,12 +516,17 @@ fn ipv4_set_protocol_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_protocol(kani::any());
-            DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -480,12 +542,17 @@ fn ipv4_set_header_checksum_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_header_checksum(kani::any());
-            DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -501,12 +568,17 @@ fn ipv4_update_header_checksum_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.update_ipv4_header_checksum();
-            DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -522,12 +594,17 @@ fn ipv4_set_source_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_source(kani::any());
-            DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();
@@ -543,12 +620,17 @@ fn ipv4_set_destination_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(mut to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4)
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(mut to_test) =
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4)
         {
             let _ = to_test.set_ipv4_destination(kani::any());
-            DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom).unwrap(),
+            DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                DataBuffer::<_, Eth>::parse_ethernet_layer(
+                    to_test.buffer_into_inner(),
+                    any_headroom,
+                )
+                .unwrap(),
                 CHECKSUM_IPV4,
             )
             .unwrap();

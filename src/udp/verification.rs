@@ -19,10 +19,10 @@ fn get_udp_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Udp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_UDP)
+                DataBuffer::<_, Udp<Ipv4<Eth>>>::parse_udp_layer(to_test, CHECKSUM_UDP)
             {
                 let _ = to_test.udp_source_port();
                 let _ = to_test.udp_destination_port();
@@ -45,10 +45,10 @@ fn get_udp_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Udp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_UDP)
+                DataBuffer::<_, Udp<Ipv6<Eth>>>::parse_udp_layer(to_test, CHECKSUM_UDP)
             {
                 let _ = to_test.udp_source_port();
                 let _ = to_test.udp_destination_port();
@@ -71,16 +71,19 @@ fn set_udp_source_port_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Udp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_UDP)
+                DataBuffer::<_, Udp<Ipv4<Eth>>>::parse_udp_layer(to_test, CHECKSUM_UDP)
             {
                 to_test.set_udp_source_port(kani::any());
-                let _ = DataBuffer::<_, Udp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Udp<Ipv4<Eth>>>::parse_udp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -100,16 +103,19 @@ fn set_udp_source_port_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Udp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_UDP)
+                DataBuffer::<_, Udp<Ipv6<Eth>>>::parse_udp_layer(to_test, CHECKSUM_UDP)
             {
                 to_test.set_udp_source_port(kani::any());
-                let _ = DataBuffer::<_, Udp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Udp<Ipv6<Eth>>>::parse_udp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_UDP,
@@ -128,16 +134,19 @@ fn set_udp_destination_port_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Udp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_UDP)
+                DataBuffer::<_, Udp<Ipv4<Eth>>>::parse_udp_layer(to_test, CHECKSUM_UDP)
             {
                 to_test.set_udp_destination_port(kani::any());
-                let _ = DataBuffer::<_, Udp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Udp<Ipv4<Eth>>>::parse_udp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -157,16 +166,19 @@ fn set_udp_destination_port_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Udp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_UDP)
+                DataBuffer::<_, Udp<Ipv6<Eth>>>::parse_udp_layer(to_test, CHECKSUM_UDP)
             {
                 to_test.set_udp_destination_port(kani::any());
-                let _ = DataBuffer::<_, Udp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Udp<Ipv6<Eth>>>::parse_udp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_UDP,
@@ -185,10 +197,10 @@ fn set_udp_length_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= EXTENDED_HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Udp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_UDP)
+                DataBuffer::<_, Udp<Ipv4<Eth>>>::parse_udp_layer(to_test, CHECKSUM_UDP)
             {
                 let old_udp_length_usize = usize::from(to_test.udp_length());
                 let new_udp_length = kani::any();
@@ -232,10 +244,13 @@ fn set_udp_length_ipv4_proof() {
                     assert_eq!(ipv4_total_length, usize::from(to_test.ipv4_total_length()));
                     assert_eq!(old_udp_length_usize, usize::from(to_test.udp_length()));
                 }
-                let _ = DataBuffer::<_, Udp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Udp<Ipv4<Eth>>>::parse_udp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -255,10 +270,10 @@ fn set_udp_length_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= EXTENDED_HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Udp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_UDP)
+                DataBuffer::<_, Udp<Ipv6<Eth>>>::parse_udp_layer(to_test, CHECKSUM_UDP)
             {
                 let old_udp_length_usize = usize::from(to_test.udp_length());
                 let new_udp_length = kani::any();
@@ -305,10 +320,13 @@ fn set_udp_length_ipv6_proof() {
                     );
                     assert_eq!(old_udp_length_usize, usize::from(to_test.udp_length()));
                 }
-                let _ = DataBuffer::<_, Udp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Udp<Ipv6<Eth>>>::parse_udp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_UDP,
@@ -327,16 +345,19 @@ fn set_udp_checksum_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Udp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_UDP)
+                DataBuffer::<_, Udp<Ipv4<Eth>>>::parse_udp_layer(to_test, CHECKSUM_UDP)
             {
                 to_test.set_udp_checksum(kani::any());
-                let _ = DataBuffer::<_, Udp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Udp<Ipv4<Eth>>>::parse_udp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -356,16 +377,19 @@ fn set_udp_checksum_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Udp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_UDP)
+                DataBuffer::<_, Udp<Ipv6<Eth>>>::parse_udp_layer(to_test, CHECKSUM_UDP)
             {
                 to_test.set_udp_checksum(kani::any());
-                let _ = DataBuffer::<_, Udp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Udp<Ipv6<Eth>>>::parse_udp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_UDP,
@@ -384,16 +408,19 @@ fn update_udp_checksum_ipv4_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::new_from_lower(to_test, CHECKSUM_IPV4) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Udp<Ipv4<Eth>>>::new_from_lower(to_test, CHECKSUM_UDP)
+                DataBuffer::<_, Udp<Ipv4<Eth>>>::parse_udp_layer(to_test, CHECKSUM_UDP)
             {
                 to_test.update_udp_checksum();
-                let _ = DataBuffer::<_, Udp<Ipv4<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv4<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Udp<Ipv4<Eth>>>::parse_udp_layer(
+                    DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                         CHECKSUM_IPV4,
                     )
                     .unwrap(),
@@ -413,16 +440,19 @@ fn update_udp_checksum_ipv6_proof() {
 
     let any_headroom = kani::any_where(|i| *i <= HEADROOM);
 
-    if let Ok(to_test) = DataBuffer::<_, Eth>::new(any_slice, any_headroom) {
-        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::new_from_lower(to_test) {
+    if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
+        if let Ok(to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
             if let Ok(mut to_test) =
-                DataBuffer::<_, Udp<Ipv6<Eth>>>::new_from_lower(to_test, CHECKSUM_UDP)
+                DataBuffer::<_, Udp<Ipv6<Eth>>>::parse_udp_layer(to_test, CHECKSUM_UDP)
             {
                 to_test.update_udp_checksum();
-                let _ = DataBuffer::<_, Udp<Ipv6<Eth>>>::new_from_lower(
-                    DataBuffer::<_, Ipv6<Eth>>::new_from_lower(
-                        DataBuffer::<_, Eth>::new(to_test.buffer_into_inner(), any_headroom)
-                            .unwrap(),
+                let _ = DataBuffer::<_, Udp<Ipv6<Eth>>>::parse_udp_layer(
+                    DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
+                        DataBuffer::<_, Eth>::parse_ethernet_layer(
+                            to_test.buffer_into_inner(),
+                            any_headroom,
+                        )
+                        .unwrap(),
                     )
                     .unwrap(),
                     CHECKSUM_UDP,
