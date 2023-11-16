@@ -2,8 +2,8 @@ name: tests
 on: [push, pull_request]
 
 jobs:
-  tests_fmt_clippy:
-    name: tests, fmt & clippy
+  tests_nightly:
+    name: tests, fmt & clippy @nightly
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -13,12 +13,42 @@ jobs:
           components: rustfmt, clippy
       - name: doc tests
         run: cargo test --doc
-      - name: tests
+      - name: tests - no default features
         run: cargo test --no-default-features --tests
+      - name: tests - std
+        run: cargo test --no-default-features --features std --tests
+      - name: tests - error_trait
+        run: cargo test --no-default-features --features error_trait --tests
       - name: fmt
         run: cargo fmt --all -- --check
       - name: clippy
         run: cargo clippy --all-targets -- --deny warnings
+      - name: Check semver
+        uses: obi1kenobi/cargo-semver-checks-action@v2
+  tests_1_74:
+    name: tests, fmt & clippy @ 1.74.0
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.74.0
+          components: rustfmt, clippy
+      - name: doc tests
+        run: cargo test --doc
+      - name: tests - no default features
+        run: cargo test --no-default-features --tests
+      - name: tests - std
+        run: cargo test --features std --tests
+      - name: fmt
+        run: cargo fmt --all -- --check
+      - name: clippy
+        run: cargo clippy --all-targets -- --deny warnings
+  semver-check:
+    name: semver check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - name: Check semver
         uses: obi1kenobi/cargo-semver-checks-action@v2
   kani-compile-check:
