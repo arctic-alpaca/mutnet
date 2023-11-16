@@ -8,7 +8,7 @@
 //! - [Feature flags](#feature-flags)
 //!
 //! # Usage
-//! Network data is wrapped in a [`DataBuffer`](crate::data_buffer::DataBuffer) and combined with a
+//! Network data is wrapped in a [`DataBuffer`](data_buffer::DataBuffer) and combined with a
 //! stack of protocol metadata to keep track of individual protocol header's start and length.
 //!
 //! ## Headroom
@@ -34,16 +34,16 @@
 //! *** = Data inserted into the headers.
 //!
 //! ```
-//! The headroom has to be already present in the network data buffer to be wrapped by [`DataBuffer`](crate::data_buffer::DataBuffer).
+//! The headroom has to be already present in the network data buffer to be wrapped by [`DataBuffer`](data_buffer::DataBuffer).
 //! If no header mutation is required, the headroom can be ignored.
 //!
 //! ## Parsing
 //!
-//! After parsing data by creating the appropriate [`DataBuffer`](crate::data_buffer::DataBuffer) with
-//! metadata stack, the `ProtocolMethods` traits (e.g. [`TcpMethods`](crate::tcp::TcpMethods)) are used to access the header data.
+//! After parsing data by creating the appropriate [`DataBuffer`](data_buffer::DataBuffer) with
+//! metadata stack, the `ProtocolMethods` traits (e.g. [`TcpMethods`](tcp::TcpMethods)) are used to access the header data.
 //!
 //! #### Avoid copying data
-//! If the network data buffer implements [`Copy`], the [`DataBuffer`](crate::data_buffer::DataBuffer)
+//! If the network data buffer implements [`Copy`], the [`DataBuffer`](data_buffer::DataBuffer)
 //! will take a copy of it and will copy the buffer at every parsing step (e.g. Ethernet -> Ipv4).
 //! For this reason, it is advised to use references or non-[`Copy`] containers ([`Vec`], etc).
 //!
@@ -124,9 +124,9 @@
 //!
 //! ## Manipulation
 //!
-//! For header manipulation, the [`DataBuffer`](crate::data_buffer::DataBuffer) needs to be created
+//! For header manipulation, the [`DataBuffer`](data_buffer::DataBuffer) needs to be created
 //! with a mutable network data buffer.
-//! If this is the case the `ProtocolMethodsMut` traits (e.g. [`TcpMethodsMut`](crate::tcp::TcpMethodsMut)) allow mutating the data
+//! If this is the case the `ProtocolMethodsMut` traits (e.g. [`TcpMethodsMut`](tcp::TcpMethodsMut)) allow mutating the data
 //! ```rust
 //! use mutnet::data_buffer::DataBuffer;
 //! use mutnet::ethernet::Eth;
