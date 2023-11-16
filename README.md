@@ -5,11 +5,7 @@ mutnet is an unsafe-free and allocation-free, zero-dependency, no-std network pr
 
 [![Crates.io](https://img.shields.io/crates/v/mutnet)](https://crates.io/crates/mutnet)
 [![Documentation](https://docs.rs/mutnet/badge.svg)](https://docs.rs/mutnet)
-
-
-## Nightly
-This crate makes use of [type privacy](https://github.com/rust-lang/rust/issues/48054) and thus only compiles
-on nightly Rust. It currently looks like this [limitation should be lifted](https://github.com/rust-lang/rust/pull/113126) with Rust 1.74.0.
+[![MSRV](https://img.shields.io/badge/MSRV-1.74.0-blue)](https://blog.rust-lang.org/2023/11/16/Rust-1.74.0.html)
 
 ## Supported Protocols
 - Ethernet II

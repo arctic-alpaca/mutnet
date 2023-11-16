@@ -9,6 +9,7 @@ readme = "README.md"
 repository = "https://github.com/arctic-alpaca/mutnet"
 keywords = ["network", "parsing", "no-std"]
 categories = ["parser-implementations", "network-programming", "no-std::no-alloc", "no-std"]
+rust-version = "1.74.0"
 
 
 [features]

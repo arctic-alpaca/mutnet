@@ -1,3 +1,7 @@
+# 0.5.0 (unreleased)
+### Changed
+- Set MSRV to 1.74.0 to drop nightly requirement
+
 # 0.4.0 (9. November 2023)
 ### Added
 - `headroom` method to `BufferIntoInner` trait, allows users to know how much of the buffer is headroom
