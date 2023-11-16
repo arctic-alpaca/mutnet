@@ -104,30 +104,9 @@ pub fn internet_checksum_intermediary<const CHUNK_SIZE: usize>(_buf: &[u8]) -> u
 /// ```
 #[cfg(not(feature = "remove_checksum"))]
 #[inline]
-pub fn internet_checksum<const CHUNK_SIZE: usize>(checksum_part: u64, buf: &[u8]) -> u16 {
-    #[cfg(all(feature = "remove_checksum", kani))]
-    return 0;
-
-    assert!(CHUNK_SIZE <= 64);
-    assert!(CHUNK_SIZE >= 4);
-    assert_eq!(CHUNK_SIZE % 4, 0);
-
-    let buf_iterator = buf.chunks_exact(CHUNK_SIZE);
-    let buf_remainder = buf_iterator.remainder();
-    let mut checksum = checksum_part;
-
-    checksum += buf_iterator.fold(0, |mut acc, buf_part| {
-        for chunk in 0..CHUNK_SIZE / 4 {
-            acc += u64::from(u32::from_ne_bytes(
-                buf_part[chunk * 4..chunk * 4 + 4].try_into().unwrap(),
-            ));
-        }
-
-        acc
-    });
-    checksum += checksum_match_64_bytes(buf_remainder);
-
-    finalize_checksum(checksum)
+pub fn internet_checksum<const CHUNK_SIZE: usize>(mut checksum_part: u64, buf: &[u8]) -> u16 {
+    checksum_part += internet_checksum_intermediary::<CHUNK_SIZE>(buf);
+    finalize_checksum(checksum_part)
 }
 
 #[cfg(feature = "remove_checksum")]
