@@ -8,6 +8,7 @@ use crate::error::LengthExceedsAvailableSpaceError;
 use core::ops::Range;
 
 /// Wraps the data buffer and contains metadata about the parsed protocols.
+#[allow(private_bounds)]
 #[derive(Eq, PartialEq, Hash, Debug)]
 pub struct DataBuffer<B, HM>
 where

@@ -35,6 +35,7 @@ use crate::utility_traits::{PseudoHeaderChecksum, UpdateIpLength};
 /// UDP metadata.
 ///
 /// Contains meta data about the UDP header in the parsed data buffer.
+#[allow(private_bounds)]
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub struct Udp<PHM>
 where
@@ -58,6 +59,7 @@ impl<PHM, const MAX_EXTENSIONS: usize> Ipv6ExtMarker<MAX_EXTENSIONS> for Udp<PHM
 }
 impl<PHM> UdpMarker for Udp<PHM> where PHM: HeaderMetadata + HeaderMetadataMut {}
 
+#[allow(private_bounds)]
 impl<B, PHM> DataBuffer<B, Udp<PHM>>
 where
     B: AsRef<[u8]>,

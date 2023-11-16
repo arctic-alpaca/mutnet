@@ -22,6 +22,7 @@ pub(crate) const LAYER: Layer = Layer::Udp;
 
 /// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
 /// [`Udp`](crate::udp::Udp) header.
+#[allow(private_bounds)]
 pub trait UdpMethods: HeaderMetadata + PseudoHeaderChecksum + BufferAccess {
     /// Returns the UDP source port.
     #[inline]
@@ -68,6 +69,7 @@ pub trait UdpMethods: HeaderMetadata + PseudoHeaderChecksum + BufferAccess {
 
 /// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
 /// [`Udp`](crate::udp::Udp) header and wrapping a mutable data buffer.
+#[allow(private_bounds)]
 pub trait UdpMethodsMut:
     HeaderMetadata
     + HeaderManipulation

@@ -51,6 +51,7 @@ pub(crate) const LAYER: Layer = Layer::Tcp;
 
 /// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
 /// [`Tcp`](crate::tcp::Tcp) header.
+#[allow(private_bounds)]
 pub trait TcpMethods: HeaderMetadata + PseudoHeaderChecksum + BufferAccess {
     /// Returns the TCP source port.
     #[inline]
@@ -188,6 +189,7 @@ pub trait TcpMethods: HeaderMetadata + PseudoHeaderChecksum + BufferAccess {
 
 /// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing a
 /// [`Tcp`](crate::tcp::Tcp) header and wrapping a mutable data buffer.
+#[allow(private_bounds)]
 pub trait TcpMethodsMut:
     HeaderMetadata
     + HeaderManipulation

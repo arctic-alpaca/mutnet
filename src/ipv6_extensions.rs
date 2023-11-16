@@ -55,6 +55,7 @@ impl Ipv6ExtensionMetadata {
 /// IPv6 extensions metadata.
 ///
 /// Contains meta data about the IPv6 extensions headers in the parsed data buffer.
+#[allow(private_bounds)]
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub struct Ipv6Extensions<PHM, const MAX_EXTENSIONS: usize>
 where
@@ -93,6 +94,7 @@ impl<PHM, const MAX_EXTENSIONS: usize> Ipv6Marker for Ipv6Extensions<PHM, MAX_EX
 {
 }
 
+#[allow(private_bounds)]
 impl<B, PHM, const MAX_EXTENSIONS: usize> DataBuffer<B, Ipv6Extensions<PHM, MAX_EXTENSIONS>>
 where
     B: AsRef<[u8]>,

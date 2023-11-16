@@ -35,6 +35,7 @@ pub(crate) const LAYER: Layer = Layer::Arp;
 
 /// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing an
 /// [`Arp`](crate::arp::Arp) header.
+#[allow(private_bounds)]
 pub trait ArpMethods: BufferAccess {
     /// Returns the ARP hardware type.
     #[inline]
@@ -111,6 +112,7 @@ pub trait ArpMethods: BufferAccess {
 
 /// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing an
 /// [`Arp`](crate::arp::Arp)  header and wrapping a mutable data buffer.
+#[allow(private_bounds)]
 pub trait ArpMethodsMut: ArpMethods + BufferAccessMut + HeaderManipulation + Sized {
     /// Sets the ARP operation code.
     #[inline]

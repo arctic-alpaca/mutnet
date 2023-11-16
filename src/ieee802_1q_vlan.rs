@@ -33,6 +33,7 @@ pub enum Vlan {
 /// IEEE 802.1Q metadata.
 ///
 /// Contains meta data about the IEEE 802.1Q header in the parsed data buffer.
+#[allow(private_bounds)]
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub struct Ieee802_1QVlan<PHM: HeaderMetadata + HeaderMetadataMut> {
     /// Offset from the start of the non-headroom part of the data buffer.
@@ -43,6 +44,7 @@ pub struct Ieee802_1QVlan<PHM: HeaderMetadata + HeaderMetadataMut> {
     previous_header_metadata: PHM,
 }
 
+#[allow(private_bounds)]
 impl<B, PHM> DataBuffer<B, Ieee802_1QVlan<PHM>>
 where
     B: AsRef<[u8]>,

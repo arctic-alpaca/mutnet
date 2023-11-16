@@ -24,6 +24,7 @@ use crate::no_previous_header::NoPreviousHeader;
 /// IPv4 metadata.
 ///
 /// Contains meta data about the IPv4 header in the parsed data buffer.
+#[allow(private_bounds)]
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub struct Ipv4<PHM>
 where
@@ -45,6 +46,7 @@ impl<PHM> Ieee802_1QVlanMarker for Ipv4<PHM> where
 {
 }
 
+#[allow(private_bounds)]
 impl<B, PHM> DataBuffer<B, Ipv4<PHM>>
 where
     B: AsRef<[u8]>,

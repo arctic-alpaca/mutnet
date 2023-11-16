@@ -24,6 +24,7 @@ use crate::no_previous_header::NoPreviousHeader;
 /// IPv6 metadata.
 ///
 /// Contains meta data about the IPv6 header in the parsed data buffer.
+#[allow(private_bounds)]
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub struct Ipv6<PHM>
 where
@@ -43,6 +44,8 @@ impl<PHM> Ieee802_1QVlanMarker for Ipv6<PHM> where
     PHM: HeaderMetadata + HeaderMetadataMut + Ieee802_1QVlanMarker
 {
 }
+
+#[allow(private_bounds)]
 impl<B, PHM> DataBuffer<B, Ipv6<PHM>>
 where
     B: AsRef<[u8]>,

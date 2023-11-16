@@ -21,6 +21,7 @@ use crate::no_previous_header::NoPreviousHeader;
 /// ARP metadata.
 ///
 /// Contains meta data about the ARP header in the parsed data buffer.
+#[allow(private_bounds)]
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub struct Arp<PHM: HeaderMetadata + HeaderMetadataMut> {
     /// Offset from the start of the non-headroom part of the data buffer.
@@ -39,6 +40,7 @@ impl<PHM> Ieee802_1QVlanMarker for Arp<PHM> where
 {
 }
 
+#[allow(private_bounds)]
 impl<B, PHM> DataBuffer<B, Arp<PHM>>
 where
     B: AsRef<[u8]>,

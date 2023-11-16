@@ -19,6 +19,7 @@ pub(crate) const LAYER: Layer = Layer::EthernetII;
 
 /// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing an
 /// [`Eth`](crate::ethernet::Eth) header.
+#[allow(private_bounds)]
 pub trait EthernetMethods: HeaderMetadata + BufferAccess {
     /// Returns the ethernet II destination.
     #[inline]
@@ -50,6 +51,7 @@ pub trait EthernetMethods: HeaderMetadata + BufferAccess {
 
 /// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing an
 /// [`Eth`](crate::ethernet::Eth) header and wrapping a mutable data buffer.
+#[allow(private_bounds)]
 pub trait EthernetMethodsMut:
     EthernetMethods + BufferAccessMut + HeaderManipulation + Sized
 {

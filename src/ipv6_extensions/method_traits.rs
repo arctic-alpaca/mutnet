@@ -49,6 +49,7 @@ pub(crate) static LAYER: Layer = Layer::Ipv6Ext;
 /// [`Ipv6Extensions`](crate::ipv6_extensions::Ipv6Extensions) header.
 ///
 /// `MAX_EXTENSIONS` defines the maximum amount of extensions that will be parsed.
+#[allow(private_bounds)]
 pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     HeaderMetadata + BufferAccess + Ipv6ExtMetaData<MAX_EXTENSIONS>
 {
@@ -338,6 +339,7 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
 
 /// Methods available for [`DataBuffer`](crate::data_buffer::DataBuffer) containing an
 /// [`Ipv6Extensions`](crate::ipv6_extensions::Ipv6Extensions) header and wrapping a mutable data buffer.
+#[allow(private_bounds)]
 pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
     HeaderMetadata
     + HeaderManipulation

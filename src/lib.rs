@@ -225,7 +225,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
 #![forbid(unreachable_pub)]
-#![allow(private_bounds)]
 #![warn(missing_docs)]
 
 mod internal_utils;

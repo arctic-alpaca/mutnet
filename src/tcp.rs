@@ -35,6 +35,7 @@ use crate::utility_traits::{PseudoHeaderChecksum, UpdateIpLength};
 /// TCP metadata.
 ///
 /// Contains meta data about the TCP header in the parsed data buffer.
+#[allow(private_bounds)]
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub struct Tcp<PHM>
 where
@@ -61,6 +62,7 @@ impl<PHM, const MAX_EXTENSIONS: usize> Ipv6ExtMarker<MAX_EXTENSIONS> for Tcp<PHM
 }
 impl<PHM> TcpMarker for Tcp<PHM> where PHM: HeaderMetadata + HeaderMetadataMut {}
 
+#[allow(private_bounds)]
 impl<B, PHM> DataBuffer<B, Tcp<PHM>>
 where
     B: AsRef<[u8]>,
