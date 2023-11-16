@@ -49,6 +49,12 @@ pub fn internet_checksum_up_to_64_bytes(_buf: &[u8]) -> u16 {
 /// This method can be used to calculate parts of a checksum (e.g. the TCP pseudo header).
 /// Use [`internet_checksum`] to use the intermediary in a checksum calculation.
 ///
+/// # Panics
+/// Panics if:
+/// - the `CHUNK_SIZE` is smaller than four.
+/// - the `CHUNK_SIZE` is larger than 64.
+/// - the `CHUNK_SIZE` is not divisible by 4.
+///
 /// # Examples
 /// ```
 /// # use mutnet::checksum::{internet_checksum_intermediary, internet_checksum};
@@ -95,6 +101,12 @@ pub fn internet_checksum_intermediary<const CHUNK_SIZE: usize>(_buf: &[u8]) -> u
 /// Micro-benchmarks showed four to be a good general choice for varied buffer lengths.
 /// If you only deal with very similar lengths of buffers, it may be beneficial to benchmark your
 /// specific case.
+///
+/// # Panics
+/// Panics if:
+/// - the `CHUNK_SIZE` is smaller than four.
+/// - the `CHUNK_SIZE` is larger than 64.
+/// - the `CHUNK_SIZE` is not divisible by 4.
 ///
 /// # Examples
 /// ```
