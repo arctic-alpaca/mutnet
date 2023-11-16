@@ -251,7 +251,8 @@ mod tests {
 
     #[test]
     fn new_request() {
-        let arp_packet = DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
+        let arp_packet =
+            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
         assert_eq!(1, arp_packet.arp_operation_code());
         assert_eq!(
             Ok(OperationCode::Request),
@@ -261,7 +262,8 @@ mod tests {
 
     #[test]
     fn new_reply() {
-        let arp_packet = DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REPLY, 0).unwrap();
+        let arp_packet =
+            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REPLY, 0).unwrap();
         assert_eq!(2, arp_packet.arp_operation_code());
         assert_eq!(
             Ok(OperationCode::Reply),
@@ -295,7 +297,10 @@ mod tests {
         wrong_hardware_address_length[4] = 10;
         assert_eq!(
             Err(ParseArpError::UnsupportedHardwareOrProtocolFields),
-            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(wrong_hardware_address_length, 0)
+            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(
+                wrong_hardware_address_length,
+                0
+            )
         );
     }
 
@@ -305,7 +310,10 @@ mod tests {
         wrong_protocol_address_length[5] = 10;
         assert_eq!(
             Err(ParseArpError::UnsupportedHardwareOrProtocolFields),
-            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(wrong_protocol_address_length, 0)
+            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(
+                wrong_protocol_address_length,
+                0
+            )
         );
     }
 
@@ -347,31 +355,36 @@ mod tests {
 
     #[test]
     fn arp_hardware_type() {
-        let arp_packet = DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
+        let arp_packet =
+            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
         assert_eq!(1, arp_packet.arp_hardware_type());
     }
 
     #[test]
     fn arp_protocol_type() {
-        let arp_packet = DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
+        let arp_packet =
+            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
         assert_eq!(0x800, arp_packet.arp_protocol_type());
     }
 
     #[test]
     fn arp_typed_protocol_type() {
-        let arp_packet = DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
+        let arp_packet =
+            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
         assert_eq!(Ok(EtherType::Ipv4), arp_packet.arp_typed_protocol_type());
     }
 
     #[test]
     fn arp_operation_code() {
-        let arp_packet = DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
+        let arp_packet =
+            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
         assert_eq!(1, arp_packet.arp_operation_code());
     }
 
     #[test]
     fn arp_typed_operation_code() {
-        let arp_packet = DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
+        let arp_packet =
+            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
         assert_eq!(
             Ok(OperationCode::Request),
             arp_packet.arp_typed_operation_code()
@@ -380,19 +393,22 @@ mod tests {
 
     #[test]
     fn arp_hardware_address_length() {
-        let arp_packet = DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
+        let arp_packet =
+            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
         assert_eq!(0x06, arp_packet.arp_hardware_address_length());
     }
 
     #[test]
     fn arp_protocol_address_length() {
-        let arp_packet = DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
+        let arp_packet =
+            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
         assert_eq!(0x04, arp_packet.arp_protocol_address_length());
     }
 
     #[test]
     fn arp_sender_hardware_address() {
-        let arp_packet = DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
+        let arp_packet =
+            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
         assert_eq!(
             [0x1C, 0xED, 0xA4, 0xE1, 0xD2, 0xA2,],
             arp_packet.arp_sender_hardware_address()
@@ -401,7 +417,8 @@ mod tests {
 
     #[test]
     fn arp_sender_protocol_address() {
-        let arp_packet = DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
+        let arp_packet =
+            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
         assert_eq!(
             [0xC0, 0xA8, 0x0A, 0x01,],
             arp_packet.arp_sender_protocol_address()
@@ -410,7 +427,8 @@ mod tests {
 
     #[test]
     fn arp_target_hardware_address() {
-        let arp_packet = DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
+        let arp_packet =
+            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
         assert_eq!(
             [0x13, 0xE2, 0xAF, 0xE2, 0xD5, 0xA6,],
             arp_packet.arp_target_hardware_address()
@@ -419,7 +437,8 @@ mod tests {
 
     #[test]
     fn arp_target_protocol_address() {
-        let arp_packet = DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
+        let arp_packet =
+            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
         assert_eq!(
             [0xC0, 0xA8, 0x7A, 0x0E,],
             arp_packet.arp_target_protocol_address()
@@ -428,7 +447,8 @@ mod tests {
 
     #[test]
     fn headroom() {
-        let arp_packet = DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
+        let arp_packet =
+            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
         assert_eq!(0, arp_packet.headroom_internal());
     }
 
@@ -493,13 +513,15 @@ mod tests {
     fn arp_headroom() {
         let mut data = [0_u8; 100];
         copy_into_slice(&mut data, &ARP_IPV4_REPLY, 36);
-        let arp_packet = DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(&mut data, 36).unwrap();
+        let arp_packet =
+            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(&mut data, 36).unwrap();
 
         assert_eq!(36, arp_packet.headroom_internal());
         assert_eq!(0, arp_packet.header_start_offset(Layer::Arp));
         assert_eq!(28, arp_packet.header_length(Layer::Arp));
 
-        let arp_packet = DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(&mut data, 36).unwrap();
+        let arp_packet =
+            DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(&mut data, 36).unwrap();
         assert_eq!(36, arp_packet.headroom_internal());
         assert_eq!(0, arp_packet.header_start_offset(Layer::Arp));
         assert_eq!(28, arp_packet.header_length(Layer::Arp));
