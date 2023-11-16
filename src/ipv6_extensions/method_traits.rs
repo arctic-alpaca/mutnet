@@ -75,7 +75,7 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
 
     /// Returns the last extension's next header.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if no extension was parsed.
     #[inline]
     fn ipv6_ext_next_header(&self) -> Result<u8, Ipv6ExtensionIndexOutOfBoundsError> {
@@ -85,7 +85,7 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
 
     /// Returns the last extension's next header as [`InternetProtocolNumber`].
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if:
     /// - no extension was parsed.
     /// - the next header is not recognized.
@@ -102,7 +102,7 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     ///
     /// Method available for all extensions.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if `extension_index` does not map to a parsed extension (out of bounds).
     #[inline]
     fn ipv6_ext_per_extension_next_header(
@@ -119,7 +119,7 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     ///
     /// Method available for all extensions.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if:
     /// - `extension_index` does not map to a parsed extension (out of bounds).
     /// - the next header is not recognized.
@@ -139,7 +139,7 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     ///
     /// Method available for routing, destination options, hop by hop extensions.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if:
     /// - `extension_index` does not map to a parsed extension (out of bounds).
     /// - the extension does not have the requested field.
@@ -163,7 +163,7 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     ///
     /// Method available for all extensions.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if `extension_index` does not map to a parsed extension (out of bounds).
     #[inline]
     fn ipv6_ext_length_in_bytes(
@@ -189,7 +189,7 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     ///
     /// Method available for routing, destination options, hop by hop extensions.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if:
     /// - `extension_index` does not map to a parsed extension (out of bounds).
     /// - the extension does not have the requested field.
@@ -218,7 +218,7 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     ///
     /// Method available for routing extensions.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if:
     /// - `extension_index` does not map to a parsed extension (out of bounds).
     /// - the extension does not have the requested field.
@@ -241,7 +241,7 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     ///
     /// Method available for routing extensions.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if:
     /// - `extension_index` does not map to a parsed extension (out of bounds).
     /// - the extension does not have the requested field.
@@ -264,7 +264,7 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     ///
     /// Method available for fragment extensions.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if:
     /// - `extension_index` does not map to a parsed extension (out of bounds).
     /// - the extension does not have the requested field.
@@ -289,7 +289,7 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     ///
     /// Method available for fragment extensions.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if:
     /// - `extension_index` does not map to a parsed extension (out of bounds).
     /// - the extension does not have the requested field.
@@ -314,7 +314,7 @@ pub trait Ipv6ExtMethods<const MAX_EXTENSIONS: usize>:
     ///
     /// Method available for fragment extensions.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if:
     /// - `extension_index` does not map to a parsed extension (out of bounds).
     /// - the extension does not have the requested field.
@@ -352,7 +352,7 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
 {
     /// Sets the last extension's next header.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if no extension was parsed.
     #[inline]
     fn set_ipv6_ext_next_header(
@@ -378,7 +378,7 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
     /// If there is an [`IPv4`](crate::ipv4::Ipv4) or [`IPv6`](crate::ipv6::Ipv6) layer present,
     /// the length of that header will be updated accordingly.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if:
     /// - `extension_index` does not map to a parsed extension (out of bounds).
     /// - the extension does not have the requested field.
@@ -448,7 +448,7 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
     ///
     /// Method available for routing, destination options, hop by hop extensions.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if:
     /// - `extension_index` does not map to a parsed extension (out of bounds).
     /// - the extension does not have the requested field.
@@ -480,7 +480,7 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
     ///
     /// Method available for routing extensions.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if:
     /// - `extension_index` does not map to a parsed extension (out of bounds).
     /// - the extension does not have the requested field.
@@ -512,7 +512,7 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
     ///
     /// Method available for routing extensions.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if:
     /// - `extension_index` does not map to a parsed extension (out of bounds).
     /// - the extension does not have the requested field.
@@ -544,7 +544,7 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
     ///
     /// Method available for fragment extensions.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if:
     /// - `extension_index` does not map to a parsed extension (out of bounds).
     /// - the extension does not have the requested field.
@@ -584,7 +584,7 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
     ///
     /// Method available for fragment extensions.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if:
     /// - `extension_index` does not map to a parsed extension (out of bounds).
     /// - the extension does not have the requested field.
@@ -620,7 +620,7 @@ pub trait Ipv6ExtMethodsMut<const MAX_EXTENSIONS: usize>:
     ///
     /// Method available for fragment extensions.
     ///
-    /// # Error
+    /// # Errors
     /// Returns an error if:
     /// - `extension_index` does not map to a parsed extension (out of bounds).
     /// - the extension does not have the requested field.
