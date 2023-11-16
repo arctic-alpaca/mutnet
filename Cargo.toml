@@ -11,16 +11,12 @@ keywords = ["network", "parsing", "no-std"]
 categories = ["parser-implementations", "network-programming", "no-std::no-alloc", "no-std"]
 rust-version = "1.74.0"
 
-
 [features]
 # Include the core::error:Error trait for all errors
 error_trait = []
-
 # Use std
 std = ["error_trait"]
-
 default = ["std"]
-
 # Verification features, not intended for non-dev use
 # Removes the checksum compilation for Kani proofs
 remove_checksum = []
@@ -33,20 +29,16 @@ verify_arp = ["remove_checksum"]
 verify_vlan = ["remove_checksum"]
 verify_ethernet = ["remove_checksum"]
 
-
 [dependencies]
 
 [dev-dependencies]
 # Benchmarking
 criterion = "0.5.1"
 rand = {version = "0.8.5", features = ["min_const_gen"]}
-
 # Comparison
 etherparse = "0.13.0"
-
 # Examples
 pcap = "1.1.0"
-
 
 # Examples
 [[example]]
@@ -84,7 +76,6 @@ harness = false
 [[bench]]
 name = "udp"
 harness = false
-
 
 # Profiles
 [profile.bench]
