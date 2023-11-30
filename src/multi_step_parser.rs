@@ -14,6 +14,7 @@ use crate::typed_protocol_headers::Ipv6ExtensionType;
 use crate::udp::Udp;
 
 /// Possible results of [`parse_network_data()`].
+#[derive(Eq, PartialEq, Hash, Debug)]
 pub enum MultiStepParserResult<B, const MAX_EXTENSIONS: usize>
 where
     B: AsRef<[u8]>,
