@@ -132,7 +132,7 @@ fn set_ipv6_ext_length_complete() {
                                 let new_ext_length_in_bytes = (usize::from(new_ext_length) + 1) * 8;
 
                                 let internal_headroom = to_test.headroom_internal();
-                                let data_length = to_test.data_length();
+                                let data_length = to_test.data_length_internal();
                                 let eth_header_start_offset =
                                     to_test.header_start_offset(Layer::EthernetII);
                                 let eth_header_length = to_test.header_length(Layer::EthernetII);
@@ -159,7 +159,7 @@ fn set_ipv6_ext_length_complete() {
                                             any_headroom -= difference;
                                             assert_eq!(
                                                 data_length + difference,
-                                                to_test.data_length()
+                                                to_test.data_length_internal()
                                             );
                                             assert_eq!(
                                                 internal_headroom - difference,
@@ -179,7 +179,7 @@ fn set_ipv6_ext_length_complete() {
                                             );
                                         }
                                         core::cmp::Ordering::Equal => {
-                                            assert_eq!(data_length, to_test.data_length());
+                                            assert_eq!(data_length, to_test.data_length_internal());
                                             assert_eq!(
                                                 internal_headroom,
                                                 to_test.headroom_internal()
@@ -203,7 +203,7 @@ fn set_ipv6_ext_length_complete() {
                                             any_headroom += difference;
                                             assert_eq!(
                                                 data_length - difference,
-                                                to_test.data_length()
+                                                to_test.data_length_internal()
                                             );
                                             assert_eq!(
                                                 internal_headroom + difference,
@@ -224,7 +224,7 @@ fn set_ipv6_ext_length_complete() {
                                         }
                                     }
                                 } else {
-                                    assert_eq!(data_length, to_test.data_length());
+                                    assert_eq!(data_length, to_test.data_length_internal());
                                     assert_eq!(internal_headroom, to_test.headroom_internal());
                                     assert_eq!(
                                         ipv6_ext_header_length,

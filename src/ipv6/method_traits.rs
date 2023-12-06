@@ -199,7 +199,8 @@ pub(crate) trait UpdateIpv6Length:
 {
     #[inline]
     fn update_ipv6_length(&mut self) {
-        let ipv6_length = self.data_length() - self.header_start_offset(LAYER) - HEADER_MIN_LEN;
+        let ipv6_length =
+            self.data_length_internal() - self.header_start_offset(LAYER) - HEADER_MIN_LEN;
 
         self.write_slice(LAYER, PAYLOAD_LENGTH, &(ipv6_length as u16).to_be_bytes());
     }

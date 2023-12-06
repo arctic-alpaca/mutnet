@@ -189,8 +189,8 @@ where
     }
 
     #[inline]
-    fn data_length(&self) -> usize {
-        self.previous_header_metadata.data_length()
+    fn data_length_internal(&self) -> usize {
+        self.previous_header_metadata.data_length_internal()
     }
 }
 

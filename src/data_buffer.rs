@@ -101,8 +101,8 @@ where
     }
 
     #[inline]
-    fn data_length(&self) -> usize {
-        self.header_metadata.data_length()
+    fn data_length_internal(&self) -> usize {
+        self.header_metadata.data_length_internal()
     }
 }
 
@@ -151,8 +151,8 @@ where
 {
     let start = data_buffer.header_metadata.headroom_internal()
         + data_buffer.header_metadata.header_start_offset(layer);
-    let end =
-        data_buffer.header_metadata.headroom_internal() + data_buffer.header_metadata.data_length();
+    let end = data_buffer.header_metadata.headroom_internal()
+        + data_buffer.header_metadata.data_length_internal();
     start..end
 }
 
@@ -195,12 +195,12 @@ where
 {
     #[inline]
     fn data_length(&self) -> usize {
-        HeaderMetadata::data_length(self)
+        self.data_length_internal()
     }
 
     #[inline]
     fn headroom(&self) -> usize {
-        HeaderMetadata::headroom_internal(self)
+        self.headroom_internal()
     }
 
     #[inline]

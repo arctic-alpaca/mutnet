@@ -75,7 +75,7 @@ impl HeaderMetadata for NoPreviousHeader {
     }
 
     #[inline]
-    fn data_length(&self) -> usize {
+    fn data_length_internal(&self) -> usize {
         self.data_length
     }
 }

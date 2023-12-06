@@ -402,7 +402,7 @@ pub(crate) trait UpdateIpv4Length:
 {
     #[inline]
     fn update_ipv4_length(&mut self) {
-        let ipv4_length = self.data_length() - self.header_start_offset(LAYER);
+        let ipv4_length = self.data_length_internal() - self.header_start_offset(LAYER);
 
         self.write_slice(LAYER, TOTAL_LENGTH, &(ipv4_length as u16).to_be_bytes());
     }

@@ -206,7 +206,7 @@ fn set_udp_length_ipv4_proof() {
                 let new_udp_length = kani::any();
                 let new_udp_length_usize = usize::from(new_udp_length);
 
-                let data_length = to_test.data_length();
+                let data_length = to_test.data_length_internal();
                 let ipv4_total_length = usize::from(to_test.ipv4_total_length());
 
                 if to_test.set_udp_length(new_udp_length).is_ok() {
@@ -237,10 +237,10 @@ fn set_udp_length_ipv4_proof() {
                     );
                     assert_eq!(
                         to_test.header_start_offset(Layer::Udp) + new_udp_length_usize,
-                        to_test.data_length()
+                        to_test.data_length_internal()
                     );
                 } else {
-                    assert_eq!(data_length, to_test.data_length());
+                    assert_eq!(data_length, to_test.data_length_internal());
                     assert_eq!(ipv4_total_length, usize::from(to_test.ipv4_total_length()));
                     assert_eq!(old_udp_length_usize, usize::from(to_test.udp_length()));
                 }
@@ -279,7 +279,7 @@ fn set_udp_length_ipv6_proof() {
                 let new_udp_length = kani::any();
                 let new_udp_length_usize = usize::from(new_udp_length);
 
-                let data_length = to_test.data_length();
+                let data_length = to_test.data_length_internal();
                 let ipv6_payload_length = usize::from(to_test.ipv6_payload_length());
 
                 if to_test.set_udp_length(new_udp_length).is_ok() {
@@ -310,10 +310,10 @@ fn set_udp_length_ipv6_proof() {
                     );
                     assert_eq!(
                         to_test.header_start_offset(Layer::Udp) + new_udp_length_usize,
-                        to_test.data_length()
+                        to_test.data_length_internal()
                     );
                 } else {
-                    assert_eq!(data_length, to_test.data_length());
+                    assert_eq!(data_length, to_test.data_length_internal());
                     assert_eq!(
                         ipv6_payload_length,
                         usize::from(to_test.ipv6_payload_length())

@@ -158,7 +158,7 @@ pub(crate) trait HeaderMetadata {
     /// Returns the data length.
     ///
     /// Data length is the amount of bytes from the first header byte to the end of the payload.
-    fn data_length(&self) -> usize;
+    fn data_length_internal(&self) -> usize;
 }
 
 /// Methods to manipulate the header and headroom.
@@ -196,7 +196,7 @@ pub(crate) trait HeaderManipulation:
             *self.header_length_mut(layer) += grow_by;
             self.increase_header_start_offset(grow_by, layer);
             *self.headroom_internal_mut() -= grow_by;
-            let data_length = self.data_length() + grow_by;
+            let data_length = self.data_length_internal() + grow_by;
             self.set_data_length(data_length, self.buffer_length())
                 .expect("grow_by cannot set the data end higher than the buffer length");
             self.buffer_mut().copy_within(start..end, destination);
@@ -236,7 +236,7 @@ pub(crate) trait HeaderManipulation:
         *self.header_length_mut(layer) -= shrink_by;
         self.decrease_header_start_offset(shrink_by, layer);
         *self.headroom_internal_mut() += shrink_by;
-        let data_length = self.data_length() - shrink_by;
+        let data_length = self.data_length_internal() - shrink_by;
         self.set_data_length(data_length, self.buffer_length())
             .expect("shrink_header cannot set the data end higher than the buffer length");
         self.buffer_mut().copy_within(start..end, destination);

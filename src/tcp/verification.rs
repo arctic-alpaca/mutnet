@@ -365,7 +365,7 @@ fn set_tcp_data_offset_ipv4_proof() {
                 let new_tcp_data_offset_bytes_usize = usize::from(new_tcp_data_offset) * 4;
 
                 let internal_headroom = to_test.headroom_internal();
-                let data_length = to_test.data_length();
+                let data_length = to_test.data_length_internal();
                 let eth_header_start_offset = to_test.header_start_offset(Layer::EthernetII);
                 let eth_header_length = to_test.header_length(Layer::EthernetII);
                 let ipv4_header_start_offset = to_test.header_start_offset(Layer::Ipv4);
@@ -381,7 +381,7 @@ fn set_tcp_data_offset_ipv4_proof() {
                                 new_tcp_data_offset_bytes_usize - old_tcp_data_offset_bytes;
                             any_headroom -= difference;
                             assert_eq!(internal_headroom - difference, to_test.headroom_internal());
-                            assert_eq!(data_length + difference, to_test.data_length());
+                            assert_eq!(data_length + difference, to_test.data_length_internal());
                             assert_eq!(
                                 tcp_header_length + difference,
                                 to_test.header_length(Layer::Tcp)
@@ -393,7 +393,7 @@ fn set_tcp_data_offset_ipv4_proof() {
                         }
                         core::cmp::Ordering::Equal => {
                             assert_eq!(internal_headroom, to_test.headroom_internal());
-                            assert_eq!(data_length, to_test.data_length());
+                            assert_eq!(data_length, to_test.data_length_internal());
                             assert_eq!(tcp_header_length, to_test.header_length(Layer::Tcp));
                             assert_eq!(ipv4_total_length, usize::from(to_test.ipv4_total_length()));
                         }
@@ -402,7 +402,7 @@ fn set_tcp_data_offset_ipv4_proof() {
                                 old_tcp_data_offset_bytes - new_tcp_data_offset_bytes_usize;
                             any_headroom += difference;
                             assert_eq!(internal_headroom + difference, to_test.headroom_internal());
-                            assert_eq!(data_length - difference, to_test.data_length());
+                            assert_eq!(data_length - difference, to_test.data_length_internal());
                             assert_eq!(
                                 tcp_header_length - difference,
                                 to_test.header_length(Layer::Tcp)
@@ -415,7 +415,7 @@ fn set_tcp_data_offset_ipv4_proof() {
                     }
                 } else {
                     assert_eq!(internal_headroom, to_test.headroom_internal());
-                    assert_eq!(data_length, to_test.data_length());
+                    assert_eq!(data_length, to_test.data_length_internal());
                     assert_eq!(tcp_header_length, to_test.header_length(Layer::Tcp));
                     assert_eq!(ipv4_total_length, usize::from(to_test.ipv4_total_length()));
                 }
@@ -469,7 +469,7 @@ fn set_tcp_data_offset_ipv6_proof() {
                 let new_tcp_data_offset_bytes_usize = usize::from(new_tcp_data_offset) * 4;
 
                 let internal_headroom = to_test.headroom_internal();
-                let data_length = to_test.data_length();
+                let data_length = to_test.data_length_internal();
                 let eth_header_start_offset = to_test.header_start_offset(Layer::EthernetII);
                 let eth_header_length = to_test.header_length(Layer::EthernetII);
                 let ipv6_header_start_offset = to_test.header_start_offset(Layer::Ipv6);
@@ -485,7 +485,7 @@ fn set_tcp_data_offset_ipv6_proof() {
                                 new_tcp_data_offset_bytes_usize - old_tcp_data_offset_bytes;
                             any_headroom -= difference;
                             assert_eq!(internal_headroom - difference, to_test.headroom_internal());
-                            assert_eq!(data_length + difference, to_test.data_length());
+                            assert_eq!(data_length + difference, to_test.data_length_internal());
                             assert_eq!(
                                 tcp_header_length + difference,
                                 to_test.header_length(Layer::Tcp)
@@ -497,7 +497,7 @@ fn set_tcp_data_offset_ipv6_proof() {
                         }
                         core::cmp::Ordering::Equal => {
                             assert_eq!(internal_headroom, to_test.headroom_internal());
-                            assert_eq!(data_length, to_test.data_length());
+                            assert_eq!(data_length, to_test.data_length_internal());
                             assert_eq!(
                                 eth_header_start_offset,
                                 to_test.header_start_offset(Layer::EthernetII)
@@ -513,7 +513,7 @@ fn set_tcp_data_offset_ipv6_proof() {
                                 old_tcp_data_offset_bytes - new_tcp_data_offset_bytes_usize;
                             any_headroom += difference;
                             assert_eq!(internal_headroom + difference, to_test.headroom_internal());
-                            assert_eq!(data_length - difference, to_test.data_length());
+                            assert_eq!(data_length - difference, to_test.data_length_internal());
                             assert_eq!(
                                 tcp_header_length - difference,
                                 to_test.header_length(Layer::Tcp)
@@ -526,7 +526,7 @@ fn set_tcp_data_offset_ipv6_proof() {
                     }
                 } else {
                     assert_eq!(internal_headroom, to_test.headroom_internal());
-                    assert_eq!(data_length, to_test.data_length());
+                    assert_eq!(data_length, to_test.data_length_internal());
                     assert_eq!(tcp_header_length, to_test.header_length(Layer::Tcp));
                     assert_eq!(
                         ipv6_payload_length,

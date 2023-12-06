@@ -122,7 +122,7 @@ fn set_ipv6_payload_length_proof_complete() {
                 let new_ipv6_payload_length_usize = usize::from(new_ipv6_payload_length);
 
                 let internal_headroom = to_test.headroom_internal();
-                let data_length = to_test.data_length();
+                let data_length = to_test.data_length_internal();
                 let eth_header_start_offset = to_test.header_start_offset(Layer::EthernetII);
                 let eth_header_length = to_test.header_length(Layer::EthernetII);
                 let ipv6_header_start_offset = to_test.header_start_offset(Layer::Ipv6);
@@ -138,19 +138,19 @@ fn set_ipv6_payload_length_proof_complete() {
                         core::cmp::Ordering::Less => {
                             let difference =
                                 new_ipv6_payload_length_usize - old_ipv6_payload_length_usize;
-                            assert_eq!(data_length + difference, to_test.data_length());
+                            assert_eq!(data_length + difference, to_test.data_length_internal());
                         }
                         core::cmp::Ordering::Equal => {
-                            assert_eq!(data_length, to_test.data_length());
+                            assert_eq!(data_length, to_test.data_length_internal());
                         }
                         core::cmp::Ordering::Greater => {
                             let difference =
                                 old_ipv6_payload_length_usize - new_ipv6_payload_length_usize;
-                            assert_eq!(data_length - difference, to_test.data_length());
+                            assert_eq!(data_length - difference, to_test.data_length_internal());
                         }
                     }
                 } else {
-                    assert_eq!(data_length, to_test.data_length());
+                    assert_eq!(data_length, to_test.data_length_internal());
                 }
 
                 assert_eq!(internal_headroom, to_test.headroom_internal());

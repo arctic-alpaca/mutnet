@@ -280,8 +280,8 @@ where
     }
 
     #[inline]
-    fn data_length(&self) -> usize {
-        self.previous_header_metadata.data_length()
+    fn data_length_internal(&self) -> usize {
+        self.previous_header_metadata.data_length_internal()
     }
 }
 
@@ -858,12 +858,12 @@ mod tests {
         // IPv6 length includes two more bytes than the UDP length, this is why the ipv6 payload length
         // shrinks by one when the UDP length is incremented by one.
         assert_eq!(0x26, udp_datagram.ipv6_payload_length());
-        assert_eq!(92, udp_datagram.data_length());
+        assert_eq!(92, udp_datagram.data_length_internal());
         assert_eq!(&[0xFF; 4], udp_datagram.payload());
         udp_datagram.set_udp_length(0xD).unwrap();
         assert_eq!(0xD, udp_datagram.udp_length());
         assert_eq!(0x25, udp_datagram.ipv6_payload_length());
-        assert_eq!(91, udp_datagram.data_length());
+        assert_eq!(91, udp_datagram.data_length_internal());
         assert_eq!(&[0xFF; 5], udp_datagram.payload());
 
         assert_eq!(
@@ -872,17 +872,17 @@ mod tests {
         );
         assert_eq!(0xD, udp_datagram.udp_length());
         assert_eq!(0x25, udp_datagram.ipv6_payload_length());
-        assert_eq!(91, udp_datagram.data_length());
+        assert_eq!(91, udp_datagram.data_length_internal());
         assert_eq!(&[0xFF; 5], udp_datagram.payload());
         udp_datagram.set_udp_length(0x8).unwrap();
         assert_eq!(0x8, udp_datagram.udp_length());
         assert_eq!(0x20, udp_datagram.ipv6_payload_length());
-        assert_eq!(86, udp_datagram.data_length());
+        assert_eq!(86, udp_datagram.data_length_internal());
         assert_eq!(&[0xFF; 0], udp_datagram.payload());
         udp_datagram.set_udp_length(0xE).unwrap();
         assert_eq!(0xE, udp_datagram.udp_length());
         assert_eq!(0x26, udp_datagram.ipv6_payload_length());
-        assert_eq!(92, udp_datagram.data_length());
+        assert_eq!(92, udp_datagram.data_length_internal());
         assert_eq!(&[0xFF; 6], udp_datagram.payload());
     }
 

@@ -72,7 +72,7 @@ fn set_ipv4_ihl_proof_complete() {
                 let new_ipv4_ihl_bytes_usize = usize::from(new_ipv4_ihl) * 4;
 
                 let internal_headroom = to_test.headroom_internal();
-                let data_length = to_test.data_length();
+                let data_length = to_test.data_length_internal();
                 let eth_header_start_offset = to_test.header_start_offset(Layer::EthernetII);
                 let eth_header_length = to_test.header_length(Layer::EthernetII);
                 let ipv4_header_start_offset = to_test.header_start_offset(Layer::Ipv4);
@@ -86,7 +86,7 @@ fn set_ipv4_ihl_proof_complete() {
                             let difference = new_ipv4_ihl_bytes_usize - old_ipv4_ihl_bytes_usize;
                             any_headroom -= difference;
                             assert_eq!(internal_headroom - difference, to_test.headroom_internal());
-                            assert_eq!(data_length + difference, to_test.data_length());
+                            assert_eq!(data_length + difference, to_test.data_length_internal());
                             assert_eq!(
                                 eth_header_start_offset,
                                 to_test.header_start_offset(Layer::EthernetII)
@@ -108,7 +108,7 @@ fn set_ipv4_ihl_proof_complete() {
                         }
                         core::cmp::Ordering::Equal => {
                             assert_eq!(internal_headroom, to_test.headroom_internal());
-                            assert_eq!(data_length, to_test.data_length());
+                            assert_eq!(data_length, to_test.data_length_internal());
                             assert_eq!(
                                 eth_header_start_offset,
                                 to_test.header_start_offset(Layer::EthernetII)
@@ -129,7 +129,7 @@ fn set_ipv4_ihl_proof_complete() {
                             let difference = old_ipv4_ihl_bytes_usize - new_ipv4_ihl_bytes_usize;
                             any_headroom += difference;
                             assert_eq!(internal_headroom + difference, to_test.headroom_internal());
-                            assert_eq!(data_length - difference, to_test.data_length());
+                            assert_eq!(data_length - difference, to_test.data_length_internal());
                             assert_eq!(
                                 eth_header_start_offset,
                                 to_test.header_start_offset(Layer::EthernetII)
@@ -265,7 +265,7 @@ fn ipv4_set_total_length_proof_complete() {
                 let new_ipv4_total_length_usize = usize::from(new_ipv4_total_length);
 
                 let internal_headroom = to_test.headroom_internal();
-                let data_length = to_test.data_length();
+                let data_length = to_test.data_length_internal();
                 let eth_header_start_offset = to_test.header_start_offset(Layer::EthernetII);
                 let eth_header_length = to_test.header_length(Layer::EthernetII);
                 let ipv4_header_start_offset = to_test.header_start_offset(Layer::Ipv4);
@@ -278,19 +278,19 @@ fn ipv4_set_total_length_proof_complete() {
                         core::cmp::Ordering::Less => {
                             let difference =
                                 new_ipv4_total_length_usize - old_ipv4_total_length_usize;
-                            assert_eq!(data_length + difference, to_test.data_length());
+                            assert_eq!(data_length + difference, to_test.data_length_internal());
                         }
                         core::cmp::Ordering::Equal => {
-                            assert_eq!(data_length, to_test.data_length());
+                            assert_eq!(data_length, to_test.data_length_internal());
                         }
                         core::cmp::Ordering::Greater => {
                             let difference =
                                 old_ipv4_total_length_usize - new_ipv4_total_length_usize;
-                            assert_eq!(data_length - difference, to_test.data_length());
+                            assert_eq!(data_length - difference, to_test.data_length_internal());
                         }
                     }
                 } else {
-                    assert_eq!(data_length, to_test.data_length());
+                    assert_eq!(data_length, to_test.data_length_internal());
                 }
                 assert_eq!(internal_headroom, to_test.headroom_internal());
                 assert_eq!(
