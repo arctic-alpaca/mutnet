@@ -1,3 +1,7 @@
+# 0.5.2 (6. December 2023)
+### Added
+- Public `data_length()` method to `DataBuffer`
+
 # 0.5.1 (30. November 2023)
 ### Added
 - Derive `Eq, PartialEq, Hash, Debug` to `MultiStepParserResult`

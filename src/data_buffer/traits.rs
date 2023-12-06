@@ -9,6 +9,11 @@ pub trait BufferIntoInner<B>
 where
     B: AsRef<[u8]>,
 {
+    /// Returns the data length.
+    ///
+    /// Data length is the amount of bytes from the first header byte to the end of the payload.
+    fn data_length(&self) -> usize;
+
     /// Returns the amount of headroom the buffer currently has.
     fn headroom(&self) -> usize;
 

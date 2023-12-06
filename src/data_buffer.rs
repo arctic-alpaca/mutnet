@@ -194,6 +194,11 @@ where
     HM: HeaderMetadata + HeaderMetadataMut,
 {
     #[inline]
+    fn data_length(&self) -> usize {
+        HeaderMetadata::data_length(self)
+    }
+
+    #[inline]
     fn headroom(&self) -> usize {
         HeaderMetadata::headroom_internal(self)
     }
