@@ -73,7 +73,7 @@ impl HeaderMetadata for Eth {
         0
     }
 
-    /// By returning 0 if the layer does not exists, it is possible to use header length in calculations
+    /// By returning 0 if the layer does not exist, it is possible to use header length in calculations
     /// that would otherwise require branches to check whether a layer exists.
     #[inline]
     fn header_length(&self, layer: Layer) -> usize {

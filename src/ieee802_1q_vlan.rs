@@ -32,7 +32,7 @@ pub enum Vlan {
 
 /// IEEE 802.1Q metadata.
 ///
-/// Contains meta data about the IEEE 802.1Q header in the parsed data buffer.
+/// Contains metadata about the IEEE 802.1Q header in the parsed data buffer.
 #[allow(private_bounds)]
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub struct Ieee802_1QVlan<PHM: HeaderMetadata + HeaderMetadataMut> {

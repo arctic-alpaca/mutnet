@@ -54,7 +54,7 @@ impl Ipv6ExtensionMetadata {
 
 /// IPv6 extensions metadata.
 ///
-/// Contains meta data about the IPv6 extensions headers in the parsed data buffer.
+/// Contains metadata about the IPv6 extensions headers in the parsed data buffer.
 #[allow(private_bounds)]
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub struct Ipv6Extensions<PHM, const MAX_EXTENSIONS: usize>
@@ -346,7 +346,7 @@ pub(crate) fn ipv6_parse_extensions<const MAX_EXTENSIONS: usize>(
 
                 // An atomic fragment is a fragment extension that does not actually indicate any
                 // fragmentation. The RFC does allow atomic fragment extensions. It is indicated
-                // by a offset of zero and the more fragments flag unset.
+                // by an offset of zero and the more fragments flag unset.
                 let is_atomic_fragment = 0 == fragment_offset_and_flags & 0b1111_1111_1111_1001;
 
                 extensions[extensions_amount] = Ipv6ExtensionMetadata::new_typed_ext_type(

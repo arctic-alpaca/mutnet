@@ -45,7 +45,7 @@
 //! #### Avoid copying data
 //! If the network data buffer implements [`Copy`], the [`DataBuffer`](data_buffer::DataBuffer)
 //! will take a copy of it and will copy the buffer at every parsing step (e.g. Ethernet -> Ipv4).
-//! For this reason, it is advised to use references or non-[`Copy`] containers ([`Vec`], etc).
+//! For this reason, it is advised to use references or non-[`Copy`] containers ([`Vec`], etc.).
 //!
 //! ### Example
 //! ```rust

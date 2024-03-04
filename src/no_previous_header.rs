@@ -4,7 +4,7 @@ use crate::data_buffer::traits::{BufferAccess, HeaderMetadata, HeaderMetadataMut
 use crate::data_buffer::{DataBuffer, Payload};
 use crate::error::{LengthExceedsAvailableSpaceError, UnexpectedBufferEndError};
 
-/// Contains meta data about the headroom and data length.
+/// Contains metadata about the headroom and data length.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Hash, Copy, Clone, Debug)]
 pub struct NoPreviousHeader {
     /// Amount of headroom.

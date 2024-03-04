@@ -20,7 +20,7 @@ mod verification;
 
 /// ARP metadata.
 ///
-/// Contains meta data about the ARP header in the parsed data buffer.
+/// Contains metadata about the ARP header in the parsed data buffer.
 #[allow(private_bounds)]
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub struct Arp<PHM: HeaderMetadata + HeaderMetadataMut> {

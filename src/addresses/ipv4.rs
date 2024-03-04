@@ -35,7 +35,7 @@ pub fn is_limited_broadcast(ip_addr: &Ipv4Address) -> bool {
     ip_addr[..] == [255; 4]
 }
 
-/// Returns `true` if an [`Ipv4Address`] is the a loopback address.
+/// Returns `true` if an [`Ipv4Address`] is a loopback address.
 ///
 /// # Examples
 ///

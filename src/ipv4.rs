@@ -23,7 +23,7 @@ mod verification;
 
 /// IPv4 metadata.
 ///
-/// Contains meta data about the IPv4 header in the parsed data buffer.
+/// Contains metadata about the IPv4 header in the parsed data buffer.
 #[allow(private_bounds)]
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub struct Ipv4<PHM>

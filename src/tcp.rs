@@ -34,7 +34,7 @@ mod verification;
 
 /// TCP metadata.
 ///
-/// Contains meta data about the TCP header in the parsed data buffer.
+/// Contains metadata about the TCP header in the parsed data buffer.
 #[allow(private_bounds)]
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub struct Tcp<PHM>

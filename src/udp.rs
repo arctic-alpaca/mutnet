@@ -34,7 +34,7 @@ mod verification;
 
 /// UDP metadata.
 ///
-/// Contains meta data about the UDP header in the parsed data buffer.
+/// Contains metadata about the UDP header in the parsed data buffer.
 #[allow(private_bounds)]
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub struct Udp<PHM>

@@ -16,7 +16,7 @@ pub(crate) const VERSION_SHIFT: usize = 4;
 pub(crate) const TRAFFIC_CLASS: Range<usize> = 0..2;
 pub(crate) const TRAFFIC_CLASS_MASK_WITHOUT_SURROUNDING_DATA: u16 = 0x0F_F0;
 pub(crate) const TRAFFIC_CLASS_SHIFT: usize = 4;
-/// Includes more data than required but simplifies reading a u32 and masking it.
+/// Includes more data than required but simplifies reading an u32 and masking it.
 pub(crate) const FLOW_LABEL_WITH_PREPENDED_DATA: Range<usize> = 0..4;
 pub(crate) const FLOW_LABEL_MASK: u32 = 0x00_0F_FF_FF;
 pub(crate) const PAYLOAD_LENGTH: Range<usize> = 4..6;
