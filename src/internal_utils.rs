@@ -58,7 +58,7 @@ pub(crate) fn grow_or_shrink_header_at_end(
 
 #[inline]
 pub(crate) fn pseudo_header_checksum_ipv6_internal(
-    ipv6: &(impl Ipv6Methods + HeaderMetadata),
+    ipv6: &impl Ipv6Methods,
     protocol_next_header: u8,
 ) -> u64 {
     let length = (u32::from(ipv6.ipv6_payload_length())
@@ -73,7 +73,7 @@ pub(crate) fn pseudo_header_checksum_ipv6_internal(
 
 #[inline]
 pub(crate) fn pseudo_header_checksum_ipv4_internal(
-    ipv4: &(impl Ipv4Methods + HeaderMetadata),
+    ipv4: &impl Ipv4Methods,
     protocol_next_header: u8,
 ) -> u64 {
     let length = (ipv4.ipv4_total_length() - ipv4.header_length(Layer::Ipv4) as u16).to_be_bytes();

@@ -36,9 +36,9 @@ verify_ethernet = ["remove_checksum"]
 criterion = "0.5.1"
 rand = {version = "0.8.5", features = ["min_const_gen"]}
 # Comparison
-etherparse = "0.13.0"
+etherparse = "0.14.2"
 # Examples
-pcap = "1.1.0"
+pcap = "1.2.0"
 
 # Examples
 [[example]]

@@ -1,5 +1,4 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
-use etherparse::{Ipv6ExtensionsSlice, ReadError};
 use mutnet::data_buffer::DataBuffer;
 use mutnet::ipv6_extensions::{Ipv6Extensions, ParseIpv6ExtensionsError};
 use mutnet::no_previous_header::NoPreviousHeader;
@@ -128,9 +127,12 @@ fn mutnet_new<const MAX_EXTENSIONS: usize>(
 #[inline(always)]
 fn etherparse_new(
     bytes: &[u8],
-    first_extension: Ipv6ExtensionType,
-) -> Result<(Ipv6ExtensionsSlice<'_>, u8, &[u8]), ReadError> {
-    Ipv6ExtensionsSlice::from_slice(first_extension as u8, bytes)
+    first_extension: etherparse::IpNumber,
+) -> Result<
+    (etherparse::Ipv6ExtensionsSlice, etherparse::IpNumber, &[u8]),
+    etherparse::err::ipv6_exts::HeaderSliceError,
+> {
+    etherparse::Ipv6ExtensionsSlice::from_slice(first_extension, bytes)
 }
 
 pub fn ipv6_extension(c: &mut Criterion) {
@@ -160,7 +162,7 @@ pub fn ipv6_extension(c: &mut Criterion) {
             |(data, first_extension)| {
                 let mut result = &mut etherparse_new(
                     std::hint::black_box(data),
-                    std::hint::black_box(*first_extension),
+                    std::hint::black_box(etherparse::IpNumber((*first_extension) as u8)),
                 );
                 std::hint::black_box(&mut result);
             },

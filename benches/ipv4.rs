@@ -1,5 +1,4 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
-use etherparse::{Ipv4HeaderSlice, ReadError};
 use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
 use mutnet::ipv4::{Ipv4, Ipv4Methods, Ipv4MethodsMut, ParseIpv4Error};
 use mutnet::no_previous_header::NoPreviousHeader;
@@ -181,14 +180,16 @@ fn mutnet_get_functions_not_inlined(
 }
 
 #[inline(always)]
-fn parse_ipv4_etherparse(bytes: &[u8]) -> Result<Ipv4HeaderSlice, ReadError> {
-    Ipv4HeaderSlice::from_slice(bytes)
+fn parse_ipv4_etherparse(
+    bytes: &[u8],
+) -> Result<etherparse::Ipv4HeaderSlice, etherparse::err::ipv4::HeaderSliceError> {
+    etherparse::Ipv4HeaderSlice::from_slice(bytes)
 }
 
 #[allow(clippy::type_complexity)]
 #[inline(always)]
 fn etherparse_get_functions_inlined(
-    data_buffer: &Ipv4HeaderSlice,
+    data_buffer: &etherparse::Ipv4HeaderSlice,
 ) -> (
     u8,
     u8,
@@ -209,26 +210,26 @@ fn etherparse_get_functions_inlined(
     (
         data_buffer.version(),
         data_buffer.ihl(),
-        data_buffer.dcp(),
-        data_buffer.ecn(),
+        data_buffer.dcp().value(),
+        data_buffer.ecn().value(),
         data_buffer.total_len(),
         data_buffer.identification(),
         data_buffer.dont_fragment(),
         data_buffer.more_fragments(),
-        data_buffer.fragments_offset(),
+        data_buffer.fragments_offset().value(),
         data_buffer.ttl(),
-        data_buffer.protocol(),
+        data_buffer.protocol().0,
         data_buffer.header_checksum(),
         data_buffer.source(),
         data_buffer.destination(),
-        data_buffer.payload_len(),
+        data_buffer.payload_len().unwrap(),
     )
 }
 
 #[allow(clippy::type_complexity)]
 #[inline(never)]
 fn etherparse_get_functions_not_inlined(
-    data_buffer: &Ipv4HeaderSlice,
+    data_buffer: &etherparse::Ipv4HeaderSlice,
 ) -> (
     u8,
     u8,
@@ -249,19 +250,19 @@ fn etherparse_get_functions_not_inlined(
     (
         data_buffer.version(),
         data_buffer.ihl(),
-        data_buffer.dcp(),
-        data_buffer.ecn(),
+        data_buffer.dcp().value(),
+        data_buffer.ecn().value(),
         data_buffer.total_len(),
         data_buffer.identification(),
         data_buffer.dont_fragment(),
         data_buffer.more_fragments(),
-        data_buffer.fragments_offset(),
+        data_buffer.fragments_offset().value(),
         data_buffer.ttl(),
-        data_buffer.protocol(),
+        data_buffer.protocol().0,
         data_buffer.header_checksum(),
         data_buffer.source(),
         data_buffer.destination(),
-        data_buffer.payload_len(),
+        data_buffer.payload_len().unwrap(),
     )
 }
 
@@ -313,7 +314,8 @@ pub fn ipv4(c: &mut Criterion) {
         b.iter_batched_ref(
             random_ipv4,
             |data| {
-                let ether_slice = Ipv4HeaderSlice::from_slice(std::hint::black_box(data)).unwrap();
+                let ether_slice =
+                    etherparse::Ipv4HeaderSlice::from_slice(std::hint::black_box(data)).unwrap();
                 let mut result = &mut etherparse_get_functions_inlined(&ether_slice);
                 std::hint::black_box(&mut result);
             },
@@ -342,7 +344,8 @@ pub fn ipv4(c: &mut Criterion) {
         b.iter_batched_ref(
             random_ipv4,
             |data| {
-                let ether_slice = Ipv4HeaderSlice::from_slice(std::hint::black_box(data)).unwrap();
+                let ether_slice =
+                    etherparse::Ipv4HeaderSlice::from_slice(std::hint::black_box(data)).unwrap();
                 let mut result = &mut etherparse_get_functions_not_inlined(&ether_slice);
                 std::hint::black_box(&mut result);
             },

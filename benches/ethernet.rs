@@ -63,7 +63,9 @@ fn mutnet_get_functions_not_inlined(data_buffer: &impl EthernetMethods) -> ([u8;
 }
 
 #[inline(always)]
-fn etherparse_new(bytes: &[u8]) -> Result<etherparse::Ethernet2HeaderSlice, etherparse::ReadError> {
+fn etherparse_new(
+    bytes: &[u8],
+) -> Result<etherparse::Ethernet2HeaderSlice, etherparse::err::LenError> {
     etherparse::Ethernet2HeaderSlice::from_slice(bytes)
 }
 
@@ -74,7 +76,7 @@ fn etherparse_get_functions_inlined(
     (
         ether_slice.destination(),
         ether_slice.source(),
-        ether_slice.ether_type(),
+        ether_slice.ether_type().0,
     )
 }
 
@@ -85,7 +87,7 @@ fn etherparse_get_functions_not_inlined(
     (
         ether_slice.destination(),
         ether_slice.source(),
-        ether_slice.ether_type(),
+        ether_slice.ether_type().0,
     )
 }
 

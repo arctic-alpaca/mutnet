@@ -1,5 +1,4 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
-use etherparse::{ReadError, TcpHeaderSlice};
 use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
 use mutnet::no_previous_header::NoPreviousHeader;
 use mutnet::tcp::{ParseTcpError, Tcp, TcpMethods, TcpMethodsMut};
@@ -157,14 +156,16 @@ fn mutnet_get_functions_not_inlined(
 }
 
 #[inline(always)]
-fn etherparse_new(bytes: &[u8]) -> Result<TcpHeaderSlice, ReadError> {
-    TcpHeaderSlice::from_slice(bytes)
+fn etherparse_new(
+    bytes: &[u8],
+) -> Result<etherparse::TcpHeaderSlice, etherparse::err::tcp::HeaderSliceError> {
+    etherparse::TcpHeaderSlice::from_slice(bytes)
 }
 
 #[allow(clippy::type_complexity)]
 #[inline(always)]
 fn etherparse_get_functions_inlined(
-    data_buffer: &TcpHeaderSlice,
+    data_buffer: &etherparse::TcpHeaderSlice,
 ) -> (
     u16,
     u16,
@@ -206,7 +207,7 @@ fn etherparse_get_functions_inlined(
 #[allow(clippy::type_complexity)]
 #[inline(never)]
 fn etherparse_get_functions_not_inlined(
-    data_buffer: &TcpHeaderSlice,
+    data_buffer: &etherparse::TcpHeaderSlice,
 ) -> (
     u16,
     u16,
@@ -292,7 +293,8 @@ pub fn tcp(c: &mut Criterion) {
         b.iter_batched_ref(
             random_tcp,
             |data| {
-                let ether_slice = TcpHeaderSlice::from_slice(std::hint::black_box(data)).unwrap();
+                let ether_slice =
+                    etherparse::TcpHeaderSlice::from_slice(std::hint::black_box(data)).unwrap();
                 let mut result = &mut etherparse_get_functions_inlined(&ether_slice);
                 std::hint::black_box(&mut result);
             },
@@ -320,7 +322,8 @@ pub fn tcp(c: &mut Criterion) {
         b.iter_batched_ref(
             random_tcp,
             |data| {
-                let ether_slice = TcpHeaderSlice::from_slice(std::hint::black_box(data)).unwrap();
+                let ether_slice =
+                    etherparse::TcpHeaderSlice::from_slice(std::hint::black_box(data)).unwrap();
                 let mut result = &mut etherparse_get_functions_not_inlined(&ether_slice);
                 std::hint::black_box(&mut result);
             },

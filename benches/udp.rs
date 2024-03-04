@@ -1,5 +1,4 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
-use etherparse::{ReadError, UdpHeaderSlice};
 use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
 use mutnet::no_previous_header::NoPreviousHeader;
 use mutnet::udp::{ParseUdpError, Udp, UdpMethods, UdpMethodsMut};
@@ -60,12 +59,14 @@ fn mutnet_get_functions_not_inlined(data_buffer: &impl UdpMethods) -> (u16, u16,
 }
 
 #[inline(always)]
-fn etherparse_new(bytes: &[u8]) -> Result<UdpHeaderSlice, ReadError> {
-    UdpHeaderSlice::from_slice(bytes)
+fn etherparse_new(bytes: &[u8]) -> Result<etherparse::UdpHeaderSlice, etherparse::err::LenError> {
+    etherparse::UdpHeaderSlice::from_slice(bytes)
 }
 
 #[inline(always)]
-fn etherparse_get_functions_inlined(data_buffer: &UdpHeaderSlice) -> (u16, u16, u16, u16) {
+fn etherparse_get_functions_inlined(
+    data_buffer: &etherparse::UdpHeaderSlice,
+) -> (u16, u16, u16, u16) {
     (
         data_buffer.source_port(),
         data_buffer.destination_port(),
@@ -75,7 +76,9 @@ fn etherparse_get_functions_inlined(data_buffer: &UdpHeaderSlice) -> (u16, u16, 
 }
 
 #[inline(never)]
-fn etherparse_get_functions_not_inlined(data_buffer: &UdpHeaderSlice) -> (u16, u16, u16, u16) {
+fn etherparse_get_functions_not_inlined(
+    data_buffer: &etherparse::UdpHeaderSlice,
+) -> (u16, u16, u16, u16) {
     (
         data_buffer.source_port(),
         data_buffer.destination_port(),
@@ -131,7 +134,8 @@ pub fn tcp(c: &mut Criterion) {
         b.iter_batched_ref(
             random_udp,
             |data| {
-                let ether_slice = UdpHeaderSlice::from_slice(std::hint::black_box(data)).unwrap();
+                let ether_slice =
+                    etherparse::UdpHeaderSlice::from_slice(std::hint::black_box(data)).unwrap();
                 let mut result = &mut etherparse_get_functions_inlined(&ether_slice);
                 std::hint::black_box(&mut result);
             },
@@ -159,7 +163,8 @@ pub fn tcp(c: &mut Criterion) {
         b.iter_batched_ref(
             random_udp,
             |data| {
-                let ether_slice = UdpHeaderSlice::from_slice(std::hint::black_box(data)).unwrap();
+                let ether_slice =
+                    etherparse::UdpHeaderSlice::from_slice(std::hint::black_box(data)).unwrap();
                 let mut result = &mut etherparse_get_functions_not_inlined(&ether_slice);
                 std::hint::black_box(&mut result);
             },

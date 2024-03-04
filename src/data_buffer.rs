@@ -1,7 +1,6 @@
 //! Wrapper for network data buffer and parsed protocols metadata.
 pub(crate) mod traits;
 
-use crate::data_buffer::traits::HeaderMetadataExtraction;
 pub(crate) use crate::data_buffer::traits::*;
 pub use crate::data_buffer::traits::{BufferIntoInner, Payload, PayloadMut};
 use crate::error::LengthExceedsAvailableSpaceError;

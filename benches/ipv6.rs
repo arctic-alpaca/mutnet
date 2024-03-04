@@ -1,5 +1,4 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
-use etherparse::{Ipv6HeaderSlice, ReadError};
 use mutnet::addresses::ipv6::Ipv6Addr;
 use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
 use mutnet::ipv6::{Ipv6, Ipv6Methods, Ipv6MethodsMut, ParseIpv6Error};
@@ -83,20 +82,22 @@ fn mutnet_get_functions_not_inlined(
 }
 
 #[inline(always)]
-fn etherparse_new(bytes: &[u8]) -> Result<Ipv6HeaderSlice, ReadError> {
-    Ipv6HeaderSlice::from_slice(bytes)
+fn etherparse_new(
+    bytes: &[u8],
+) -> Result<etherparse::Ipv6HeaderSlice, etherparse::err::ipv6::HeaderSliceError> {
+    etherparse::Ipv6HeaderSlice::from_slice(bytes)
 }
 
 #[inline(always)]
 fn etherparse_get_functions_inlined(
-    data_buffer: &Ipv6HeaderSlice,
+    data_buffer: &etherparse::Ipv6HeaderSlice,
 ) -> (u8, u8, u32, u16, u8, u8, Ipv6Addr, Ipv6Addr) {
     (
         data_buffer.version(),
         data_buffer.traffic_class(),
-        data_buffer.flow_label(),
+        data_buffer.flow_label().value(),
         data_buffer.payload_length(),
-        data_buffer.next_header(),
+        data_buffer.next_header().0,
         data_buffer.hop_limit(),
         data_buffer.source(),
         data_buffer.destination(),
@@ -105,14 +106,14 @@ fn etherparse_get_functions_inlined(
 
 #[inline(never)]
 fn etherparse_get_functions_not_inlined(
-    data_buffer: &Ipv6HeaderSlice,
+    data_buffer: &etherparse::Ipv6HeaderSlice,
 ) -> (u8, u8, u32, u16, u8, u8, Ipv6Addr, Ipv6Addr) {
     (
         data_buffer.version(),
         data_buffer.traffic_class(),
-        data_buffer.flow_label(),
+        data_buffer.flow_label().value(),
         data_buffer.payload_length(),
-        data_buffer.next_header(),
+        data_buffer.next_header().0,
         data_buffer.hop_limit(),
         data_buffer.source(),
         data_buffer.destination(),
@@ -166,7 +167,8 @@ pub fn ipv6(c: &mut Criterion) {
         b.iter_batched_ref(
             random_ipv6,
             |data| {
-                let ether_slice = Ipv6HeaderSlice::from_slice(std::hint::black_box(data)).unwrap();
+                let ether_slice =
+                    etherparse::Ipv6HeaderSlice::from_slice(std::hint::black_box(data)).unwrap();
                 let mut result = &mut etherparse_get_functions_inlined(&ether_slice);
                 std::hint::black_box(&mut result);
             },
@@ -194,7 +196,8 @@ pub fn ipv6(c: &mut Criterion) {
         b.iter_batched_ref(
             random_ipv6,
             |data| {
-                let ether_slice = Ipv6HeaderSlice::from_slice(std::hint::black_box(data)).unwrap();
+                let ether_slice =
+                    etherparse::Ipv6HeaderSlice::from_slice(std::hint::black_box(data)).unwrap();
                 let mut result = &mut etherparse_get_functions_not_inlined(&ether_slice);
                 std::hint::black_box(&mut result);
             },
