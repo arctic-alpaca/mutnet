@@ -1,12 +1,5 @@
 //! IPv6 extensions implementation and IPv6 extensions specific errors.
 
-#[cfg(all(feature = "remove_checksum", feature = "verify_ipv6_extensions", kani))]
-mod verification;
-
-mod error;
-mod metadata_trait;
-mod method_traits;
-
 pub use error::*;
 pub(crate) use metadata_trait::{Ipv6ExtMetaData, Ipv6ExtMetaDataMut};
 pub use method_traits::*;
@@ -25,6 +18,13 @@ use crate::ipv6::UpdateIpv6Length;
 use crate::no_previous_header::NoPreviousHeader;
 use crate::typed_protocol_headers::constants;
 use crate::typed_protocol_headers::Ipv6ExtensionType;
+
+#[cfg(all(feature = "remove_checksum", feature = "verify_ipv6_extensions", kani))]
+mod verification;
+
+mod error;
+mod metadata_trait;
+mod method_traits;
 
 /// Metadata of a single extension header.
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]

@@ -1,12 +1,13 @@
 //! UDP access and manipulation methods.
 
+use core::ops::Range;
+
 use crate::checksum::internet_checksum;
 use crate::data_buffer::{
     BufferAccess, BufferAccessMut, HeaderManipulation, HeaderMetadata, Layer,
 };
 use crate::udp::SetLengthError;
 use crate::utility_traits::{PseudoHeaderChecksum, UpdateIpLength};
-use core::ops::Range;
 
 pub(crate) const SOURCE_PORT: Range<usize> = 0..2;
 pub(crate) const DESTINATION_PORT: Range<usize> = 2..4;

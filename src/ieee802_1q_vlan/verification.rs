@@ -1,10 +1,11 @@
-use super::*;
 use crate::data_buffer::traits::BufferIntoInner;
 use crate::ethernet::{Eth, EthernetMethods};
 use crate::ipv6::Ipv6;
 use crate::tcp::Tcp;
 use crate::typed_protocol_headers::constants;
 use crate::typed_protocol_headers::EtherType;
+
+use super::*;
 
 const SLICE_LENGTH: usize = 60;
 const HEADROOM: usize = SLICE_LENGTH + 10;

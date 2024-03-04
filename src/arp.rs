@@ -1,13 +1,7 @@
 //! ARP implementation and ARP specific errors.
 
-mod error;
-mod method_traits;
-
 pub use error::*;
 pub use method_traits::*;
-
-#[cfg(all(feature = "remove_checksum", feature = "verify_arp", kani))]
-mod verification;
 
 use crate::data_buffer::traits::{HeaderMetadata, HeaderMetadataMut, Layer};
 use crate::data_buffer::traits::{HeaderMetadataExtraction, Payload};
@@ -17,6 +11,12 @@ use crate::data_buffer::{
 use crate::error::LengthExceedsAvailableSpaceError;
 use crate::internal_utils::{check_and_calculate_data_length, header_start_offset_from_phi};
 use crate::no_previous_header::NoPreviousHeader;
+
+mod error;
+mod method_traits;
+
+#[cfg(all(feature = "remove_checksum", feature = "verify_arp", kani))]
+mod verification;
 
 /// ARP metadata.
 ///

@@ -1,11 +1,12 @@
 //! Ethernet II access and manipulation methods.
 
+use core::ops::Range;
+
 use crate::addresses::mac::MacAddress;
 use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderManipulation, HeaderMetadata, Layer,
 };
 use crate::typed_protocol_headers::{EtherType, UnrecognizedEtherTypeError};
-use core::ops::Range;
 
 pub(crate) const DESTINATION_MAC: Range<usize> = 0..6;
 pub(crate) const SOURCE_MAC: Range<usize> = 6..12;

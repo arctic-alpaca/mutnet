@@ -1,10 +1,11 @@
 //! Wrapper for network data buffer and parsed protocols metadata.
-pub(crate) mod traits;
+use core::ops::Range;
 
 pub(crate) use crate::data_buffer::traits::*;
 pub use crate::data_buffer::traits::{BufferIntoInner, Payload, PayloadMut};
 use crate::error::LengthExceedsAvailableSpaceError;
-use core::ops::Range;
+
+pub(crate) mod traits;
 
 /// Wraps the data buffer and contains metadata about the parsed protocols.
 #[allow(private_bounds)]

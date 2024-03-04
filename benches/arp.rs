@@ -1,11 +1,12 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
+use rand::{thread_rng, Rng};
+
 use mutnet::addresses::ipv4::Ipv4Address;
 use mutnet::addresses::mac::MacAddress;
 use mutnet::arp::{Arp, ArpMethods, ArpMethodsMut, ParseArpError};
 use mutnet::data_buffer::{BufferIntoInner, DataBuffer};
 use mutnet::no_previous_header::NoPreviousHeader;
 use mutnet::typed_protocol_headers::OperationCode;
-use rand::{thread_rng, Rng};
 
 // ARP for IPv4
 #[rustfmt::skip]

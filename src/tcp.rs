@@ -1,13 +1,7 @@
 //! TCP implementation and TCP specific errors.
 
-mod error;
-mod method_traits;
-
 pub use error::*;
 pub use method_traits::*;
-
-#[cfg(all(feature = "remove_checksum", feature = "verify_tcp", kani))]
-mod verification;
 
 use crate::data_buffer::traits::HeaderMetadataExtraction;
 use crate::data_buffer::traits::{
@@ -31,6 +25,12 @@ use crate::ipv6_extensions::{Ipv6ExtensionIndexOutOfBoundsError, Ipv6ExtensionMe
 use crate::no_previous_header::NoPreviousHeader;
 use crate::typed_protocol_headers::constants;
 use crate::utility_traits::{PseudoHeaderChecksum, UpdateIpLength};
+
+mod error;
+mod method_traits;
+
+#[cfg(all(feature = "remove_checksum", feature = "verify_tcp", kani))]
+mod verification;
 
 /// TCP metadata.
 ///

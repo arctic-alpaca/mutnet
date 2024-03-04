@@ -1,5 +1,8 @@
 //! IPv4 access and manipulation methods.
 
+use core::ops::Range;
+use core::ops::RangeInclusive;
+
 use crate::addresses::ipv4::Ipv4Address;
 use crate::checksum::internet_checksum_up_to_64_bytes;
 use crate::data_buffer::traits::{
@@ -11,8 +14,6 @@ use crate::typed_protocol_headers::{Dscp, Ecn, UnrecognizedDscpError, Unrecogniz
 use crate::typed_protocol_headers::{
     InternetProtocolNumber, UnrecognizedInternetProtocolNumberError,
 };
-use core::ops::Range;
-use core::ops::RangeInclusive;
 
 pub(crate) const VERSION_BYTE: usize = 0;
 pub(crate) const VERSION_SHIFT: usize = 4;

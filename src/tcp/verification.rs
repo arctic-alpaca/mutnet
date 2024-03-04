@@ -1,8 +1,9 @@
-use super::*;
 use crate::data_buffer::traits::BufferIntoInner;
 use crate::ethernet::Eth;
 use crate::ipv4::Ipv4Methods;
 use crate::ipv6::Ipv6Methods;
+
+use super::*;
 
 const SLICE_LENGTH: usize = 100;
 const HEADROOM: usize = SLICE_LENGTH + 10;

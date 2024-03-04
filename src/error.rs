@@ -1,4 +1,10 @@
 //! Non-protocol specific errors.
+#[cfg(all(feature = "error_trait", not(feature = "std")))]
+use core::error;
+use core::fmt::{Debug, Display, Formatter};
+#[cfg(feature = "std")]
+use std::error;
+
 use crate::arp::ParseArpError;
 use crate::ieee802_1q_vlan::ParseIeee802_1QError;
 use crate::ipv4::ParseIpv4Error;
@@ -8,11 +14,6 @@ use crate::tcp::ParseTcpError;
 use crate::typed_protocol_headers::UnrecognizedEtherTypeError;
 use crate::typed_protocol_headers::UnrecognizedInternetProtocolNumberError;
 use crate::udp::ParseUdpError;
-#[cfg(all(feature = "error_trait", not(feature = "std")))]
-use core::error;
-use core::fmt::{Debug, Display, Formatter};
-#[cfg(feature = "std")]
-use std::error;
 
 /// Error returned if the data buffer is expected to be longer than it actually is.
 ///

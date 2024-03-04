@@ -1,14 +1,12 @@
 //! ARP specific errors.
 
-use crate::error::UnexpectedBufferEndError;
-
-use core::fmt::{Debug, Display, Formatter};
-
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
-
+use core::fmt::{Debug, Display, Formatter};
 #[cfg(feature = "std")]
 use std::error;
+
+use crate::error::UnexpectedBufferEndError;
 
 /// Error returned when parsing an ARP header.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]

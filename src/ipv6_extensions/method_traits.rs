@@ -1,5 +1,7 @@
 //! IPv6 extensions access and manipulation methods.
 
+use core::cmp::Ordering;
+
 use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderManipulation, HeaderMetadata, Layer,
 };
@@ -11,7 +13,6 @@ use crate::ipv6_extensions::{
 };
 use crate::typed_protocol_headers::InternetProtocolNumber;
 use crate::typed_protocol_headers::RoutingType;
-use core::cmp::Ordering;
 
 pub(crate) static NEXT_HEADER: usize = 0;
 pub(crate) static EXTENSION_MIN_LEN: usize = 8;

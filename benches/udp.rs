@@ -1,8 +1,9 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
+use rand::{thread_rng, Rng};
+
 use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
 use mutnet::no_previous_header::NoPreviousHeader;
 use mutnet::udp::{ParseUdpError, Udp, UdpMethods, UdpMethodsMut};
-use rand::{thread_rng, Rng};
 
 #[rustfmt::skip]
 const UDP: [u8; 14] = [

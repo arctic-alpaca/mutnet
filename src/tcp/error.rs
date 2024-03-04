@@ -1,11 +1,12 @@
 //! TCP specific errors.
 
-use crate::error::{InvalidChecksumError, NotEnoughHeadroomError, UnexpectedBufferEndError};
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
 use core::fmt::{Debug, Display, Formatter};
 #[cfg(feature = "std")]
 use std::error;
+
+use crate::error::{InvalidChecksumError, NotEnoughHeadroomError, UnexpectedBufferEndError};
 
 /// Error returned when parsing a TCP header.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]

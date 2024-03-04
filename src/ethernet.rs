@@ -1,11 +1,6 @@
 //! Ethernet II implementation and Ethernet II specific errors.
 
-mod method_traits;
-
 pub use method_traits::*;
-
-#[cfg(all(feature = "remove_checksum", feature = "verify_ethernet", kani))]
-mod verification;
 
 use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderMetadata, HeaderMetadataMut, Layer,
@@ -16,9 +11,14 @@ use crate::ieee802_1q_vlan::UpdateEtherTypeBelowIeee802_1q;
 use crate::internal_utils::check_and_calculate_data_length;
 use crate::typed_protocol_headers::EtherType;
 
+mod method_traits;
+
+#[cfg(all(feature = "remove_checksum", feature = "verify_ethernet", kani))]
+mod verification;
+
 /// Ethernet II metadata.
 ///
-/// Contains meta data about the Ethernet II header in the parsed data buffer.
+/// Contains metadata about the Ethernet II header in the parsed data buffer.
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug)]
 pub struct Eth {
     /// Amount of headroom.
@@ -192,7 +192,6 @@ where
 
 #[cfg(test)]
 mod tests {
-
     use crate::data_buffer::traits::HeaderMetadataMut;
     use crate::data_buffer::{DataBuffer, Payload, PayloadMut};
     use crate::error::{LengthExceedsAvailableSpaceError, UnexpectedBufferEndError};

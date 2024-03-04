@@ -1,9 +1,10 @@
+use core::cmp::Ordering;
+
 use crate::checksum::internet_checksum_intermediary;
 use crate::data_buffer::traits::{HeaderManipulation, HeaderMetadata, HeaderMetadataMut, Layer};
 use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError};
 use crate::ipv4::Ipv4Methods;
 use crate::ipv6::Ipv6Methods;
-use core::cmp::Ordering;
 
 #[inline]
 pub(crate) fn check_and_calculate_data_length<E>(

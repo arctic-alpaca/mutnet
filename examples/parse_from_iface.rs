@@ -1,6 +1,11 @@
 // Formatting and printing data to the default output may lead to dropped packets as this can be slow.
 // This example should not be used to judge performance but rather to see how mutnet can be used.
 
+use std::error::Error;
+use std::fmt;
+use std::fmt::Display;
+use std::io::{stdout, Write};
+
 use mutnet::addresses::ipv4::Ipv4Address;
 use mutnet::addresses::ipv6::Ipv6Addr;
 use mutnet::arp::ArpMethods;
@@ -13,10 +18,6 @@ use mutnet::typed_protocol_headers::EtherType;
 use mutnet::typed_protocol_headers::InternetProtocolNumber;
 use mutnet::typed_protocol_headers::OperationCode;
 use mutnet::udp::UdpMethods;
-use std::error::Error;
-use std::fmt;
-use std::fmt::Display;
-use std::io::{stdout, Write};
 
 #[derive(Debug, Default)]
 struct Data {

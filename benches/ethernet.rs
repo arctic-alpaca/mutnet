@@ -1,4 +1,5 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
+
 use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
 use mutnet::error::UnexpectedBufferEndError;
 use mutnet::ethernet::{Eth, EthernetMethods, EthernetMethodsMut};

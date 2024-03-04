@@ -1,5 +1,7 @@
 //! IPv6 access and manipulation methods.
 
+use core::ops::Range;
+
 use crate::addresses::ipv6::Ipv6Addr;
 use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderManipulation, HeaderMetadata, Layer,
@@ -8,7 +10,6 @@ use crate::ipv6::SetPayloadLengthError;
 use crate::typed_protocol_headers::{
     InternetProtocolNumber, UnrecognizedInternetProtocolNumberError,
 };
-use core::ops::Range;
 
 pub(crate) const VERSION_BYTE: usize = 0;
 pub(crate) const VERSION_SHIFT: usize = 4;

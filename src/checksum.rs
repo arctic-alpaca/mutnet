@@ -830,7 +830,6 @@ pub(crate) fn checksum_match_64_bytes(buf: &[u8]) -> u64 {
 
 #[cfg(test)]
 mod tests {
-
     use crate::checksum::internet_checksum;
 
     #[rustfmt::skip]

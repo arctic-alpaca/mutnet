@@ -1,8 +1,9 @@
 //! Traits used to access header metadata or network data from the [`DataBuffer`].
 
+use core::ops::Range;
+
 use crate::error::{LengthExceedsAvailableSpaceError, NotEnoughHeadroomError};
 use crate::ipv6_extensions::{Ipv6ExtMetaData, Ipv6ExtMetaDataMut};
-use core::ops::Range;
 
 /// Provides access to the underlying data buffer.
 pub trait BufferIntoInner<B>

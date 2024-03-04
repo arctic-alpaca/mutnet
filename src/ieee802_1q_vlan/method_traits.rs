@@ -1,12 +1,13 @@
 //! IEEE 802.1Q access and manipulation methods.
 
+use core::ops::Range;
+
 use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderManipulation, HeaderMetadata, Layer,
 };
 use crate::error::NotEnoughHeadroomError;
 use crate::ieee802_1q_vlan::{NotDoubleTaggedError, Vlan};
 use crate::typed_protocol_headers::{EtherType, UnrecognizedEtherTypeError};
-use core::ops::Range;
 
 pub(crate) const SINGLE_TAGGED_VLAN_C_TAG_CONTROL_INFORMATION: Range<usize> = 0..2;
 pub(crate) const SINGLE_TAGGED_ETHER_TYPE: Range<usize> = 2..4;

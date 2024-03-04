@@ -2,9 +2,7 @@
 
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
-
 use core::fmt::{Debug, Display, Formatter};
-
 #[cfg(feature = "std")]
 use std::error;
 

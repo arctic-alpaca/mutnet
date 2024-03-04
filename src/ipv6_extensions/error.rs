@@ -1,12 +1,13 @@
 //! IPv6 extensions specific errors.
 
-use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError};
-use crate::typed_protocol_headers::UnrecognizedInternetProtocolNumberError;
 #[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
 use core::fmt::{Debug, Display, Formatter};
 #[cfg(feature = "std")]
 use std::error;
+
+use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError};
+use crate::typed_protocol_headers::UnrecognizedInternetProtocolNumberError;
 
 /// Error returned when parsing IPv6 extension headers.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]

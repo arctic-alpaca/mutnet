@@ -1,9 +1,10 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
+use rand::{thread_rng, Rng};
+
 use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
 use mutnet::ipv4::{Ipv4, Ipv4Methods, Ipv4MethodsMut, ParseIpv4Error};
 use mutnet::no_previous_header::NoPreviousHeader;
 use mutnet::typed_protocol_headers::{Dscp, Ecn};
-use rand::{thread_rng, Rng};
 
 #[allow(clippy::unusual_byte_groupings)]
 #[rustfmt::skip]

@@ -1,5 +1,8 @@
 //! TCP access and manipulation methods.
 
+use core::ops::Range;
+use core::ops::RangeInclusive;
+
 use crate::checksum::internet_checksum;
 use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderManipulation, HeaderMetadata, Layer,
@@ -7,8 +10,6 @@ use crate::data_buffer::traits::{
 use crate::internal_utils::grow_or_shrink_header_at_end;
 use crate::tcp::SetDataOffsetError;
 use crate::utility_traits::{PseudoHeaderChecksum, UpdateIpLength};
-use core::ops::Range;
-use core::ops::RangeInclusive;
 
 pub(crate) const SOURCE_PORT: Range<usize> = 0..2;
 pub(crate) const DESTINATION_PORT: Range<usize> = 2..4;

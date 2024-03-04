@@ -1,9 +1,10 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
+use rand::{thread_rng, Rng};
+
 use mutnet::data_buffer::DataBuffer;
 use mutnet::ipv6_extensions::{Ipv6Extensions, ParseIpv6ExtensionsError};
 use mutnet::no_previous_header::NoPreviousHeader;
 use mutnet::typed_protocol_headers::Ipv6ExtensionType;
-use rand::{thread_rng, Rng};
 
 const MEM_TO_FILL: usize = 64;
 const MAX_EXTENSIONS: usize = 16;

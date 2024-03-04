@@ -1,13 +1,7 @@
 //! IEEE 802.1Q implementation and IEEE 802.1Q specific errors.
 
-mod error;
-mod method_traits;
-
 pub use error::*;
 pub use method_traits::*;
-
-#[cfg(all(feature = "remove_checksum", feature = "verify_vlan", kani))]
-mod verification;
 
 use crate::data_buffer::traits::HeaderMetadataExtraction;
 use crate::data_buffer::traits::{
@@ -19,6 +13,12 @@ use crate::data_buffer::{
 use crate::error::LengthExceedsAvailableSpaceError;
 use crate::internal_utils::{check_and_calculate_data_length, header_start_offset_from_phi};
 use crate::no_previous_header::NoPreviousHeader;
+
+mod error;
+mod method_traits;
+
+#[cfg(all(feature = "remove_checksum", feature = "verify_vlan", kani))]
+mod verification;
 
 /// Supported VLAN tags.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]

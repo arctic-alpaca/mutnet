@@ -1,13 +1,7 @@
 //! IPV4 implementation and IPV4 specific errors.
 
-mod error;
-mod method_traits;
-
 pub use error::*;
 pub use method_traits::*;
-
-#[cfg(all(feature = "remove_checksum", feature = "verify_ipv4", kani))]
-mod verification;
 
 use crate::data_buffer::traits::HeaderMetadataExtraction;
 use crate::data_buffer::traits::{
@@ -20,6 +14,12 @@ use crate::data_buffer::{
 use crate::error::{InvalidChecksumError, LengthExceedsAvailableSpaceError};
 use crate::internal_utils::{check_and_calculate_data_length, header_start_offset_from_phi};
 use crate::no_previous_header::NoPreviousHeader;
+
+mod error;
+mod method_traits;
+
+#[cfg(all(feature = "remove_checksum", feature = "verify_ipv4", kani))]
+mod verification;
 
 /// IPv4 metadata.
 ///
