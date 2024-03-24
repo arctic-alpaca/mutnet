@@ -34,7 +34,7 @@ verify_ethernet = ["remove_checksum"]
 [dev-dependencies]
 # Benchmarking
 criterion = "0.5.1"
-rand = {version = "0.8.5", features = ["min_const_gen"]}
+rand = { version = "0.8.5", features = ["min_const_gen"] }
 # Comparison
 etherparse = "0.14.2"
 # Examples
