@@ -1,5 +1,5 @@
 name: tests
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 jobs:
   tests_nightly:
@@ -25,14 +25,14 @@ jobs:
         run: cargo clippy --all-targets -- --deny warnings
       - name: Check semver
         uses: obi1kenobi/cargo-semver-checks-action@v2
-  tests_1_74:
-    name: tests, fmt & clippy @ 1.74.0
+  tests_1_77:
+    name: tests, fmt & clippy @ 1.77.0
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.74.0
+          toolchain: 1.77.0
           components: rustfmt, clippy
       - name: doc tests
         run: cargo test --doc
