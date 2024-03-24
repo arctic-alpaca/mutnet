@@ -1,3 +1,9 @@
+# 0.6.1 (24. March 2024)
+
+### Changed
+
+- Fix MSRV badge
+
 # 0.6.0 (24. March 2024)
 
 ### Changed
