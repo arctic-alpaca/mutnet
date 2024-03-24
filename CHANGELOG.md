@@ -1,4 +1,4 @@
-# 0.6.0 (to be released)
+# 0.6.0 (24. March 2024)
 
 ### Changed
 
