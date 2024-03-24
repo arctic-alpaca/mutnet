@@ -1,7 +1,6 @@
-use crate::data_buffer::traits::BufferIntoInner;
 use crate::ethernet::Eth;
 use crate::tcp::Tcp;
-use std::net::Ipv4Addr;
+use core::net::Ipv4Addr;
 
 use super::*;
 

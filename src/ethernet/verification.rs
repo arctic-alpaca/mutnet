@@ -1,6 +1,5 @@
-use crate::data_buffer::traits::BufferIntoInner;
-
 use super::*;
+use crate::data_buffer::traits::BufferIntoInner;
 
 const SLICE_LENGTH: usize = 20 + 40;
 const HEADROOM: usize = SLICE_LENGTH + 10;

@@ -1,4 +1,3 @@
-use crate::data_buffer::traits::BufferIntoInner;
 use crate::ethernet::Eth;
 use crate::ipv6::{Ipv6, Ipv6Methods};
 use crate::tcp::Tcp;
