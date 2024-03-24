@@ -277,6 +277,7 @@ mod tests {
     use crate::typed_protocol_headers::InternetProtocolNumber;
     use crate::typed_protocol_headers::Ipv6ExtensionType;
     use crate::typed_protocol_headers::RoutingType;
+    use core::net::Ipv6Addr;
 
     const ETH_IPV6_EXT_TCP: [u8; 104] = [
         0x00,
@@ -600,10 +601,10 @@ mod tests {
             DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(
-            [
+            Ipv6Addr::from([
                 0xFF_u8, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
                 0xFF, 0xFF, 0xFF,
-            ],
+            ]),
             ipv6_packet.ipv6_source()
         );
     }
@@ -614,10 +615,10 @@ mod tests {
             DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
         assert_eq!(
-            [
+            Ipv6Addr::from([
                 0xFF_u8, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
                 0xFF, 0xFF, 0xFF,
-            ],
+            ]),
             ipv6_packet.ipv6_destination()
         );
     }
@@ -785,9 +786,9 @@ mod tests {
         let mut ipv6_packet =
             DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
-        assert_eq!([0xFF; 16], ipv6_packet.ipv6_source());
-        ipv6_packet.set_ipv6_source([0x00; 16]);
-        assert_eq!([0x00; 16], ipv6_packet.ipv6_source());
+        assert_eq!(Ipv6Addr::from([0xFF; 16]), ipv6_packet.ipv6_source());
+        ipv6_packet.set_ipv6_source(Ipv6Addr::from([0x00; 16]));
+        assert_eq!(Ipv6Addr::from([0x00; 16]), ipv6_packet.ipv6_source());
     }
 
     #[test]
@@ -795,8 +796,8 @@ mod tests {
         let mut ipv6_packet =
             DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_PACKET, 0).unwrap();
 
-        assert_eq!([0xFF; 16], ipv6_packet.ipv6_destination());
-        ipv6_packet.set_ipv6_destination([0x00; 16]);
-        assert_eq!([0x00; 16], ipv6_packet.ipv6_destination());
+        assert_eq!(Ipv6Addr::from([0xFF; 16]), ipv6_packet.ipv6_destination());
+        ipv6_packet.set_ipv6_destination(Ipv6Addr::from([0x00; 16]));
+        assert_eq!(Ipv6Addr::from([0x00; 16]), ipv6_packet.ipv6_destination());
     }
 }

@@ -1,3 +1,10 @@
+# 0.6.0 (to be released)
+
+### Changed
+
+- **breaking** Switch to `core::net`
+- **breaking** Change MSRV to 1.77 (`core::net` stabilization)
+
 # 0.5.2 (6. December 2023)
 ### Added
 - Public `data_length()` method to `DataBuffer`

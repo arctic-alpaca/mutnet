@@ -5,9 +5,8 @@ use std::error::Error;
 use std::fmt;
 use std::fmt::Display;
 use std::io::{stdout, Write};
+use std::net::{Ipv4Addr, Ipv6Addr};
 
-use mutnet::addresses::ipv4::Ipv4Address;
-use mutnet::addresses::ipv6::Ipv6Addr;
 use mutnet::arp::ArpMethods;
 use mutnet::ethernet::EthernetMethods;
 use mutnet::ipv4::Ipv4Methods;
@@ -24,10 +23,10 @@ struct Data {
     dropped_packets: u32,
     eth_ether_type: Option<EtherType>,
     arp_op_code: Option<OperationCode>,
-    arp_sender_prot_addr: Option<Ipv4Address>,
+    arp_sender_prot_addr: Option<Ipv4Addr>,
     ipv4_prot: Option<InternetProtocolNumber>,
-    ipv4_src: Option<Ipv4Address>,
-    ipv4_dst: Option<Ipv4Address>,
+    ipv4_src: Option<Ipv4Addr>,
+    ipv4_dst: Option<Ipv4Addr>,
     ipv6_next_hdr: Option<InternetProtocolNumber>,
     ipv6_src: Option<Ipv6Addr>,
     ipv6_dst: Option<Ipv6Addr>,

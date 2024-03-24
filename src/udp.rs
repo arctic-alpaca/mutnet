@@ -427,6 +427,7 @@ mod tests {
     use crate::typed_protocol_headers::RoutingType;
     use crate::typed_protocol_headers::{InternetProtocolNumber, Ipv6ExtensionType};
     use crate::udp::{ParseUdpError, SetLengthError, Udp, UdpMethods, UdpMethodsMut};
+    use core::net::Ipv6Addr;
 
     const ETH_IPV6_EXT_UDP: [u8; 92] = [
         0x00,
@@ -751,7 +752,7 @@ mod tests {
         )
         .unwrap()
         .0;
-        ipv6.set_ipv6_destination([0; 16]);
+        ipv6.set_ipv6_destination(Ipv6Addr::from([0; 16]));
         assert_eq!(
             Err(ParseUdpError::InvalidChecksum(InvalidChecksumError {
                 calculated_checksum: 65501

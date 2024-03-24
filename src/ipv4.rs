@@ -317,6 +317,7 @@ mod tests {
     use crate::test_utils::copy_into_slice;
     use crate::typed_protocol_headers::InternetProtocolNumber;
     use crate::typed_protocol_headers::{Dscp, Ecn};
+    use core::net::Ipv4Addr;
 
     const ETH_IPV4_TCP: [u8; 64] = [
         0x00,
@@ -704,7 +705,10 @@ mod tests {
         let ipv4_packet =
             DataBuffer::<_, Ipv4<NoPreviousHeader>>::parse_ipv4_alone(IPV4_PACKET, 0, true)
                 .unwrap();
-        assert_eq!([0x7f, 0x00, 0x00, 0x1,], ipv4_packet.ipv4_source());
+        assert_eq!(
+            Ipv4Addr::from([0x7f, 0x00, 0x00, 0x1,]),
+            ipv4_packet.ipv4_source()
+        );
     }
 
     #[test]
@@ -712,7 +716,10 @@ mod tests {
         let ipv4_packet =
             DataBuffer::<_, Ipv4<NoPreviousHeader>>::parse_ipv4_alone(IPV4_PACKET, 0, true)
                 .unwrap();
-        assert_eq!([0x7f, 0x00, 0x00, 0x1,], ipv4_packet.ipv4_destination());
+        assert_eq!(
+            Ipv4Addr::from([0x7f, 0x00, 0x00, 0x1,]),
+            ipv4_packet.ipv4_destination()
+        );
     }
 
     #[test]
@@ -976,9 +983,15 @@ mod tests {
             DataBuffer::<_, Ipv4<NoPreviousHeader>>::parse_ipv4_alone(IPV4_PACKET, 0, true)
                 .unwrap();
 
-        assert_eq!([0x7f, 0x00, 0x00, 0x1], ipv4_packet.ipv4_source());
-        ipv4_packet.set_ipv4_source([0x0f, 0x01, 0x01, 0x2]);
-        assert_eq!([0x0f, 0x01, 0x01, 0x2], ipv4_packet.ipv4_source());
+        assert_eq!(
+            Ipv4Addr::from([0x7f, 0x00, 0x00, 0x1]),
+            ipv4_packet.ipv4_source()
+        );
+        ipv4_packet.set_ipv4_source(Ipv4Addr::from([0x0f, 0x01, 0x01, 0x2]));
+        assert_eq!(
+            Ipv4Addr::from([0x0f, 0x01, 0x01, 0x2]),
+            ipv4_packet.ipv4_source()
+        );
     }
 
     #[test]
@@ -987,9 +1000,15 @@ mod tests {
             DataBuffer::<_, Ipv4<NoPreviousHeader>>::parse_ipv4_alone(IPV4_PACKET, 0, true)
                 .unwrap();
 
-        assert_eq!([0x7f, 0x00, 0x00, 0x1], ipv4_packet.ipv4_destination());
-        ipv4_packet.set_ipv4_destination([0x0f, 0x01, 0x01, 0x2]);
-        assert_eq!([0x0f, 0x01, 0x01, 0x2], ipv4_packet.ipv4_destination());
+        assert_eq!(
+            Ipv4Addr::from([0x7f, 0x00, 0x00, 0x1]),
+            ipv4_packet.ipv4_destination()
+        );
+        ipv4_packet.set_ipv4_destination(Ipv4Addr::from([0x0f, 0x01, 0x01, 0x2]));
+        assert_eq!(
+            Ipv4Addr::from([0x0f, 0x01, 0x01, 0x2]),
+            ipv4_packet.ipv4_destination()
+        );
     }
 
     #[test]
@@ -999,7 +1018,7 @@ mod tests {
                 .unwrap();
 
         assert_eq!(0x067A, ipv4_packet.ipv4_header_checksum());
-        ipv4_packet.set_ipv4_destination([0xFF; 4]);
+        ipv4_packet.set_ipv4_destination(Ipv4Addr::from([0xFF; 4]));
         ipv4_packet.update_ipv4_header_checksum();
         assert_eq!(34171, ipv4_packet.ipv4_header_checksum());
     }

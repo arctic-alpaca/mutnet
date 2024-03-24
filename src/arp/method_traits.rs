@@ -1,8 +1,8 @@
 //! ARP access and manipulation methods.
 
+use core::net::Ipv4Addr;
 use core::ops::Range;
 
-use crate::addresses::ipv4::Ipv4Address;
 use crate::addresses::mac::MacAddress;
 use crate::data_buffer::traits::{BufferAccess, BufferAccessMut, HeaderManipulation, Layer};
 use crate::typed_protocol_headers::{EtherType, UnrecognizedEtherTypeError};
@@ -94,8 +94,8 @@ pub trait ArpMethods: BufferAccess {
 
     /// Returns the ARP sender protocol address.
     #[inline]
-    fn arp_sender_protocol_address(&self) -> Ipv4Address {
-        self.read_array(LAYER, SENDER_PROTOCOL_ADDRESS)
+    fn arp_sender_protocol_address(&self) -> Ipv4Addr {
+        self.read_array(LAYER, SENDER_PROTOCOL_ADDRESS).into()
     }
 
     /// Returns the ARP target hardware address.
@@ -106,8 +106,8 @@ pub trait ArpMethods: BufferAccess {
 
     /// Returns the ARP target protocol address.
     #[inline]
-    fn arp_target_protocol_address(&self) -> Ipv4Address {
-        self.read_array(LAYER, TARGET_PROTOCOL_ADDRESS)
+    fn arp_target_protocol_address(&self) -> Ipv4Addr {
+        self.read_array(LAYER, TARGET_PROTOCOL_ADDRESS).into()
     }
 }
 
@@ -133,8 +133,8 @@ pub trait ArpMethodsMut: ArpMethods + BufferAccessMut + HeaderManipulation + Siz
 
     /// Sets the ARP sender protocol address.
     #[inline]
-    fn set_arp_sender_protocol_address(&mut self, sender_addr: &Ipv4Address) {
-        self.write_slice(LAYER, SENDER_PROTOCOL_ADDRESS, sender_addr);
+    fn set_arp_sender_protocol_address(&mut self, sender_addr: &Ipv4Addr) {
+        self.write_slice(LAYER, SENDER_PROTOCOL_ADDRESS, &sender_addr.octets());
     }
 
     /// Sets the ARP target hardware address.
@@ -145,7 +145,7 @@ pub trait ArpMethodsMut: ArpMethods + BufferAccessMut + HeaderManipulation + Siz
 
     /// Sets the ARP target protocol address.
     #[inline]
-    fn set_arp_target_protocol_address(&mut self, target_addr: &Ipv4Address) {
-        self.write_slice(LAYER, TARGET_PROTOCOL_ADDRESS, target_addr);
+    fn set_arp_target_protocol_address(&mut self, target_addr: &Ipv4Addr) {
+        self.write_slice(LAYER, TARGET_PROTOCOL_ADDRESS, &target_addr.octets());
     }
 }

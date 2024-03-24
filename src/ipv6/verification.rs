@@ -1,6 +1,7 @@
 use crate::data_buffer::traits::BufferIntoInner;
 use crate::ethernet::Eth;
 use crate::tcp::Tcp;
+use core::net::Ipv6Addr;
 
 use super::*;
 
@@ -244,7 +245,7 @@ fn set_ipv6_source_proof() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
-            to_test.set_ipv6_source(kani::any());
+            to_test.set_ipv6_source(Ipv6Addr::from(kani::any::<[u8; 16]>()));
             let _ = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
                 DataBuffer::<_, Eth>::parse_ethernet_layer(
                     to_test.buffer_into_inner(),
@@ -267,7 +268,7 @@ fn set_ipv6_destination_proof() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(to_test) {
-            to_test.set_ipv6_destination(kani::any());
+            to_test.set_ipv6_destination(Ipv6Addr::from(kani::any::<[u8; 16]>()));
             let _ = DataBuffer::<_, Ipv6<Eth>>::parse_ipv6_layer(
                 DataBuffer::<_, Eth>::parse_ethernet_layer(
                     to_test.buffer_into_inner(),

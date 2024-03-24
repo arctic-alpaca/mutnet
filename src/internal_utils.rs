@@ -65,8 +65,8 @@ pub(crate) fn pseudo_header_checksum_ipv6_internal(
     let length = (u32::from(ipv6.ipv6_payload_length())
         - ipv6.header_length(Layer::Ipv6Ext) as u32)
         .to_be_bytes();
-    let mut checksum = internet_checksum_intermediary::<4>(&ipv6.ipv6_source());
-    checksum += internet_checksum_intermediary::<4>(&ipv6.ipv6_destination());
+    let mut checksum = internet_checksum_intermediary::<4>(&ipv6.ipv6_source().octets());
+    checksum += internet_checksum_intermediary::<4>(&ipv6.ipv6_destination().octets());
     checksum += internet_checksum_intermediary::<4>(&[length[0], length[1], length[2], length[3]]);
     checksum += internet_checksum_intermediary::<4>(&[0_u8, 0, 0, protocol_next_header]);
     checksum
@@ -79,8 +79,8 @@ pub(crate) fn pseudo_header_checksum_ipv4_internal(
 ) -> u64 {
     let length = (ipv4.ipv4_total_length() - ipv4.header_length(Layer::Ipv4) as u16).to_be_bytes();
 
-    let mut checksum = internet_checksum_intermediary::<4>(&ipv4.ipv4_source());
-    checksum += internet_checksum_intermediary::<4>(&ipv4.ipv4_destination());
+    let mut checksum = internet_checksum_intermediary::<4>(&ipv4.ipv4_source().octets());
+    checksum += internet_checksum_intermediary::<4>(&ipv4.ipv4_destination().octets());
     checksum +=
         internet_checksum_intermediary::<4>(&[0_u8, protocol_next_header, length[0], length[1]]);
     checksum

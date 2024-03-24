@@ -1,5 +1,6 @@
 use crate::data_buffer::traits::BufferIntoInner;
 use crate::ethernet::Eth;
+use std::net::Ipv4Addr;
 
 use super::*;
 
@@ -87,7 +88,7 @@ fn arp_set_sender_protocol_address_proof() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Arp<Eth>>::parse_arp_layer(to_test) {
-            to_test.set_arp_sender_protocol_address(&kani::any());
+            to_test.set_arp_sender_protocol_address(&Ipv4Addr::from(kani::any::<[u8; 4]>()));
             let _ = DataBuffer::<_, Arp<Eth>>::parse_arp_layer(
                 DataBuffer::<_, Eth>::parse_ethernet_layer(
                     to_test.buffer_into_inner(),
@@ -133,7 +134,7 @@ fn arp_set_target_protocol_address_proof() {
 
     if let Ok(to_test) = DataBuffer::<_, Eth>::parse_ethernet_layer(any_slice, any_headroom) {
         if let Ok(mut to_test) = DataBuffer::<_, Arp<Eth>>::parse_arp_layer(to_test) {
-            to_test.set_arp_target_protocol_address(&kani::any());
+            to_test.set_arp_target_protocol_address(&Ipv4Addr::from(kani::any::<[u8; 4]>()));
             let _ = DataBuffer::<_, Arp<Eth>>::parse_arp_layer(
                 DataBuffer::<_, Eth>::parse_ethernet_layer(
                     to_test.buffer_into_inner(),

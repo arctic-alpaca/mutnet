@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
 use rand::{thread_rng, Rng};
+use std::net::Ipv4Addr;
 
-use mutnet::addresses::ipv4::Ipv4Address;
 use mutnet::addresses::mac::MacAddress;
 use mutnet::arp::{Arp, ArpMethods, ArpMethodsMut, ParseArpError};
 use mutnet::data_buffer::{BufferIntoInner, DataBuffer};
@@ -44,9 +44,9 @@ pub fn random_valid_arp() -> [u8; 28] {
 
     arp.set_arp_operation_code(operation_code);
     arp.set_arp_sender_hardware_address(&rng.gen());
-    arp.set_arp_sender_protocol_address(&rng.gen());
+    arp.set_arp_sender_protocol_address(&Ipv4Addr::from(rng.gen::<[u8; 4]>()));
     arp.set_arp_target_hardware_address(&rng.gen());
-    arp.set_arp_target_protocol_address(&rng.gen());
+    arp.set_arp_target_protocol_address(&Ipv4Addr::from(rng.gen::<[u8; 4]>()));
 
     arp.buffer_into_inner()
 }
@@ -68,9 +68,9 @@ fn mutnet_get_functions_inlined(
     u8,
     u8,
     MacAddress,
-    Ipv4Address,
+    Ipv4Addr,
     MacAddress,
-    Ipv4Address,
+    Ipv4Addr,
 ) {
     (
         data_buffer.arp_hardware_type(),
@@ -95,9 +95,9 @@ fn mutnet_get_functions_not_inlined(
     u8,
     u8,
     MacAddress,
-    Ipv4Address,
+    Ipv4Addr,
     MacAddress,
-    Ipv4Address,
+    Ipv4Addr,
 ) {
     (
         data_buffer.arp_hardware_type(),

@@ -1,5 +1,6 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
 use rand::{thread_rng, Rng};
+use std::net::Ipv4Addr;
 
 use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
 use mutnet::ipv4::{Ipv4, Ipv4Methods, Ipv4MethodsMut, ParseIpv4Error};
@@ -80,8 +81,8 @@ pub fn random_ipv4() -> [u8; 92] {
     ipv4.set_ipv4_time_to_live(rng.gen());
     ipv4.set_ipv4_protocol(rng.gen());
     ipv4.set_ipv4_header_checksum(rng.gen());
-    ipv4.set_ipv4_source(rng.gen());
-    ipv4.set_ipv4_destination(rng.gen());
+    ipv4.set_ipv4_source(Ipv4Addr::from(rng.gen::<[u8; 4]>()));
+    ipv4.set_ipv4_destination(Ipv4Addr::from(rng.gen::<[u8; 4]>()));
 
     ipv4.ipv4_options_mut()
         .iter_mut()
@@ -117,8 +118,8 @@ fn mutnet_get_functions_inlined(
     u8,
     u8,
     u16,
-    [u8; 4],
-    [u8; 4],
+    Ipv4Addr,
+    Ipv4Addr,
     u16,
 ) {
     (
@@ -157,8 +158,8 @@ fn mutnet_get_functions_not_inlined(
     u8,
     u8,
     u16,
-    [u8; 4],
-    [u8; 4],
+    Ipv4Addr,
+    Ipv4Addr,
     u16,
 ) {
     (

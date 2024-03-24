@@ -1,8 +1,8 @@
 //! IPv6 access and manipulation methods.
 
+use core::net::Ipv6Addr;
 use core::ops::Range;
 
-use crate::addresses::ipv6::Ipv6Addr;
 use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderManipulation, HeaderMetadata, Layer,
 };
@@ -90,13 +90,13 @@ pub trait Ipv6Methods: HeaderMetadata + BufferAccess {
     /// Returns the IPv6 source.
     #[inline]
     fn ipv6_source(&self) -> Ipv6Addr {
-        self.read_array(LAYER, SOURCE)
+        self.read_array(LAYER, SOURCE).into()
     }
 
     /// Returns the IPv6 destination.
     #[inline]
     fn ipv6_destination(&self) -> Ipv6Addr {
-        self.read_array(LAYER, DESTINATION)
+        self.read_array(LAYER, DESTINATION).into()
     }
 }
 
@@ -184,13 +184,13 @@ pub trait Ipv6MethodsMut: HeaderManipulation + BufferAccessMut + Ipv6Methods + S
     /// Sets the IPv6 source.
     #[inline]
     fn set_ipv6_source(&mut self, source: Ipv6Addr) {
-        self.write_slice(LAYER, SOURCE, &source);
+        self.write_slice(LAYER, SOURCE, &source.octets());
     }
 
     /// Sets the IPv6 destination.
     #[inline]
     fn set_ipv6_destination(&mut self, destination: Ipv6Addr) {
-        self.write_slice(LAYER, DESTINATION, &destination);
+        self.write_slice(LAYER, DESTINATION, &destination.octets());
     }
 }
 

@@ -1,6 +1,7 @@
 use crate::data_buffer::traits::BufferIntoInner;
 use crate::ethernet::Eth;
 use crate::tcp::Tcp;
+use std::net::Ipv4Addr;
 
 use super::*;
 
@@ -599,7 +600,7 @@ fn ipv4_set_source_proof() {
         if let Ok(mut to_test) =
             DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4)
         {
-            let _ = to_test.set_ipv4_source(kani::any());
+            let _ = to_test.set_ipv4_source(Ipv4Addr::from(kani::any::<[u8; 4]>()));
             DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
                 DataBuffer::<_, Eth>::parse_ethernet_layer(
                     to_test.buffer_into_inner(),
@@ -625,7 +626,7 @@ fn ipv4_set_destination_proof() {
         if let Ok(mut to_test) =
             DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(to_test, CHECKSUM_IPV4)
         {
-            let _ = to_test.set_ipv4_destination(kani::any());
+            let _ = to_test.set_ipv4_destination(Ipv4Addr::from(kani::any::<[u8; 4]>()));
             DataBuffer::<_, Ipv4<Eth>>::parse_ipv4_layer(
                 DataBuffer::<_, Eth>::parse_ethernet_layer(
                     to_test.buffer_into_inner(),

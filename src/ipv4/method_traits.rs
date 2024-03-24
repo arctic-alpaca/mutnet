@@ -1,9 +1,9 @@
 //! IPv4 access and manipulation methods.
 
+use core::net::Ipv4Addr;
 use core::ops::Range;
 use core::ops::RangeInclusive;
 
-use crate::addresses::ipv4::Ipv4Address;
 use crate::checksum::internet_checksum_up_to_64_bytes;
 use crate::data_buffer::traits::{
     BufferAccess, BufferAccessMut, HeaderManipulation, HeaderMetadata, Layer,
@@ -188,14 +188,14 @@ pub trait Ipv4Methods: HeaderMetadata + BufferAccess {
 
     /// Returns the IPv4 source.
     #[inline]
-    fn ipv4_source(&self) -> Ipv4Address {
-        self.read_array(LAYER, SOURCE)
+    fn ipv4_source(&self) -> Ipv4Addr {
+        self.read_array(LAYER, SOURCE).into()
     }
 
     /// Returns the IPv4 destination.
     #[inline]
-    fn ipv4_destination(&self) -> Ipv4Address {
-        self.read_array(LAYER, DESTINATION)
+    fn ipv4_destination(&self) -> Ipv4Addr {
+        self.read_array(LAYER, DESTINATION).into()
     }
 
     /// Returns a slice containing the IPv4 options.
@@ -376,14 +376,14 @@ pub trait Ipv4MethodsMut:
 
     /// Sets the IPv4 source.
     #[inline]
-    fn set_ipv4_source(&mut self, source: Ipv4Address) {
-        self.write_slice(LAYER, SOURCE, &source);
+    fn set_ipv4_source(&mut self, source: Ipv4Addr) {
+        self.write_slice(LAYER, SOURCE, &source.octets());
     }
 
     /// Sets the IPv4 destination.
     #[inline]
-    fn set_ipv4_destination(&mut self, destination: Ipv4Address) {
-        self.write_slice(LAYER, DESTINATION, &destination);
+    fn set_ipv4_destination(&mut self, destination: Ipv4Addr) {
+        self.write_slice(LAYER, DESTINATION, &destination.octets());
     }
 
     /// Returns a mutable slice containing the IPv4 options.

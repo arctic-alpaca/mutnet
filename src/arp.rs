@@ -222,6 +222,7 @@ mod tests {
     use crate::no_previous_header::NoPreviousHeader;
     use crate::test_utils::copy_into_slice;
     use crate::typed_protocol_headers::{EtherType, OperationCode};
+    use core::net::Ipv4Addr;
 
     // ARP for IPv4
     const ARP_IPV4_REQUEST: [u8; 28] = [
@@ -420,7 +421,7 @@ mod tests {
         let arp_packet =
             DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
         assert_eq!(
-            [0xC0, 0xA8, 0x0A, 0x01,],
+            Ipv4Addr::from([0xC0, 0xA8, 0x0A, 0x01,]),
             arp_packet.arp_sender_protocol_address()
         );
     }
@@ -440,7 +441,7 @@ mod tests {
         let arp_packet =
             DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
         assert_eq!(
-            [0xC0, 0xA8, 0x7A, 0x0E,],
+            Ipv4Addr::from([0xC0, 0xA8, 0x7A, 0x0E,]),
             arp_packet.arp_target_protocol_address()
         );
     }
@@ -478,11 +479,14 @@ mod tests {
         let mut arp_packet =
             DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
         assert_eq!(
-            [0xC0, 0xA8, 0x0A, 0x01,],
+            Ipv4Addr::from([0xC0, 0xA8, 0x0A, 0x01,]),
             arp_packet.arp_sender_protocol_address()
         );
-        arp_packet.set_arp_sender_protocol_address(&[0xFF; 4]);
-        assert_eq!([0xFF; 4], arp_packet.arp_sender_protocol_address());
+        arp_packet.set_arp_sender_protocol_address(&Ipv4Addr::from([0xFF; 4]));
+        assert_eq!(
+            Ipv4Addr::from([0xFF; 4]),
+            arp_packet.arp_sender_protocol_address()
+        );
     }
 
     #[test]
@@ -502,11 +506,14 @@ mod tests {
         let mut arp_packet =
             DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST, 0).unwrap();
         assert_eq!(
-            [0xC0, 0xA8, 0x7A, 0x0E,],
+            Ipv4Addr::from([0xC0, 0xA8, 0x7A, 0x0E,]),
             arp_packet.arp_target_protocol_address()
         );
-        arp_packet.set_arp_target_protocol_address(&[0xFF; 4]);
-        assert_eq!([0xFF; 4], arp_packet.arp_target_protocol_address());
+        arp_packet.set_arp_target_protocol_address(&Ipv4Addr::from([0xFF; 4]));
+        assert_eq!(
+            Ipv4Addr::from([0xFF; 4]),
+            arp_packet.arp_target_protocol_address()
+        );
     }
 
     #[test]

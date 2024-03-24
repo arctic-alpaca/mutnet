@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
+use std::net::Ipv6Addr;
 
-use mutnet::addresses::ipv6::Ipv6Addr;
 use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
 use mutnet::ipv6::{Ipv6, Ipv6Methods, Ipv6MethodsMut, ParseIpv6Error};
 use mutnet::no_previous_header::NoPreviousHeader;
@@ -34,8 +34,8 @@ pub fn random_ipv6() -> [u8; 60] {
     while ipv6.set_ipv6_payload_length(rand::random()).is_err() {}
     ipv6.set_ipv6_next_header(rand::random());
     ipv6.set_ipv6_hop_limit(rand::random());
-    ipv6.set_ipv6_source(rand::random());
-    ipv6.set_ipv6_destination(rand::random());
+    ipv6.set_ipv6_source(Ipv6Addr::from(rand::random::<[u8; 16]>()));
+    ipv6.set_ipv6_destination(Ipv6Addr::from(rand::random::<[u8; 16]>()));
     ipv6.payload_mut()
         .iter_mut()
         .for_each(|byte| *byte = rand::random());
@@ -92,7 +92,7 @@ fn etherparse_new(
 #[inline(always)]
 fn etherparse_get_functions_inlined(
     data_buffer: &etherparse::Ipv6HeaderSlice,
-) -> (u8, u8, u32, u16, u8, u8, Ipv6Addr, Ipv6Addr) {
+) -> (u8, u8, u32, u16, u8, u8, [u8; 16], [u8; 16]) {
     (
         data_buffer.version(),
         data_buffer.traffic_class(),
@@ -108,7 +108,7 @@ fn etherparse_get_functions_inlined(
 #[inline(never)]
 fn etherparse_get_functions_not_inlined(
     data_buffer: &etherparse::Ipv6HeaderSlice,
-) -> (u8, u8, u32, u16, u8, u8, Ipv6Addr, Ipv6Addr) {
+) -> (u8, u8, u32, u16, u8, u8, [u8; 16], [u8; 16]) {
     (
         data_buffer.version(),
         data_buffer.traffic_class(),
