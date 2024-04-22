@@ -264,7 +264,7 @@ where
 
     #[inline]
     fn payload_length(&self) -> usize {
-        usize::from(self.ipv4_payload_length())
+        usize::from(self.payload().len())
     }
 }
 
