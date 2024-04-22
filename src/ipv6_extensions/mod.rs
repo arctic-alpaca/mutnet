@@ -1028,7 +1028,7 @@ mod tests {
             ipv6,
             next_header,
         )
-        .unwrap();
+            .unwrap();
 
         let ipv6 =
             DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6_EXT_NO_HOP, 0).unwrap();
@@ -1039,7 +1039,7 @@ mod tests {
             ipv6,
             next_header,
         )
-        .unwrap();
+            .unwrap();
 
         let _ = DataBuffer::<_, Ipv6Extensions<NoPreviousHeader, 10>>::parse_ipv6_extensions_alone(
             &IPV6_EXTENSIONS[40..],
@@ -1093,7 +1093,7 @@ mod tests {
                 DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(&IPV6_EXTENSIONS, 0).unwrap(),
                 Ipv6ExtensionType::HopByHop,
             )
-            .unwrap();
+                .unwrap();
 
         assert!(has_fragment);
 
@@ -1102,7 +1102,7 @@ mod tests {
                 DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(&IPV6_NO_FRAGMENT, 0).unwrap(),
                 Ipv6ExtensionType::HopByHop,
             )
-            .unwrap();
+                .unwrap();
 
         assert!(!has_fragment);
     }
@@ -1162,7 +1162,7 @@ mod tests {
             ipv6.clone(),
             next_header,
         )
-        .unwrap();
+            .unwrap();
     }
 
     #[test]
@@ -1306,7 +1306,7 @@ mod tests {
                 ipv6,
                 Ipv6ExtensionType::Fragment,
             )
-            .unwrap();
+                .unwrap();
         assert!(is_fragment);
         assert_eq!(
             Ok(Ipv6ExtensionMetadata {
@@ -1350,7 +1350,7 @@ mod tests {
                 ipv6,
                 Ipv6ExtensionType::Fragment,
             )
-            .unwrap();
+                .unwrap();
         assert!(!is_fragment);
         assert_eq!(
             Ok(Ipv6ExtensionMetadata {
@@ -1379,7 +1379,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
         assert_eq!(4, exts.ipv6_ext_amount());
     }
 
@@ -1395,7 +1395,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
         assert_eq!(
             [
                 Some(Ipv6ExtensionType::HopByHop),
@@ -1420,7 +1420,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(
             Ok(InternetProtocolNumber::Tcp as u8),
@@ -1440,7 +1440,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(
             Ok(InternetProtocolNumber::Tcp),
@@ -1460,7 +1460,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(
             Ok(Ipv6ExtensionType::Routing as u8),
@@ -1492,7 +1492,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(
             Ok(InternetProtocolNumber::Ipv6Routing),
@@ -1526,7 +1526,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(Ok(0), exts.ipv6_ext_length(0));
         assert_eq!(Ok(0), exts.ipv6_ext_length(1));
@@ -1557,7 +1557,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(Ok(8), exts.ipv6_ext_length_in_bytes(0));
         assert_eq!(Ok(8), exts.ipv6_ext_length_in_bytes(1));
@@ -1585,7 +1585,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(Ok([0xAA; 6].as_slice()), exts.ipv6_ext_data(0));
         assert_eq!(Ok([0xBB; 4].as_slice()), exts.ipv6_ext_data(1));
@@ -1618,7 +1618,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(
             Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
@@ -1660,7 +1660,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(
             Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
@@ -1699,7 +1699,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(
             Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
@@ -1738,7 +1738,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(
             Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
@@ -1777,7 +1777,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(
             Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
@@ -1816,7 +1816,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(&[0xFF; 7], exts.payload());
     }
@@ -1833,7 +1833,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(&[0xFF; 7], exts.payload_mut());
     }
@@ -1850,7 +1850,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(7, exts.payload_length());
     }
@@ -1867,7 +1867,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
         assert_eq!(
             Ok(InternetProtocolNumber::Tcp as u8),
             exts.ipv6_ext_next_header()
@@ -1895,7 +1895,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(Ok(0), exts.ipv6_ext_length(0));
         assert_eq!(Ok(8), exts.ipv6_ext_length_in_bytes(0));
@@ -2076,7 +2076,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(Ok([0xAA; 6].as_mut_slice()), exts.ipv6_ext_data_mut(0));
         assert_eq!(Ok([0xBB; 4].as_mut_slice()), exts.ipv6_ext_data_mut(1));
@@ -2108,7 +2108,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(
             Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
@@ -2155,7 +2155,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(
             Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
@@ -2196,7 +2196,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(
             Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
@@ -2237,7 +2237,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(
             Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
@@ -2278,7 +2278,7 @@ mod tests {
                 ipv6,
                 next_header,
             )
-            .unwrap();
+                .unwrap();
 
         assert_eq!(
             Err(Ipv6ExtFieldError::HeaderFieldDoesNotExist),
