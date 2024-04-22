@@ -2,9 +2,7 @@ use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughpu
 
 use mutnet::checksum::{internet_checksum, internet_checksum_up_to_64_bytes};
 
-fn random_bytes<const SIZE: usize>() -> [u8; SIZE] {
-    rand::random()
-}
+include!("utils.rs");
 
 pub const VARIABLE_CHUNK: usize = 4;
 

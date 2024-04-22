@@ -1,47 +1,7 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
-use std::net::Ipv6Addr;
+use mutnet::ipv6::{Ipv6Methods, ParseIpv6Error};
 
-use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
-use mutnet::ipv6::{Ipv6, Ipv6Methods, Ipv6MethodsMut, ParseIpv6Error};
-use mutnet::no_previous_header::NoPreviousHeader;
-use mutnet::typed_protocol_headers::InternetProtocolNumber;
-
-#[rustfmt::skip]
-const IPV6: [u8; 60] = [
-    // Version, traffic class and flow label
-    0x61, 0x23, 0xFF, 0xFF,
-    // Payload Length
-    0x00, 0x01,
-    // Next header
-    InternetProtocolNumber::Tcp as u8,
-    // Hop limit
-    0xFF,
-    // Source
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    // Destination
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    // Payload
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-];
-
-pub fn random_ipv6() -> [u8; 60] {
-    let mut ipv6 = DataBuffer::<_, Ipv6<NoPreviousHeader>>::parse_ipv6_alone(IPV6, 0).unwrap();
-    ipv6.set_ipv6_traffic_class(rand::random());
-    ipv6.set_ipv6_flow_label(rand::random());
-    while ipv6.set_ipv6_payload_length(rand::random()).is_err() {}
-    ipv6.set_ipv6_next_header(rand::random());
-    ipv6.set_ipv6_hop_limit(rand::random());
-    ipv6.set_ipv6_source(Ipv6Addr::from(rand::random::<[u8; 16]>()));
-    ipv6.set_ipv6_destination(Ipv6Addr::from(rand::random::<[u8; 16]>()));
-    ipv6.payload_mut()
-        .iter_mut()
-        .for_each(|byte| *byte = rand::random());
-
-    ipv6.buffer_into_inner()
-}
+include!("utils.rs");
 
 #[inline(always)]
 pub fn mutnet_new(

@@ -1,44 +1,9 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
 
-use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
 use mutnet::error::UnexpectedBufferEndError;
-use mutnet::ethernet::{Eth, EthernetMethods, EthernetMethodsMut};
-use mutnet::typed_protocol_headers::EtherType;
+use mutnet::ethernet::EthernetMethods;
 
-#[rustfmt::skip]
-const ETHERNET: [u8; 64] = [
-    // Dst
-    0x0, 0x80, 0x41, 0xAE, 0xFD, 0x7E,
-    // Src
-    0x7E, 0xFD, 0xAE, 0x41, 0x80, 0x0,
-    // Ether type
-    0x88, 0x08,
-    // Payload
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-];
-
-fn random_valid_ethernet() -> [u8; 64] {
-    let mut ethernet = DataBuffer::<_, Eth>::parse_ethernet_layer(ETHERNET, 0).unwrap();
-    ethernet.set_ethernet_destination(&rand::random());
-    ethernet.set_ethernet_source(&rand::random());
-    let ether_type = {
-        let mut ether_type: u16 = rand::random();
-        while EtherType::try_from(ether_type).is_err() {
-            ether_type = rand::random();
-        }
-        EtherType::try_from(ether_type).unwrap()
-    };
-    ethernet.set_ethernet_ether_type(ether_type);
-    ethernet
-        .payload_mut()
-        .iter_mut()
-        .for_each(|byte| *byte = rand::random());
-    ethernet.buffer_into_inner()
-}
+include!("utils.rs");
 
 #[inline(always)]
 fn mutnet_new(bytes: &[u8]) -> Result<DataBuffer<&[u8], Eth>, UnexpectedBufferEndError> {

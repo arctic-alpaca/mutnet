@@ -1,71 +1,8 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
 
-use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
-use mutnet::no_previous_header::NoPreviousHeader;
-use mutnet::tcp::{ParseTcpError, Tcp, TcpMethods, TcpMethodsMut};
+use mutnet::tcp::{ParseTcpError, TcpMethods};
 
-#[rustfmt::skip]
-const TCP: [u8;60] = [
-    // Source port
-    0x12, 0x34,
-    // Destination port
-    0x45, 0x67,
-    // Sequence number
-    0x12, 0x34, 0x56, 0x78,
-    // Acknowledgment number
-    0x09, 0x87, 0x65, 0x43,
-    // Data offset, reserved bits, flags
-    0xF0, 0b0101_0101,
-    // Window
-    0x12, 0x45,
-    // Checksum
-    0x12, 0x34,
-    // Urgent pointer
-    0x56, 0x78,
-    // Options
-    0xFF, 0xFF,
-    0xFF, 0xFF,
-    0xFF, 0xFF,
-    0xFF, 0xFF,
-    // Payload
-    0xFF, 0xFF,
-    0xFF, 0xFF,
-    0xFF, 0xFF,
-    0xFF, 0xFF,
-    0xFF, 0xFF,
-    0xFF, 0xFF,
-    0xFF, 0xFF,
-    0xFF, 0xFF,0xFF, 0xFF,
-    0xFF, 0xFF,
-    0xFF, 0xFF,
-    0xFF, 0xFF,0xFF, 0xFF,
-    0xFF, 0xFF,
-    0xFF, 0xFF,
-    0xFF, 0xFF,
-];
-
-pub fn random_tcp() -> [u8; 60] {
-    let mut tcp = DataBuffer::<_, Tcp<NoPreviousHeader>>::parse_tcp_alone(TCP, 0).unwrap();
-    tcp.set_tcp_source_port(rand::random());
-    tcp.set_tcp_destination_port(rand::random());
-    tcp.set_tcp_sequence_number(rand::random());
-    tcp.set_tcp_acknowledgement_number(rand::random());
-    tcp.set_tcp_reserved_bits(rand::random());
-    tcp.set_tcp_flags(rand::random());
-    tcp.set_tcp_window_size(rand::random());
-    tcp.set_tcp_checksum(rand::random());
-    tcp.set_tcp_urgent_pointer(rand::random());
-    if let Some(options) = tcp.tcp_options_mut() {
-        options.iter_mut().for_each(|byte| *byte = rand::random());
-    }
-    tcp.payload_mut()
-        .iter_mut()
-        .for_each(|byte| *byte = rand::random());
-
-    let mut buffer = tcp.buffer_into_inner();
-    buffer[13] = rand::random();
-    buffer
-}
+include!("utils.rs");
 
 #[inline(always)]
 pub fn mutnet_new(bytes: &[u8]) -> Result<DataBuffer<&[u8], Tcp<NoPreviousHeader>>, ParseTcpError> {

@@ -1,38 +1,7 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
-use rand::{thread_rng, Rng};
+use mutnet::udp::{ParseUdpError, UdpMethods};
 
-use mutnet::data_buffer::{BufferIntoInner, DataBuffer, PayloadMut};
-use mutnet::no_previous_header::NoPreviousHeader;
-use mutnet::udp::{ParseUdpError, Udp, UdpMethods, UdpMethodsMut};
-
-#[rustfmt::skip]
-const UDP: [u8; 14] = [
-    // Source port
-    0x12, 0x34, 
-    // Destination port
-    0x0, 0x0, 
-    // Length
-    0x00, 0x0C, 
-    // Checksum
-    0xAB, 0xCD, 
-    // Payload
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-];
-
-pub fn random_udp() -> [u8; 14] {
-    let mut rng = thread_rng();
-
-    let mut udp = DataBuffer::<_, Udp<NoPreviousHeader>>::parse_udp_alone(UDP, 0).unwrap();
-    udp.set_udp_destination_port(rand::random());
-    udp.set_udp_source_port(rand::random());
-    udp.set_udp_checksum(rand::random());
-    udp.set_udp_length(rng.gen_range(8..14)).unwrap();
-    udp.payload_mut()
-        .iter_mut()
-        .for_each(|byte| *byte = rand::random());
-
-    udp.buffer_into_inner()
-}
+include!("utils.rs");
 
 #[inline(always)]
 pub fn mutnet_new(bytes: &[u8]) -> Result<DataBuffer<&[u8], Udp<NoPreviousHeader>>, ParseUdpError> {

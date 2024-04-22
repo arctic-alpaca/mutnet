@@ -1,55 +1,9 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
-use rand::{thread_rng, Rng};
-use std::net::Ipv4Addr;
 
 use mutnet::addresses::mac::MacAddress;
-use mutnet::arp::{Arp, ArpMethods, ArpMethodsMut, ParseArpError};
-use mutnet::data_buffer::{BufferIntoInner, DataBuffer};
-use mutnet::no_previous_header::NoPreviousHeader;
-use mutnet::typed_protocol_headers::OperationCode;
+use mutnet::arp::{ArpMethods, ParseArpError};
 
-// ARP for IPv4
-#[rustfmt::skip]
-const ARP_IPV4_REQUEST1: [u8;28] = [
-    // Hardware type
-    0x00, 0x01,
-    // Protocol type
-    0x08, 0x00,
-    // Hardware address length
-    0x06,
-    // Protocol address length
-    0x04,
-    // Operation
-    0x00, 0x01,
-    // Sender hardware address (MAC address)
-    0x1C, 0xED, 0xA4, 0xE1, 0xD2, 0xA2,
-    // Sender protocol address (IPv4 address)
-    0xC0, 0xA8, 0x0A, 0x01,
-    // Target hardware address (MAC address)
-    0x13, 0xE2, 0xAF, 0xE2, 0xD5, 0xA6,
-    // Target protocol address (IPv4 address)
-    0xC0, 0xA8, 0x7A, 0x0E,
-];
-
-pub fn random_valid_arp() -> [u8; 28] {
-    let mut rng = thread_rng();
-
-    let mut arp =
-        DataBuffer::<_, Arp<NoPreviousHeader>>::parse_arp_alone(ARP_IPV4_REQUEST1, 0).unwrap();
-
-    let operation_code = match rng.gen_range(0..2) {
-        0_u8 => OperationCode::Reply,
-        1.. => OperationCode::Request,
-    };
-
-    arp.set_arp_operation_code(operation_code);
-    arp.set_arp_sender_hardware_address(&rng.gen());
-    arp.set_arp_sender_protocol_address(&Ipv4Addr::from(rng.gen::<[u8; 4]>()));
-    arp.set_arp_target_hardware_address(&rng.gen());
-    arp.set_arp_target_protocol_address(&Ipv4Addr::from(rng.gen::<[u8; 4]>()));
-
-    arp.buffer_into_inner()
-}
+include!("utils.rs");
 
 #[inline(always)]
 fn mutnet_new(

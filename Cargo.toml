@@ -74,11 +74,15 @@ name = "tcp"
 harness = false
 
 [[bench]]
+name = "ipv4_tcp"
+harness = false
+
+[[bench]]
 name = "udp"
 harness = false
 
 # Profiles
 [profile.bench]
 debug = true
-lto = true
+#lto = true
 opt-level = 3
