@@ -264,7 +264,7 @@ where
 
     #[inline]
     fn payload_length(&self) -> usize {
-        usize::from(self.payload().len())
+        self.payload().len()
     }
 }
 
