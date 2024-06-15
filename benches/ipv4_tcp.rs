@@ -44,9 +44,9 @@ pub fn ipv4_tcp(c: &mut Criterion) {
             let result = mutnet::multi_step_parser::parse_network_data::<_, 10>(
                 black_box(&ETH_IPV4_TCP),
                 0,
-                true,
-                true,
-                true,
+                false,
+                false,
+                false,
             )
             .unwrap();
             black_box(&result);
