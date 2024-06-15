@@ -86,3 +86,6 @@ harness = false
 debug = true
 #lto = true
 opt-level = 3
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }
