@@ -112,7 +112,7 @@ where
     /// - the provided data buffer is shorter than expected.
     /// - more extensions than `MAX_EXTENSIONS` are present.
     /// - an unrecognized extension type is passed to the constructor of [`Ipv6Extensions`] (this
-    /// constitutes a bug).
+    ///   constitutes a bug).
     #[inline]
     pub fn parse_ipv6_extensions_alone(
         buf: B,
@@ -144,7 +144,7 @@ where
     /// - the provided data buffer is shorter than expected.
     /// - more extensions than `MAX_EXTENSIONS` are present.
     /// - an unrecognized extension type is passed to the constructor of [`Ipv6Extensions`] (this
-    /// constitutes a bug).
+    ///   constitutes a bug).
     #[inline]
     pub fn parse_ipv6_extensions_layer(
         lower_layer_data_buffer: impl HeaderMetadata
