@@ -1,9 +1,6 @@
 //! Non-protocol specific errors.
-#[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
 use core::fmt::{Debug, Display, Formatter};
-#[cfg(feature = "std")]
-use std::error;
 
 use crate::arp::ParseArpError;
 use crate::ieee802_1q_vlan::ParseIeee802_1QError;
@@ -37,7 +34,6 @@ impl Display for UnexpectedBufferEndError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for UnexpectedBufferEndError {}
 
 /// Error returned if the available headroom is too not enough for the attempted operation.
@@ -59,7 +55,6 @@ impl Display for NotEnoughHeadroomError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for NotEnoughHeadroomError {}
 
 /// Error returned if the calculated checksum does not match the expected one.
@@ -81,7 +76,6 @@ impl Display for InvalidChecksumError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for InvalidChecksumError {}
 
 /// Error returned by [`parse_network_data()`](crate::multi_step_parser::parse_network_data()).
@@ -219,7 +213,6 @@ impl Display for ParseNetworkDataError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for ParseNetworkDataError {}
 
 /// Error returned by methods manipulating header field affecting the payload length.
@@ -246,5 +239,4 @@ impl Display for LengthExceedsAvailableSpaceError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for LengthExceedsAvailableSpaceError {}

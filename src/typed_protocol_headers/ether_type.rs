@@ -1,3 +1,5 @@
+//! Typed versions of Ethernet II protocol header fields.
+
 /// Sources:
 /// <https://en.wikipedia.org/wiki/EtherType>
 /// <https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml>
@@ -125,11 +127,7 @@ impl core::fmt::Display for UnrecognizedEtherTypeError {
     }
 }
 
-#[cfg(all(feature = "error_trait", not(feature = "std")))]
 impl core::error::Error for UnrecognizedEtherTypeError {}
-
-#[cfg(feature = "std")]
-impl std::error::Error for UnrecognizedEtherTypeError {}
 
 impl TryFrom<u16> for EtherType {
     type Error = UnrecognizedEtherTypeError;

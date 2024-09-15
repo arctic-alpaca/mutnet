@@ -1,3 +1,5 @@
+//! Typed versions of IPv4 ECN protocol header fields.
+
 /// Sources:
 /// <https://en.wikipedia.org/wiki/Explicit_Congestion_Notification>
 /// <https://www.iana.org/assignments/dscp-registry/dscp-registry.xhtml>
@@ -50,11 +52,7 @@ impl core::fmt::Display for UnrecognizedEcnError {
     }
 }
 
-#[cfg(all(feature = "error_trait", not(feature = "std")))]
 impl core::error::Error for UnrecognizedEcnError {}
-
-#[cfg(feature = "std")]
-impl std::error::Error for UnrecognizedEcnError {}
 
 #[cfg(kani)]
 mod ecn_verification {

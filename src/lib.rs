@@ -218,11 +218,7 @@
 //! `std` | use `std` | Yes
 //!  ... | All other features are for development usage only | No
 //!
-#![cfg_attr(
-    all(feature = "error_trait", not(feature = "std")),
-    feature(error_in_core)
-)]
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 #![forbid(unsafe_code)]
 #![forbid(unreachable_pub)]
 #![warn(missing_docs)]

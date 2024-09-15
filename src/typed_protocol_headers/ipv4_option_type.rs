@@ -1,3 +1,5 @@
+//! Typed versions of IPv4 Option protocol header fields.
+
 /// Sources:
 /// <https://en.wikipedia.org/wiki/Internet_Protocol_version_4#Options>
 /// <https://www.iana.org/assignments/ip-parameters/ip-parameters.xhtml#ip-parameters-1>
@@ -130,11 +132,7 @@ impl core::fmt::Display for UnrecognizedOptionTypeError {
     }
 }
 
-#[cfg(all(feature = "error_trait", not(feature = "std")))]
 impl core::error::Error for UnrecognizedOptionTypeError {}
-
-#[cfg(feature = "std")]
-impl std::error::Error for UnrecognizedOptionTypeError {}
 
 #[cfg(kani)]
 mod optiontype_verification {

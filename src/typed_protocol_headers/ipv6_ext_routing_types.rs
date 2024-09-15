@@ -1,3 +1,5 @@
+//! Typed versions of IPv6 extension routing protocol header fields.
+
 /// Sources:
 /// <https://www.iana.org/assignments/ipv6-parameters/ipv6-parameters.xhtml#ipv6-parameters-3>
 #[repr(u8)]
@@ -65,11 +67,7 @@ impl core::fmt::Display for UnrecognizedRoutingTypeError {
     }
 }
 
-#[cfg(all(feature = "error_trait", not(feature = "std")))]
 impl core::error::Error for UnrecognizedRoutingTypeError {}
-
-#[cfg(feature = "std")]
-impl std::error::Error for UnrecognizedRoutingTypeError {}
 
 #[cfg(kani)]
 mod routingtype_verification {

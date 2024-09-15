@@ -1,3 +1,5 @@
+//! Typed versions of ARP protocol header fields.
+
 /// ARP packet operation code
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 #[cfg_attr(kani, derive(kani::Arbitrary))]
@@ -46,11 +48,7 @@ impl core::fmt::Display for UnrecognizedOperationCodeError {
     }
 }
 
-#[cfg(all(feature = "error_trait", not(feature = "std")))]
 impl core::error::Error for UnrecognizedOperationCodeError {}
-
-#[cfg(feature = "std")]
-impl std::error::Error for UnrecognizedOperationCodeError {}
 
 #[cfg(kani)]
 mod operation_code_verification {

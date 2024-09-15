@@ -1,3 +1,5 @@
+//! Typed versions of IPv4 DCSP header fields.
+
 /// Sources:
 /// <https://en.wikipedia.org/wiki/Differentiated_services>
 /// <https://www.iana.org/assignments/dscp-registry/dscp-registry.xhtml>
@@ -109,11 +111,7 @@ impl core::fmt::Display for UnrecognizedDscpError {
     }
 }
 
-#[cfg(all(feature = "error_trait", not(feature = "std")))]
 impl core::error::Error for UnrecognizedDscpError {}
-
-#[cfg(feature = "std")]
-impl std::error::Error for UnrecognizedDscpError {}
 
 #[cfg(kani)]
 mod dscp_verification {

@@ -1,3 +1,5 @@
+//! Typed versions of IPv6 extension type protocol header fields.
+
 /// Sources:
 /// <https://en.wikipedia.org/wiki/IPv6_packet#Extension_headers>
 #[repr(u8)]
@@ -52,11 +54,7 @@ impl core::fmt::Display for UnrecognizedIpv6ExtensionError {
     }
 }
 
-#[cfg(all(feature = "error_trait", not(feature = "std")))]
 impl core::error::Error for UnrecognizedIpv6ExtensionError {}
-
-#[cfg(feature = "std")]
-impl std::error::Error for UnrecognizedIpv6ExtensionError {}
 
 #[cfg(kani)]
 mod ipv6extension_verification {

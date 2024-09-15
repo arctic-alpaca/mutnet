@@ -1,10 +1,7 @@
 //! IPv6 specific errors.
 
-#[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
 use core::fmt::{Debug, Display, Formatter};
-#[cfg(feature = "std")]
-use std::error;
 
 use crate::error::{LengthExceedsAvailableSpaceError, UnexpectedBufferEndError};
 
@@ -45,7 +42,6 @@ impl Display for ParseIpv6Error {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for ParseIpv6Error {}
 
 /// Error returned by methods manipulating the payload length header.
@@ -79,5 +75,4 @@ impl Display for SetPayloadLengthError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for SetPayloadLengthError {}

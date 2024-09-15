@@ -1,10 +1,7 @@
 //! IPv4 specific errors.
 
-#[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
 use core::fmt::{Debug, Display, Formatter};
-#[cfg(feature = "std")]
-use std::error;
 
 use crate::error::{
     InvalidChecksumError, LengthExceedsAvailableSpaceError, NotEnoughHeadroomError,
@@ -134,7 +131,6 @@ impl Display for ParseIpv4Error {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for ParseIpv4Error {}
 
 /// Error returned by methods manipulating the total length header.
@@ -174,7 +170,6 @@ impl From<LengthExceedsAvailableSpaceError> for SetTotalLengthError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for SetTotalLengthError {}
 
 /// Error returned by methods manipulating the IHL header.
@@ -212,5 +207,4 @@ impl From<NotEnoughHeadroomError> for SetIhlError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for SetIhlError {}

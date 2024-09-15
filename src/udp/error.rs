@@ -1,10 +1,7 @@
 //! UDP specific errors.
 
-#[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
 use core::fmt::{Debug, Display, Formatter};
-#[cfg(feature = "std")]
-use std::error;
 
 use crate::error::{
     InvalidChecksumError, LengthExceedsAvailableSpaceError, UnexpectedBufferEndError,
@@ -57,7 +54,6 @@ impl Display for ParseUdpError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for ParseUdpError {}
 
 /// Error returned by methods manipulating the length header.
@@ -95,5 +91,4 @@ impl Display for SetLengthError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for SetLengthError {}

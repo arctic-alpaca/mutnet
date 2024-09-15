@@ -1,7 +1,7 @@
 // Formatting and printing data to the default output may lead to dropped packets as this can be slow.
 // This example should not be used to judge performance but rather to see how mutnet can be used.
 
-use std::error::Error;
+use core::error::Error;
 use std::fmt;
 use std::fmt::Display;
 use std::io::{stdout, Write};

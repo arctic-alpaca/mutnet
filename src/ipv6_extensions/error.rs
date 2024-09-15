@@ -1,10 +1,7 @@
 //! IPv6 extensions specific errors.
 
-#[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
 use core::fmt::{Debug, Display, Formatter};
-#[cfg(feature = "std")]
-use std::error;
 
 use crate::error::{NotEnoughHeadroomError, UnexpectedBufferEndError};
 use crate::typed_protocol_headers::UnrecognizedInternetProtocolNumberError;
@@ -42,7 +39,6 @@ impl Display for ParseIpv6ExtensionsError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for ParseIpv6ExtensionsError {}
 
 /// Error returned by methods accessing the IPv6 extensions list with an index out of bounds.
@@ -66,7 +62,6 @@ impl Display for Ipv6ExtensionIndexOutOfBoundsError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for Ipv6ExtensionIndexOutOfBoundsError {}
 
 /// Error returned by methods accessing IPv6 extension header fields.
@@ -100,7 +95,6 @@ impl From<Ipv6ExtensionIndexOutOfBoundsError> for Ipv6ExtFieldError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for Ipv6ExtFieldError {}
 
 /// Error returned by methods manipulating the length header field of IPv6 extensions.
@@ -145,7 +139,6 @@ impl From<NotEnoughHeadroomError> for Ipv6ExtSetFieldError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for Ipv6ExtSetFieldError {}
 
 /// Error returned by IPv6 extension methods returning a typed internet protocol number.
@@ -182,5 +175,4 @@ impl Display for Ipv6ExtTypedHeaderError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for Ipv6ExtTypedHeaderError {}

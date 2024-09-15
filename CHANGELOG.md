@@ -1,3 +1,9 @@
+# 0.7.0 (15. September 2024)
+
+### Changed
+
+- **breaking** Switch to `core::error`, remove `std` and `error_trait` feature
+
 # 0.6.1 (24. March 2024)
 
 ### Changed

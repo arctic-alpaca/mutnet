@@ -1,10 +1,7 @@
 //! TCP specific errors.
 
-#[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
 use core::fmt::{Debug, Display, Formatter};
-#[cfg(feature = "std")]
-use std::error;
 
 use crate::error::{InvalidChecksumError, NotEnoughHeadroomError, UnexpectedBufferEndError};
 
@@ -55,7 +52,6 @@ impl Display for ParseTcpError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for ParseTcpError {}
 
 /// Error returned by methods manipulating the data offset.
@@ -93,5 +89,4 @@ impl From<NotEnoughHeadroomError> for SetDataOffsetError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for SetDataOffsetError {}

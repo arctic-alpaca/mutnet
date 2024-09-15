@@ -13,12 +13,8 @@ jobs:
           components: rustfmt, clippy
       - name: doc tests
         run: cargo test --doc
-      - name: tests - no default features
-        run: cargo test --no-default-features --tests
-      - name: tests - std
-        run: cargo test --no-default-features --features std --tests
-      - name: tests - error_trait
-        run: cargo test --no-default-features --features error_trait --tests
+      - name: tests
+        run: cargo test --tests
       - name: fmt
         run: cargo fmt --all -- --check
       - name: clippy
@@ -26,20 +22,18 @@ jobs:
       - name: Check semver
         uses: obi1kenobi/cargo-semver-checks-action@v2
   tests_1_77:
-    name: tests, fmt & clippy @ 1.77.0
+    name: tests, fmt & clippy @ 1.81.0
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.77.0
+          toolchain: 1.81.0
           components: rustfmt, clippy
       - name: doc tests
         run: cargo test --doc
-      - name: tests - no default features
-        run: cargo test --no-default-features --tests
-      - name: tests - std
-        run: cargo test --features std --tests
+      - name: tests
+        run: cargo test --tests
       - name: fmt
         run: cargo fmt --all -- --check
       - name: clippy

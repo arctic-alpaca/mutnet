@@ -244,7 +244,7 @@ fn add_or_update_ieee802_1q_s_tag_complete() {
                     let tcp_header_start_offset = to_test.header_start_offset(Layer::Tcp);
                     let tcp_header_length = to_test.header_length(Layer::Tcp);
 
-                    let param = kani::arbitrary::Arbitrary::any_array();
+                    let param = kani::Arbitrary::any_array();
                     if to_test.add_or_update_ieee802_1q_s_tag(&param).is_ok()
                         && vlan == Vlan::SingleTagged
                     {

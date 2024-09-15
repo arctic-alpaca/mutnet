@@ -1,3 +1,5 @@
+//! Typed versions of Internet protocol header fields.
+
 /// Sources:
 /// <https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml>
 #[repr(u8)]
@@ -483,11 +485,7 @@ impl core::fmt::Display for UnrecognizedInternetProtocolNumberError {
     }
 }
 
-#[cfg(all(feature = "error_trait", not(feature = "std")))]
 impl core::error::Error for UnrecognizedInternetProtocolNumberError {}
-
-#[cfg(feature = "std")]
-impl std::error::Error for UnrecognizedInternetProtocolNumberError {}
 
 #[cfg(kani)]
 mod internetprotocolnumber_verification {

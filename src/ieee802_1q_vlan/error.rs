@@ -1,10 +1,7 @@
 //! IEEE 802.1Q specific errors.
 
-#[cfg(all(feature = "error_trait", not(feature = "std")))]
 use core::error;
 use core::fmt::{Debug, Display, Formatter};
-#[cfg(feature = "std")]
-use std::error;
 
 use crate::error::UnexpectedBufferEndError;
 
@@ -40,7 +37,6 @@ impl Display for ParseIeee802_1QError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for ParseIeee802_1QError {}
 
 /// Header returned by methods expecting a double tagged packet.
@@ -53,5 +49,4 @@ impl Display for NotDoubleTaggedError {
     }
 }
 
-#[cfg(feature = "error_trait")]
 impl error::Error for NotDoubleTaggedError {}
