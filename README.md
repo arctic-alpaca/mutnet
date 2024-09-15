@@ -5,7 +5,7 @@ library.
 
 [![Crates.io](https://img.shields.io/crates/v/mutnet)](https://crates.io/crates/mutnet)
 [![Documentation](https://docs.rs/mutnet/badge.svg)](https://docs.rs/mutnet)
-[![MSRV](https://img.shields.io/badge/MSRV-1.77.0-blue)](https://blog.rust-lang.org/2023/11/16/Rust-1.77.0.html)
+[![MSRV](https://img.shields.io/badge/MSRV-1.81.0-blue)](https://blog.rust-lang.org/2024/09/05/Rust-1.81.0.html)
 
 ## Supported Protocols
 
